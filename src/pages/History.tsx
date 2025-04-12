@@ -34,7 +34,10 @@ const History = () => {
       )
     : groupedHistory;
   
-  const hasEntries = Object.values(filteredHistory).some(entries => entries.length > 0);
+  const hasEntries = Object.values(filteredHistory).some(entries => 
+    // Adicionamos a verificação de tipo aqui
+    Array.isArray(entries) && entries.length > 0
+  );
   
   return (
     <MainLayout>
@@ -85,7 +88,8 @@ const History = () => {
             {Object.entries(filteredHistory)
               .sort(([dateA], [dateB]) => new Date(dateB).getTime() - new Date(dateA).getTime())
               .map(([date, entries]) => {
-                if (entries.length === 0) return null;
+                // Adicionamos a verificação de tipo aqui
+                if (!Array.isArray(entries) || entries.length === 0) return null;
                 
                 return (
                   <Card key={date}>
@@ -97,7 +101,8 @@ const History = () => {
                     </CardHeader>
                     <CardContent className="p-0">
                       <ScrollArea className="max-h-[300px]">
-                        {entries.map((history) => (
+                        {/* Usamos a verificação de tipo para garantir que entries é um array */}
+                        {Array.isArray(entries) && entries.map((history) => (
                           <HistoryItem key={history.date} history={history} />
                         ))}
                       </ScrollArea>
