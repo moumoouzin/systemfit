@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { User, Session } from '@supabase/supabase-js';
 import { useNavigate } from "react-router-dom";
@@ -23,6 +22,7 @@ interface AuthContextType {
   }) => Promise<void>;
   logout: () => Promise<void>;
   loginWithGoogle: () => Promise<void>;
+  updateProfile: (updateData: Record<string, unknown>) => Promise<{ success: boolean }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -300,6 +300,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  // Atualizar perfil do usuário
+  const updateProfile = async (updateData: Record<string, unknown>) => {
+    if (!user) throw new Error("Usuário não autenticado");
+    
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update(updateData as any)
+        .eq('id', user.id as any);
+      
+      if (error) throw error;
+      
+      // Atualizar o estado do perfil após a atualização
+      await fetchUserProfile(user.id);
+      
+      return { success: true };
+    } catch (error) {
+      console.error("Erro ao atualizar perfil:", error);
+      throw error;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -310,7 +332,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         login,
         register,
         logout,
-        loginWithGoogle
+        loginWithGoogle,
+        updateProfile
       }}
     >
       {children}

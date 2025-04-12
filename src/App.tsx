@@ -10,6 +10,7 @@ import Dashboard from "./pages/Index";
 import Workouts from "./pages/Workouts";
 import History from "./pages/History";
 import Stats from "./pages/Stats";
+import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/workouts" element={<ProtectedRoute><Workouts /></ProtectedRoute>} />
             <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
             <Route path="/stats" element={<ProtectedRoute><Stats /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             
             {/* Rota 404 */}
             <Route path="*" element={<NotFound />} />
