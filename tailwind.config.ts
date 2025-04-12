@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -52,6 +53,15 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+				// RPG theme colors
+				rpg: {
+					strength: '#E53935',     // Red for strength
+					vitality: '#43A047',     // Green for vitality
+					focus: '#1E88E5',        // Blue for focus
+					xp: '#8E24AA',           // Purple for experience
+					gold: '#FFC107',         // Gold for achievements
+					dark: '#424242'          // Dark gray for UI elements
+				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',
@@ -84,11 +94,37 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'pulse-glow': {
+					'0%, 100%': {
+						opacity: '1',
+						boxShadow: '0 0 10px 2px rgba(79, 70, 229, 0.4)'
+					},
+					'50%': {
+						opacity: '0.8',
+						boxShadow: '0 0 20px 4px rgba(79, 70, 229, 0.7)'
+					}
+				},
+				'level-up': {
+					'0%': {
+						transform: 'scale(1)',
+						opacity: '0.7'
+					},
+					'50%': {
+						transform: 'scale(1.2)',
+						opacity: '1'
+					},
+					'100%': {
+						transform: 'scale(1)',
+						opacity: '0.7'
+					}
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'pulse-glow': 'pulse-glow 2s infinite ease-in-out',
+				'level-up': 'level-up 1s ease-in-out'
 			}
 		}
 	},
