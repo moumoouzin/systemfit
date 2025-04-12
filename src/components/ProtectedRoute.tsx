@@ -12,6 +12,9 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { user, isLoading } = useAuth();
   const location = useLocation();
 
+  // Adicionar console.log para debugging
+  console.log("ProtectedRoute - Auth state:", { user, isLoading });
+
   // Se ainda estiver carregando, você pode mostrar um indicador de carregamento
   if (isLoading) {
     return (

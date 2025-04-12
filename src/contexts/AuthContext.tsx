@@ -35,16 +35,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log("AuthProvider initialized");
+    
     // Verificar sessão atual
     const getSession = async () => {
       setIsLoading(true);
       try {
+        console.log("Fetching session");
         const { data } = await supabase.auth.getSession();
+        console.log("Session data:", data);
+        
         setSession(data.session);
         setUser(data.session?.user || null);
         
         if (data.session?.user) {
           await fetchUserProfile(data.session.user.id);
+        } else {
+          console.log("No active session found");
+          setIsLoading(false);
         }
       } catch (error) {
         console.error("Erro ao verificar sessão:", error);
@@ -53,7 +61,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           description: "Não foi possível verificar sua sessão.",
           variant: "destructive",
         });
-      } finally {
         setIsLoading(false);
       }
     };
@@ -61,6 +68,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Escutar alterações de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
+        console.log("Auth state changed:", _event, session?.user?.id);
         setSession(session);
         setUser(session?.user || null);
         
@@ -68,6 +76,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           await fetchUserProfile(session.user.id);
         } else {
           setProfile(null);
+          setIsLoading(false);
         }
       }
     );
@@ -87,7 +96,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', userId as any)
+        .eq('id', userId)
         .maybeSingle();
       
       if (error) {
@@ -146,8 +155,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setProfile(tempProfile);
         }
       }
+      
+      // Always set isLoading to false after fetching profile
+      setIsLoading(false);
+      
     } catch (error) {
       console.error("Erro ao buscar perfil:", error);
+      // Ensure isLoading is set to false even if there's an error
+      setIsLoading(false);
     }
   };
 
