@@ -49,7 +49,6 @@ const UserAvatar = ({ user }: UserAvatarProps) => {
               <span className="text-xs font-medium">Força</span>
               <Progress 
                 value={(user.attributes.strength/10)*100} 
-                className="w-full h-2" 
                 className={cn("w-full h-2", "bg-rpg-strength/20")}
               />
             </div>

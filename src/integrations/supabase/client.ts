@@ -9,4 +9,34 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+export const supabase = createClient<Database>(
+  SUPABASE_URL, 
+  SUPABASE_PUBLISHABLE_KEY,
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+    }
+  }
+);
+
+// Inicializa o bucket de avatares se necessário
+(async () => {
+  try {
+    // Verificar se o bucket existe
+    const { data, error } = await supabase.storage.getBucket('avatars');
+    
+    if (error && error.message.includes('The resource was not found')) {
+      // Criar o bucket se não existir
+      await supabase.storage.createBucket('avatars', {
+        public: true,
+        allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
+        fileSizeLimit: 1024 * 1024 * 2, // 2MB
+      });
+      
+      console.log('Bucket de avatares criado com sucesso');
+    }
+  } catch (error) {
+    console.error('Erro ao verificar/criar bucket de avatares:', error);
+  }
+})();

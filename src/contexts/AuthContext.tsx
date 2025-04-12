@@ -12,7 +12,14 @@ interface AuthContextType {
   session: Session | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string) => Promise<void>;
+  register: (email: string, password: string, name: string, options?: {
+    avatarUrl?: string | null;
+    attributes?: {
+      strength: number;
+      vitality: number;
+      focus: number;
+    }
+  }) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -135,20 +142,65 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const register = async (email: string, password: string, name: string) => {
+  const register = async (
+    email: string, 
+    password: string, 
+    name: string, 
+    options?: {
+      avatarUrl?: string | null;
+      attributes?: {
+        strength: number;
+        vitality: number;
+        focus: number;
+      }
+    }
+  ) => {
     try {
       setIsLoading(true);
+      
+      // Registrar o usuário com dados adicionais
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             name,
+            avatar_url: options?.avatarUrl || null,
+            strength: options?.attributes?.strength || 1,
+            vitality: options?.attributes?.vitality || 1,
+            focus: options?.attributes?.focus || 1
           },
         },
       });
 
       if (error) throw error;
+
+      // Se o cadastro for bem-sucedido e o perfil já tiver sido criado pelo trigger,
+      // podemos atualizar os atributos diretamente na tabela de perfis
+      if (data.user) {
+        if (options?.avatarUrl || options?.attributes) {
+          const updateData: { [key: string]: any } = {};
+          
+          if (options.avatarUrl) {
+            updateData.avatar_url = options.avatarUrl;
+          }
+          
+          if (options.attributes) {
+            updateData.strength = options.attributes.strength;
+            updateData.vitality = options.attributes.vitality;
+            updateData.focus = options.attributes.focus;
+          }
+          
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update(updateData)
+            .eq('id', data.user.id);
+            
+          if (updateError) {
+            console.error("Erro ao atualizar perfil:", updateError);
+          }
+        }
+      }
 
       toast({
         title: "Registro concluído com sucesso",
