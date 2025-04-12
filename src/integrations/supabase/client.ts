@@ -17,13 +17,7 @@ export const supabase = createClient<Database>(
       persistSession: true,
       autoRefreshToken: true,
       flowType: 'pkce',
-      detectSessionInUrl: true,
-      // Não exigir confirmação de email
-      flowParams: {
-        allowEmail: {
-          emailVerification: false
-        }
-      }
+      detectSessionInUrl: true
     }
   }
 );

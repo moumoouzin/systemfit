@@ -179,7 +179,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // podemos atualizar os atributos diretamente na tabela de perfis
       if (data.user) {
         if (options?.avatarUrl || options?.attributes) {
-          const updateData: { [key: string]: any } = {};
+          const updateData: {
+            avatar_url?: string | null;
+            strength?: number;
+            vitality?: number;
+            focus?: number;
+          } = {};
           
           if (options.avatarUrl) {
             updateData.avatar_url = options.avatarUrl;
