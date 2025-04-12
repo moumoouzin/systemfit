@@ -22,6 +22,7 @@ interface AuthContextType {
     }
   }) => Promise<void>;
   logout: () => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -84,7 +85,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Buscar perfil do usuário do Supabase
   const fetchUserProfile = async (userId: string) => {
     try {
-      // Fix for the query parameter type issue
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -94,7 +94,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (error) throw error;
       
       if (data) {
-        // Type-safe data access by explicitly checking for properties
         const userProfile: AppUser = {
           id: data.id,
           name: data.name,
@@ -145,6 +144,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const loginWithGoogle = async () => {
+    try {
+      setIsLoading(true);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin
+        }
+      });
+
+      if (error) throw error;
+      
+    } catch (error: any) {
+      console.error("Erro ao fazer login com Google:", error);
+      toast({
+        title: "Erro de login",
+        description: error.message || "Não foi possível fazer login com o Google.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+    }
+  };
+
   const register = async (
     email: string, 
     password: string, 
@@ -182,7 +204,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // podemos atualizar os atributos diretamente na tabela de perfis
       if (data.user) {
         if (options?.avatarUrl || options?.attributes) {
-          // Fix for the type issue with updateData
           const updateData: Record<string, unknown> = {};
           
           if (options.avatarUrl) {
@@ -254,6 +275,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         login,
         register,
         logout,
+        loginWithGoogle
       }}
     >
       {children}

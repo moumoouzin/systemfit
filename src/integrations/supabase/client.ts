@@ -17,8 +17,7 @@ export const supabase = createClient<Database>(
       persistSession: true,
       autoRefreshToken: true,
       flowType: 'pkce',
-      detectSessionInUrl: true,
-      // Removed flowParams as it's not recognized by the TypeScript definitions
+      detectSessionInUrl: true
     }
   }
 );
