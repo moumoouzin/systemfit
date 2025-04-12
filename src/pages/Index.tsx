@@ -6,11 +6,13 @@ import WorkoutCard from "@/components/WorkoutCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Trophy, Dumbbell, Plus, BarChart2 } from "lucide-react";
-import { mockUser, mockWorkouts, mockExerciseProgress } from "@/data/mockData";
+import { mockWorkouts, mockExerciseProgress } from "@/data/mockData";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { profile } = useAuth();
   
   return (
     <MainLayout>
@@ -18,15 +20,15 @@ const Dashboard = () => {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground">
-            Olá, {mockUser.name}! Vamos treinar hoje?
+            Olá, {profile?.name || 'Atleta'}! Vamos treinar hoje?
           </p>
         </div>
         
-        <UserAvatar user={mockUser} />
+        {profile && <UserAvatar user={profile} />}
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <WeeklyProgress 
-            daysTrainedThisWeek={mockUser.daysTrainedThisWeek} 
+            daysTrainedThisWeek={profile?.daysTrainedThisWeek || 0} 
             totalDaysGoal={4} 
           />
           

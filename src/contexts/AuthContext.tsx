@@ -60,15 +60,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Escutar alterações de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      async (_event, session) => {
         setSession(session);
         setUser(session?.user || null);
         
         if (session?.user) {
-          // Usar setTimeout para evitar possíveis deadlocks
-          setTimeout(() => {
-            fetchUserProfile(session.user.id);
-          }, 0);
+          await fetchUserProfile(session.user.id);
         } else {
           setProfile(null);
         }
@@ -85,13 +82,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Buscar perfil do usuário do Supabase
   const fetchUserProfile = async (userId: string) => {
     try {
+      console.log("Fetching profile for user ID:", userId);
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId as any)
-        .single();
+        .maybeSingle();
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching profile:", error);
+        throw error;
+      }
+      
+      console.log("Profile data received:", data);
       
       if (data) {
         const userProfile: AppUser = {
@@ -109,7 +113,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           streakDays: data.streak_days
         };
         
+        console.log("Setting profile:", userProfile);
         setProfile(userProfile);
+      } else {
+        console.warn("No profile data found for user:", userId);
+        // If profile doesn't exist yet, try to get user metadata and create basic profile
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData?.user) {
+          const displayName = userData.user.user_metadata?.name || 
+                             userData.user.user_metadata?.full_name || 
+                             userData.user.email?.split('@')[0] || 
+                             "Usuário";
+          
+          console.log("Creating placeholder profile with name:", displayName);
+          
+          // Set a basic profile while we wait for the database to catch up
+          const tempProfile: AppUser = {
+            id: userId,
+            name: displayName,
+            avatarUrl: userData.user.user_metadata?.avatar_url || "",
+            level: 1,
+            xp: 0,
+            attributes: {
+              strength: 1,
+              vitality: 1,
+              focus: 1
+            },
+            daysTrainedThisWeek: 0,
+            streakDays: 0
+          };
+          
+          setProfile(tempProfile);
+        }
       }
     } catch (error) {
       console.error("Erro ao buscar perfil:", error);
