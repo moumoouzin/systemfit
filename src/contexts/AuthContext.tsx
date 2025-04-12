@@ -1,10 +1,10 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { User, Session } from '@supabase/supabase-js';
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { User as AppUser } from "@/types";
-import { Database } from "@/integrations/supabase/types";
 
 interface AuthContextType {
   user: User | null;
@@ -36,6 +36,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     console.log("AuthProvider initialized");
+    let isMounted = true;
     
     // Verificar sessão atual
     const getSession = async () => {
@@ -44,6 +45,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.log("Fetching session");
         const { data } = await supabase.auth.getSession();
         console.log("Session data:", data);
+        
+        if (!isMounted) return;
         
         setSession(data.session);
         setUser(data.session?.user || null);
@@ -56,12 +59,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       } catch (error) {
         console.error("Erro ao verificar sessão:", error);
-        toast({
-          title: "Erro de autenticação",
-          description: "Não foi possível verificar sua sessão.",
-          variant: "destructive",
-        });
-        setIsLoading(false);
+        if (isMounted) {
+          toast({
+            title: "Erro de autenticação",
+            description: "Não foi possível verificar sua sessão.",
+            variant: "destructive",
+          });
+          setIsLoading(false);
+        }
       }
     };
 
@@ -69,6 +74,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         console.log("Auth state changed:", _event, session?.user?.id);
+        if (!isMounted) return;
+        
         setSession(session);
         setUser(session?.user || null);
         
@@ -84,6 +91,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     getSession();
 
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
     };
   }, []);
