@@ -6,7 +6,7 @@ import { LogOut } from "lucide-react";
 import MainNav from "@/components/MainNav";
 
 const MainLayout = ({ children }: PropsWithChildren) => {
-  const { user, logout } = useAuth();
+  const { profile, logout } = useAuth();
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
@@ -16,20 +16,20 @@ const MainLayout = ({ children }: PropsWithChildren) => {
           <p className="text-sm text-muted-foreground">Fitness RPG</p>
         </div>
         
-        {user && (
+        {profile && (
           <div className="px-4 mb-6 flex items-center gap-2">
             <div className="flex-shrink-0 h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
-              {user.avatarUrl ? (
-                <img src={user.avatarUrl} alt={user.name} className="h-full w-full object-cover" />
+              {profile.avatarUrl ? (
+                <img src={profile.avatarUrl} alt={profile.name} className="h-full w-full object-cover" />
               ) : (
                 <span className="text-primary font-medium">
-                  {user.name.charAt(0).toUpperCase()}
+                  {profile.name.charAt(0).toUpperCase()}
                 </span>
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{user.name}</p>
-              <p className="text-xs text-muted-foreground truncate">Nível {user.level}</p>
+              <p className="text-sm font-medium truncate">{profile.name}</p>
+              <p className="text-xs text-muted-foreground truncate">Nível {profile.level}</p>
             </div>
             <Button variant="ghost" size="icon" onClick={logout} title="Sair">
               <LogOut className="h-5 w-5" />

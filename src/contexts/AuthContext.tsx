@@ -1,176 +1,214 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { User, Session } from '@supabase/supabase-js';
 import { useNavigate } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/components/ui/use-toast";
+import { User as AppUser } from "@/types";
 
-// Interface para o usuário autenticado
-interface AuthUser {
-  id: string;
-  name: string;
-  email: string;
-  avatarUrl: string;
-  level: number;
-  xp: number;
-  attributes: {
-    strength: number;
-    vitality: number;
-    focus: number;
-  };
-  daysTrainedThisWeek: number;
-  streakDays: number;
-}
-
-// Interface para o contexto de autenticação
 interface AuthContextType {
-  user: AuthUser | null;
+  user: User | null;
+  profile: AppUser | null;
+  session: Session | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  register: (name: string, email: string, password: string) => Promise<boolean>;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, name: string) => Promise<void>;
+  logout: () => Promise<void>;
 }
 
-// Criação do contexto
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Hook para usar o contexto
-export const useAuth = () => {
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<AppUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Verificar sessão atual
+    const getSession = async () => {
+      setIsLoading(true);
+      try {
+        const { data } = await supabase.auth.getSession();
+        setSession(data.session);
+        setUser(data.session?.user || null);
+        
+        if (data.session?.user) {
+          await fetchUserProfile(data.session.user.id);
+        }
+      } catch (error) {
+        console.error("Erro ao verificar sessão:", error);
+        toast({
+          title: "Erro de autenticação",
+          description: "Não foi possível verificar sua sessão.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    // Escutar alterações de autenticação
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session);
+        setUser(session?.user || null);
+        
+        if (session?.user) {
+          // Usar setTimeout para evitar possíveis deadlocks
+          setTimeout(() => {
+            fetchUserProfile(session.user.id);
+          }, 0);
+        } else {
+          setProfile(null);
+        }
+      }
+    );
+
+    getSession();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // Buscar perfil do usuário do Supabase
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (error) throw error;
+      
+      if (data) {
+        const userProfile: AppUser = {
+          id: data.id,
+          name: data.name,
+          avatarUrl: data.avatar_url || "",
+          level: data.level,
+          xp: data.xp,
+          attributes: {
+            strength: data.strength,
+            vitality: data.vitality,
+            focus: data.focus
+          },
+          daysTrainedThisWeek: data.days_trained_this_week,
+          streakDays: data.streak_days
+        };
+        
+        setProfile(userProfile);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar perfil:", error);
+    }
+  };
+
+  const login = async (email: string, password: string) => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+      
+      toast({
+        title: "Login realizado com sucesso",
+        description: "Bem-vindo de volta!",
+      });
+      
+      navigate("/");
+    } catch (error: any) {
+      console.error("Erro ao fazer login:", error);
+      toast({
+        title: "Erro de login",
+        description: error.message || "Verifique suas credenciais e tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const register = async (email: string, password: string, name: string) => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name,
+          },
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Registro concluído com sucesso",
+        description: "Sua conta foi criada. Bem-vindo ao SystemFit!",
+      });
+      
+      navigate("/");
+    } catch (error: any) {
+      console.error("Erro ao registrar:", error);
+      toast({
+        title: "Erro no registro",
+        description: error.message || "Não foi possível criar sua conta.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const logout = async () => {
+    try {
+      setIsLoading(true);
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) throw error;
+      
+      navigate("/login");
+    } catch (error: any) {
+      console.error("Erro ao fazer logout:", error);
+      toast({
+        title: "Erro ao sair",
+        description: error.message || "Não foi possível fazer logout.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        profile,
+        session,
+        isLoading,
+        login,
+        register,
+        logout,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error("useAuth deve ser usado dentro de um AuthProvider");
   }
   return context;
-};
-
-// Mock de usuário inicial (apenas para desenvolvimento)
-const mockUser: AuthUser = {
-  id: "1",
-  name: "Usuário Teste",
-  email: "usuario@teste.com",
-  avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-  level: 5,
-  xp: 120,
-  attributes: {
-    strength: 8,
-    vitality: 7,
-    focus: 6
-  },
-  daysTrainedThisWeek: 3,
-  streakDays: 7
-};
-
-// Provedor de autenticação
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const navigate = useNavigate();
-  const { toast } = useToast();
-
-  // Verificar se há um usuário salvo no localStorage ao carregar
-  useEffect(() => {
-    const savedUser = localStorage.getItem("systemfit-user");
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    setIsLoading(false);
-  }, []);
-
-  // Função de login
-  const login = async (email: string, password: string): Promise<boolean> => {
-    setIsLoading(true);
-    try {
-      // Simulação de autenticação (em produção, seria uma API real)
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Validação simples (apenas para demonstração)
-      if (email === "usuario@teste.com" && password === "123456") {
-        setUser(mockUser);
-        localStorage.setItem("systemfit-user", JSON.stringify(mockUser));
-        toast({
-          title: "Login realizado com sucesso!",
-          description: "Bem-vindo de volta ao SystemFit!",
-        });
-        navigate("/");
-        return true;
-      } else {
-        toast({
-          title: "Erro no login",
-          description: "Email ou senha incorretos.",
-          variant: "destructive",
-        });
-        return false;
-      }
-    } catch (error) {
-      toast({
-        title: "Erro no login",
-        description: "Ocorreu um erro ao tentar fazer login.",
-        variant: "destructive",
-      });
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Função de registro
-  const register = async (name: string, email: string, password: string): Promise<boolean> => {
-    setIsLoading(true);
-    try {
-      // Simulação de registro (em produção, seria uma API real)
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Criando novo usuário
-      const newUser: AuthUser = {
-        ...mockUser,
-        id: Math.random().toString(36).substr(2, 9),
-        name,
-        email,
-        level: 1,
-        xp: 0,
-        attributes: {
-          strength: 1,
-          vitality: 1,
-          focus: 1
-        },
-        daysTrainedThisWeek: 0,
-        streakDays: 0
-      };
-      
-      setUser(newUser);
-      localStorage.setItem("systemfit-user", JSON.stringify(newUser));
-      
-      toast({
-        title: "Conta criada com sucesso!",
-        description: "Bem-vindo ao SystemFit!",
-      });
-      
-      navigate("/");
-      return true;
-    } catch (error) {
-      toast({
-        title: "Erro no cadastro",
-        description: "Ocorreu um erro ao tentar criar sua conta.",
-        variant: "destructive",
-      });
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Função de logout
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem("systemfit-user");
-    toast({
-      title: "Logout realizado",
-      description: "Você saiu da sua conta. Até breve!",
-    });
-    navigate("/login");
-  };
-
-  return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
 };

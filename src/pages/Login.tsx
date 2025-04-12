@@ -11,17 +11,13 @@ import { Dumbbell, LogIn, Mail, Eye, EyeOff, Lock } from "lucide-react";
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { login } = useAuth();
+  const { login, isLoading } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) return;
-
-    setIsSubmitting(true);
     await login(email, password);
-    setIsSubmitting(false);
   };
 
   return (
@@ -88,9 +84,9 @@ const Login = () => {
               <Button
                 type="submit"
                 className="w-full"
-                disabled={isSubmitting}
+                disabled={isLoading}
               >
-                {isSubmitting ? "Entrando..." : "Entrar"}
+                {isLoading ? "Entrando..." : "Entrar"}
                 <LogIn className="ml-2 h-4 w-4" />
               </Button>
               <p className="text-center text-sm text-muted-foreground">
@@ -105,12 +101,6 @@ const Login = () => {
             </CardFooter>
           </form>
         </Card>
-        
-        <div className="mt-4 text-center text-xs text-muted-foreground">
-          <p>Para testar, use:</p>
-          <p className="font-mono">Email: usuario@teste.com</p>
-          <p className="font-mono">Senha: 123456</p>
-        </div>
       </div>
     </div>
   );

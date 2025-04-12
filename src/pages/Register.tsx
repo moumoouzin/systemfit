@@ -6,53 +6,38 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dumbbell, Mail, Eye, EyeOff, Lock, User, UserPlus } from "lucide-react";
+import { Dumbbell, LogIn, Mail, Eye, EyeOff, Lock, User } from "lucide-react";
 
 const Register = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const { register } = useAuth();
-
-  const validate = () => {
-    const newErrors: Record<string, string> = {};
-    
-    if (!name.trim()) {
-      newErrors.name = "Nome é obrigatório";
-    }
-    
-    if (!email.trim()) {
-      newErrors.email = "Email é obrigatório";
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = "Email inválido";
-    }
-    
-    if (!password) {
-      newErrors.password = "Senha é obrigatória";
-    } else if (password.length < 6) {
-      newErrors.password = "Senha deve ter pelo menos 6 caracteres";
-    }
-    
-    if (password !== confirmPassword) {
-      newErrors.confirmPassword = "As senhas não coincidem";
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [error, setError] = useState("");
+  const { register, isLoading } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
     
-    if (!validate()) return;
+    if (!name || !email || !password || !confirmPassword) {
+      setError("Preencha todos os campos");
+      return;
+    }
     
-    setIsSubmitting(true);
-    await register(name, email, password);
-    setIsSubmitting(false);
+    if (password !== confirmPassword) {
+      setError("As senhas não coincidem");
+      return;
+    }
+    
+    if (password.length < 6) {
+      setError("A senha deve ter pelo menos 6 caracteres");
+      return;
+    }
+    
+    await register(email, password, name);
   };
 
   return (
@@ -68,9 +53,9 @@ const Register = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Criar conta</CardTitle>
+            <CardTitle>Criar nova conta</CardTitle>
             <CardDescription>
-              Preencha os dados abaixo para começar sua jornada
+              Preencha os dados abaixo para se registrar
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit}>
@@ -81,17 +66,14 @@ const Register = () => {
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="name"
+                    type="text"
                     placeholder="Seu nome"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="pl-10"
                   />
                 </div>
-                {errors.name && (
-                  <p className="text-sm font-medium text-destructive">{errors.name}</p>
-                )}
               </div>
-              
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <div className="relative">
@@ -105,11 +87,7 @@ const Register = () => {
                     className="pl-10"
                   />
                 </div>
-                {errors.email && (
-                  <p className="text-sm font-medium text-destructive">{errors.email}</p>
-                )}
               </div>
-              
               <div className="space-y-2">
                 <Label htmlFor="password">Senha</Label>
                 <div className="relative">
@@ -134,37 +112,44 @@ const Register = () => {
                     )}
                   </button>
                 </div>
-                {errors.password && (
-                  <p className="text-sm font-medium text-destructive">{errors.password}</p>
-                )}
               </div>
-              
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirmar Senha</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="confirmPassword"
-                    type={showPassword ? "text" : "password"}
+                    type={showConfirmPassword ? "text" : "password"}
                     placeholder="••••••••"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className="pl-10 pr-10"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2"
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </button>
                 </div>
-                {errors.confirmPassword && (
-                  <p className="text-sm font-medium text-destructive">{errors.confirmPassword}</p>
-                )}
               </div>
+              {error && (
+                <div className="text-destructive text-sm">{error}</div>
+              )}
             </CardContent>
             <CardFooter className="flex-col space-y-4">
               <Button
                 type="submit"
                 className="w-full"
-                disabled={isSubmitting}
+                disabled={isLoading}
               >
-                {isSubmitting ? "Criando conta..." : "Criar conta"}
-                <UserPlus className="ml-2 h-4 w-4" />
+                {isLoading ? "Registrando..." : "Criar conta"}
+                <LogIn className="ml-2 h-4 w-4" />
               </Button>
               <p className="text-center text-sm text-muted-foreground">
                 Já tem uma conta?{" "}

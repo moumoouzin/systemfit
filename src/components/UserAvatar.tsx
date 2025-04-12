@@ -2,6 +2,7 @@
 import { User } from "@/types";
 import { Progress } from "@/components/ui/progress";
 import { Shield, Zap, Brain } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface UserAvatarProps {
   user: User;
@@ -39,26 +40,36 @@ const UserAvatar = ({ user }: UserAvatarProps) => {
           </div>
           
           <div className="mt-2">
-            <Progress value={xpProgress} className="h-2 bg-gray-200" indicatorClassName="bg-rpg-xp" />
+            <Progress value={xpProgress} className="h-2 bg-gray-200" />
           </div>
           
           <div className="grid grid-cols-3 gap-2 mt-3">
             <div className="flex flex-col items-center text-rpg-strength">
               <Shield size={18} />
               <span className="text-xs font-medium">Força</span>
-              <Progress value={(user.attributes.strength/10)*100} className="w-full h-2" indicatorClassName="bg-rpg-strength" />
+              <Progress 
+                value={(user.attributes.strength/10)*100} 
+                className="w-full h-2" 
+                className={cn("w-full h-2", "bg-rpg-strength/20")}
+              />
             </div>
             
             <div className="flex flex-col items-center text-rpg-vitality">
               <Zap size={18} />
               <span className="text-xs font-medium">Vigor</span>
-              <Progress value={(user.attributes.vitality/10)*100} className="w-full h-2" indicatorClassName="bg-rpg-vitality" />
+              <Progress 
+                value={(user.attributes.vitality/10)*100} 
+                className={cn("w-full h-2", "bg-rpg-vitality/20")}
+              />
             </div>
             
             <div className="flex flex-col items-center text-rpg-focus">
               <Brain size={18} />
               <span className="text-xs font-medium">Foco</span>
-              <Progress value={(user.attributes.focus/10)*100} className="w-full h-2" indicatorClassName="bg-rpg-focus" />
+              <Progress 
+                value={(user.attributes.focus/10)*100} 
+                className={cn("w-full h-2", "bg-rpg-focus/20")}
+              />
             </div>
           </div>
         </div>

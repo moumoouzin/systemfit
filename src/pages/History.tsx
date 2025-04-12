@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { mockWorkoutHistory } from "@/data/mockData";
 import { useState } from "react";
 import { Calendar, History as HistoryIcon, FilterX } from "lucide-react";
+import { WorkoutHistory } from "@/types";
 
 const History = () => {
   const [filter, setFilter] = useState<string | null>(null);
@@ -21,7 +22,7 @@ const History = () => {
     }
     acc[date].push(entry);
     return acc;
-  }, {} as Record<string, typeof mockWorkoutHistory>);
+  }, {} as Record<string, WorkoutHistory[]>);
   
   // Apply filter if needed
   const filteredHistory = filter 
