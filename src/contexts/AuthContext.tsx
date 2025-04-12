@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { User, Session } from '@supabase/supabase-js';
 import { useNavigate } from "react-router-dom";
@@ -177,12 +176,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);
+      console.log("Attempting login with:", { email });
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
+      
+      console.log("Login successful:", data.user?.id);
       
       toast({
         title: "Login realizado com sucesso",
@@ -197,6 +200,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         description: error.message || "Verifique suas credenciais e tente novamente.",
         variant: "destructive",
       });
+      throw error; // Propagar o erro para o componente poder lidar com ele
     } finally {
       setIsLoading(false);
     }

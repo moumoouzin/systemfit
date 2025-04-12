@@ -14,11 +14,11 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const location = useLocation();
   const [timeoutExpired, setTimeoutExpired] = useState(false);
 
-  // Add a 5-second timeout to prevent infinite loading
+  // Add a 3-second timeout to prevent infinite loading
   useEffect(() => {
     const timer = setTimeout(() => {
       setTimeoutExpired(true);
-    }, 5000);
+    }, 3000);
 
     return () => clearTimeout(timer);
   }, []);
@@ -36,7 +36,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   }
 
   // Se o timeout expirou ou não há usuário, redirecione para o login
-  if (timeoutExpired || !user) {
+  if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

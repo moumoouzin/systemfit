@@ -13,13 +13,28 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { login, loginWithGoogle, isLoading } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) return;
-    await login(email, password);
+    
+    setIsSubmitting(true);
+    try {
+      await login(email, password);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  const handleGoogleLogin = () => {
+    setIsSubmitting(true);
+    loginWithGoogle();
+  };
+
+  // Determinar se o botão deve mostrar o estado de carregamento
+  const buttonLoading = isSubmitting;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -52,6 +67,7 @@ const Login = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10"
+                    disabled={buttonLoading}
                   />
                 </div>
               </div>
@@ -66,11 +82,13 @@ const Login = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10 pr-10"
+                    disabled={buttonLoading}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2"
+                    disabled={buttonLoading}
                   >
                     {showPassword ? (
                       <EyeOff className="h-4 w-4 text-muted-foreground" />
@@ -85,10 +103,18 @@ const Login = () => {
               <Button
                 type="submit"
                 className="w-full"
-                disabled={isLoading}
+                disabled={buttonLoading}
               >
-                {isLoading ? "Entrando..." : "Entrar"}
-                <LogIn className="ml-2 h-4 w-4" />
+                {buttonLoading ? (
+                  <>
+                    <span className="animate-pulse">Entrando...</span>
+                  </>
+                ) : (
+                  <>
+                    Entrar
+                    <LogIn className="ml-2 h-4 w-4" />
+                  </>
+                )}
               </Button>
               
               <div className="flex items-center gap-2 w-full">
@@ -101,8 +127,8 @@ const Login = () => {
                 type="button" 
                 variant="outline" 
                 className="w-full"
-                onClick={loginWithGoogle}
-                disabled={isLoading}
+                onClick={handleGoogleLogin}
+                disabled={buttonLoading}
               >
                 <svg viewBox="0 0 24 24" className="h-5 w-5 mr-2" aria-hidden="true">
                   <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z" fill="currentColor"/>
