@@ -24,9 +24,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Shield, Bell, User } from "lucide-react";
+import ProfilePhotoUpload from "@/components/ProfilePhotoUpload";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const profileFormSchema = z.object({
   name: z
@@ -44,6 +46,7 @@ type ProfileFormValues = z.infer<typeof profileFormSchema>;
 const Settings = () => {
   const { profile, updateProfile, logout } = useAuth();
   const { toast } = useToast();
+  const { isDarkMode } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<ProfileFormValues>({
@@ -101,11 +104,14 @@ const Settings = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Configurações</h1>
-        <p className="text-muted-foreground">
-          Gerencie suas preferências de conta e perfil.
-        </p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Configurações</h1>
+          <p className="text-muted-foreground">
+            Gerencie suas preferências de conta e perfil.
+          </p>
+        </div>
+        <ThemeToggle />
       </div>
 
       <Tabs defaultValue="profile" className="space-y-4">
@@ -134,23 +140,7 @@ const Settings = () => {
             </CardHeader>
             <CardContent>
               <div className="flex flex-col gap-8">
-                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                  <Avatar className="h-20 w-20">
-                    <AvatarImage src={profile?.avatarUrl} alt={profile?.name} />
-                    <AvatarFallback>{profile?.name?.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <h3 className="text-lg font-medium">Foto de perfil</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Esta imagem será exibida em seu perfil.
-                    </p>
-                    <div className="mt-2 flex gap-2">
-                      <Button variant="outline" size="sm" disabled>
-                        Alterar
-                      </Button>
-                    </div>
-                  </div>
-                </div>
+                <ProfilePhotoUpload />
 
                 <Separator />
 

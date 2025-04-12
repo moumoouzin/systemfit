@@ -26,7 +26,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   // Console log for debugging
   console.log("ProtectedRoute - Auth state:", { user, isLoading, timeoutExpired });
 
-  // Se ainda estiver carregando e o timeout não expirou, mostre o indicador de carregamento
+  // If still loading and timeout hasn't expired, show loading indicator
   if (isLoading && !timeoutExpired) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -35,12 +35,12 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     );
   }
 
-  // Se o timeout expirou ou não há usuário, redirecione para o login
+  // If timeout expired or there's no user, redirect to login
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Se houver um usuário, renderize o conteúdo protegido
+  // If there's a user, render the protected content
   return <MainLayout>{children}</MainLayout>;
 };
 

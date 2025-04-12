@@ -46,33 +46,34 @@
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 252 59% 48%;
+    --primary: 252 59% 54%;
     --primary-foreground: 0 0% 98%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
 
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -117,7 +118,7 @@
   }
 
   .stat-bar {
-    @apply h-2 rounded-full bg-gray-200 overflow-hidden;
+    @apply h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden;
   }
 
   .xp-bar {
@@ -135,4 +136,38 @@
   .focus-bar {
     @apply h-2 bg-rpg-focus rounded-full transition-all duration-500;
   }
+  
+  .glass-morphism {
+    @apply bg-white/10 dark:bg-black/20 backdrop-blur-lg border border-white/20 dark:border-white/10 rounded-xl;
+  }
+}
+
+/* Dark Mode Transition */
+:root {
+  --transition-duration: 0.3s;
+}
+
+html.dark {
+  transition: background-color var(--transition-duration) ease;
+}
+
+body,
+.bg-background,
+.bg-card,
+.bg-popover,
+.bg-primary,
+.bg-secondary,
+.bg-muted,
+.bg-accent,
+.bg-destructive,
+.border,
+.text-foreground,
+.text-primary,
+.text-secondary,
+.text-muted-foreground,
+.text-accent-foreground,
+.text-destructive-foreground {
+  transition: background-color var(--transition-duration) ease, 
+              border-color var(--transition-duration) ease,
+              color var(--transition-duration) ease;
 }

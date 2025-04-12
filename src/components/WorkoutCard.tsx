@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Dumbbell, Clock } from "lucide-react";
 import { Workout } from "@/types";
 import { useNavigate } from "react-router-dom";
+import { toast } from "@/components/ui/use-toast";
 
 interface WorkoutCardProps {
   workout: Workout;
@@ -13,7 +14,25 @@ const WorkoutCard = ({ workout }: WorkoutCardProps) => {
   const navigate = useNavigate();
   
   const handleStartWorkout = () => {
-    navigate(`/workout/${workout.id}`);
+    console.log("Starting workout:", workout.id);
+    try {
+      // For now, just simulate starting the workout and show a toast
+      toast({
+        title: "Treino iniciado",
+        description: `Você iniciou o treino: ${workout.name}`,
+      });
+      
+      // Navigate to a workout detail page with the ID
+      // This path should be updated to match actual workout detail route
+      navigate(`/workout/${workout.id}`);
+    } catch (error) {
+      console.error("Error starting workout:", error);
+      toast({
+        title: "Erro ao iniciar treino",
+        description: "Não foi possível iniciar o treino.",
+        variant: "destructive",
+      });
+    }
   };
   
   // Calculate estimated time (3 minutes per exercise)
