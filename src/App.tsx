@@ -28,9 +28,9 @@ const queryClient = new QueryClient({
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <BrowserRouter>
-      <ThemeProvider>
-        <TooltipProvider>
+    <ThemeProvider>
+      <TooltipProvider>
+        <BrowserRouter>
           <AuthProvider>
             <Routes>
               {/* Rotas públicas */}
@@ -52,9 +52,9 @@ const App = () => (
             <Toaster />
             <Sonner />
           </AuthProvider>
-        </TooltipProvider>
-      </ThemeProvider>
-    </BrowserRouter>
+        </BrowserRouter>
+      </TooltipProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 
