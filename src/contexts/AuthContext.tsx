@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { User as AppUser } from "@/types";
+import { Database } from "@/integrations/supabase/types";
 
 interface AuthContextType {
   user: User | null;
@@ -83,15 +84,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Buscar perfil do usuário do Supabase
   const fetchUserProfile = async (userId: string) => {
     try {
+      // Fix for the query parameter type issue
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', userId)
+        .eq('id', userId as any)
         .single();
       
       if (error) throw error;
       
       if (data) {
+        // Type-safe data access by explicitly checking for properties
         const userProfile: AppUser = {
           id: data.id,
           name: data.name,
@@ -179,7 +182,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // podemos atualizar os atributos diretamente na tabela de perfis
       if (data.user) {
         if (options?.avatarUrl || options?.attributes) {
-          const updateData: { [key: string]: any } = {};
+          // Fix for the type issue with updateData
+          const updateData: Record<string, unknown> = {};
           
           if (options.avatarUrl) {
             updateData.avatar_url = options.avatarUrl;
@@ -193,8 +197,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           
           const { error: updateError } = await supabase
             .from('profiles')
-            .update(updateData)
-            .eq('id', data.user.id);
+            .update(updateData as any)
+            .eq('id', data.user.id as any);
             
           if (updateError) {
             console.error("Erro ao atualizar perfil:", updateError);

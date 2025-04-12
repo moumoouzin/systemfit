@@ -18,12 +18,7 @@ export const supabase = createClient<Database>(
       autoRefreshToken: true,
       flowType: 'pkce',
       detectSessionInUrl: true,
-      // Não exigir confirmação de email
-      flowParams: {
-        allowEmail: {
-          emailVerification: false
-        }
-      }
+      // Removed flowParams as it's not recognized by the TypeScript definitions
     }
   }
 );
