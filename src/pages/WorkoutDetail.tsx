@@ -74,23 +74,32 @@ const WorkoutDetail = () => {
     setIsSubmitting(true);
     
     try {
-      // Save current weights as the new "previous weights" for next time
-      const updatedWorkoutData = {
-        workoutId: id,
-        date: today,
-        exercises: exerciseStatus
-      };
-      
-      console.log("Workout completed:", updatedWorkoutData);
+      // Create a copy of the current exercise status to update
+      const updatedStatus = [...exerciseStatus];
       
       // Update the mock data with new weights for future reference
-      // In a real app, this would update a database
-      exerciseStatus.forEach(status => {
+      for (let i = 0; i < updatedStatus.length; i++) {
+        const status = updatedStatus[i];
         if (status.completed && status.weight > 0) {
-          // Save the current weight as the previous weight for next time
-          status.previousWeight = status.weight;
+          // Update the previousWeight with the current weight for next time
+          updatedStatus[i] = {
+            ...status,
+            previousWeight: status.weight
+          };
         }
-      });
+      }
+      
+      // Log the workout data that would be saved to a database
+      const workoutData = {
+        workoutId: id,
+        date: today,
+        exercises: updatedStatus
+      };
+      
+      console.log("Workout completed:", workoutData);
+      
+      // Update the state with the new previous weights
+      setExerciseStatus(updatedStatus);
       
       toast({
         title: "Treino finalizado",
