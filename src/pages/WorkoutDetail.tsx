@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { Clock, Dumbbell, ArrowUp, ArrowDown, CheckCircle, XCircle } from "lucide-react";
+import { Clock, ArrowUp, ArrowDown, CheckCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -74,11 +74,22 @@ const WorkoutDetail = () => {
     setIsSubmitting(true);
     
     try {
-      // Here you would save the workout session data
-      console.log("Workout completed:", {
+      // Save current weights as the new "previous weights" for next time
+      const updatedWorkoutData = {
         workoutId: id,
         date: today,
         exercises: exerciseStatus
+      };
+      
+      console.log("Workout completed:", updatedWorkoutData);
+      
+      // Update the mock data with new weights for future reference
+      // In a real app, this would update a database
+      exerciseStatus.forEach(status => {
+        if (status.completed && status.weight > 0) {
+          // Save the current weight as the previous weight for next time
+          status.previousWeight = status.weight;
+        }
       });
       
       toast({
