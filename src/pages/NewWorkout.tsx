@@ -1,9 +1,6 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
@@ -21,6 +18,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, X, Dumbbell, Save } from "lucide-react";
 import { mockWorkouts } from "@/data/mockData";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Workout } from "@/types";
 
 // Form schema
 const workoutFormSchema = z.object({
@@ -41,6 +42,7 @@ type WorkoutFormValues = z.infer<typeof workoutFormSchema>;
 const NewWorkout = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [workoutsList, setWorkoutsList] = useState<Workout[]>(mockWorkouts);
   
   const form = useForm<WorkoutFormValues>({
     resolver: zodResolver(workoutFormSchema),
@@ -52,8 +54,6 @@ const NewWorkout = () => {
       ],
     },
   });
-
-  const { fields, append, remove } = form.control._formValues.exercises;
 
   const addExercise = () => {
     const exercises = form.getValues().exercises || [];
@@ -82,24 +82,23 @@ const NewWorkout = () => {
     setIsSubmitting(true);
     
     try {
-      // In a real app, this would be a POST request to your API
-      // For now, we'll just simulate by adding to mockData
       console.log("Creating new workout:", data);
       
-      const newWorkout = {
+      const newWorkout: Workout = {
         id: uuidv4(),
         name: data.name,
-        description: data.description || "",
-        exercises: data.exercises.map(ex => ({
-          id: ex.id,
-          name: ex.name,
-          sets: ex.sets,
-          reps: ex.reps,
-        })),
+        exercises: data.exercises,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
       
-      // If this was a real app, we would now save to the database
-      // mockWorkouts.push(newWorkout);
+      // Update local state with the new workout
+      const updatedWorkouts = [...workoutsList, newWorkout];
+      setWorkoutsList(updatedWorkouts);
+      
+      // In a real app with Supabase, we would save to the database here
+      // For now we update our mockWorkouts in a way that persists during the session
+      mockWorkouts.push(newWorkout);
       
       toast({
         title: "Treino criado",
@@ -221,15 +220,16 @@ const NewWorkout = () => {
                     <div className="space-y-3">
                       <div>
                         <FormLabel htmlFor={`exercises.${index}.name`}>Nome</FormLabel>
-                        <Input
-                          id={`exercises.${index}.name`}
-                          placeholder="ex: Agachamento"
-                          value={form.getValues().exercises[index]?.name || ""}
-                          onChange={(e) => {
-                            const exercises = [...form.getValues().exercises];
-                            exercises[index].name = e.target.value;
-                            form.setValue("exercises", exercises);
-                          }}
+                        <Controller
+                          control={form.control}
+                          name={`exercises.${index}.name`}
+                          render={({ field }) => (
+                            <Input
+                              id={`exercises.${index}.name`}
+                              placeholder="ex: Agachamento"
+                              {...field}
+                            />
+                          )}
                         />
                         {form.formState.errors.exercises?.[index]?.name && (
                           <p className="text-sm text-red-500 mt-1">
@@ -241,16 +241,18 @@ const NewWorkout = () => {
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <FormLabel htmlFor={`exercises.${index}.sets`}>Séries</FormLabel>
-                          <Input
-                            id={`exercises.${index}.sets`}
-                            type="number"
-                            min={1}
-                            value={form.getValues().exercises[index]?.sets || 3}
-                            onChange={(e) => {
-                              const exercises = [...form.getValues().exercises];
-                              exercises[index].sets = parseInt(e.target.value) || 1;
-                              form.setValue("exercises", exercises);
-                            }}
+                          <Controller
+                            control={form.control}
+                            name={`exercises.${index}.sets`}
+                            render={({ field }) => (
+                              <Input
+                                id={`exercises.${index}.sets`}
+                                type="number"
+                                min={1}
+                                {...field}
+                                onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
+                              />
+                            )}
                           />
                           {form.formState.errors.exercises?.[index]?.sets && (
                             <p className="text-sm text-red-500 mt-1">
@@ -261,16 +263,18 @@ const NewWorkout = () => {
                         
                         <div>
                           <FormLabel htmlFor={`exercises.${index}.reps`}>Repetições</FormLabel>
-                          <Input
-                            id={`exercises.${index}.reps`}
-                            type="number"
-                            min={1}
-                            value={form.getValues().exercises[index]?.reps || 10}
-                            onChange={(e) => {
-                              const exercises = [...form.getValues().exercises];
-                              exercises[index].reps = parseInt(e.target.value) || 1;
-                              form.setValue("exercises", exercises);
-                            }}
+                          <Controller
+                            control={form.control}
+                            name={`exercises.${index}.reps`}
+                            render={({ field }) => (
+                              <Input
+                                id={`exercises.${index}.reps`}
+                                type="number"
+                                min={1}
+                                {...field}
+                                onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
+                              />
+                            )}
                           />
                           {form.formState.errors.exercises?.[index]?.reps && (
                             <p className="text-sm text-red-500 mt-1">
