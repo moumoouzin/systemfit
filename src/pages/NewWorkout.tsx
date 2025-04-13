@@ -16,12 +16,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, X, Dumbbell, Save } from "lucide-react";
+import { Plus, X, Save } from "lucide-react";
 import { mockWorkouts } from "@/data/mockData";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Workout } from "@/types";
+import { Workout, Exercise } from "@/types";
 
 // Form schema
 const workoutFormSchema = z.object({
@@ -84,10 +84,18 @@ const NewWorkout = () => {
     try {
       console.log("Creating new workout:", data);
       
+      // Ensure exercises have all required properties
+      const validExercises: Exercise[] = data.exercises.map(exercise => ({
+        id: exercise.id,
+        name: exercise.name,
+        sets: exercise.sets,
+        reps: exercise.reps
+      }));
+      
       const newWorkout: Workout = {
         id: uuidv4(),
         name: data.name,
-        exercises: data.exercises,
+        exercises: validExercises,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
