@@ -5,8 +5,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 import { Database } from "@/types/database.types";
 
-// Define the type for workout_sessions table data
-type WorkoutSessionRow = Database['public']['Tables']['workout_sessions']['Row'] & {
+// Define the type for workout_sessions table data with the joined workouts data
+type WorkoutSessionWithWorkout = Database['public']['Tables']['workout_sessions']['Row'] & {
   workouts: {
     name: string;
   } | null;
@@ -31,11 +31,7 @@ export const useWorkoutHistory = () => {
         const { data: sessionData, error: sessionError } = await supabase
           .from('workout_sessions')
           .select(`
-            id,
-            date,
-            completed,
-            workout_id,
-            xp_earned,
+            *,
             workouts (
               name
             )
@@ -48,7 +44,7 @@ export const useWorkoutHistory = () => {
         }
         
         // Transform the data to match our WorkoutHistory type
-        const formattedHistory: WorkoutHistory[] = (sessionData as WorkoutSessionRow[]).map(session => ({
+        const formattedHistory: WorkoutHistory[] = (sessionData as WorkoutSessionWithWorkout[]).map(session => ({
           date: session.date,
           workoutId: session.workout_id,
           workoutName: session.workouts?.name || "Treino sem nome",
