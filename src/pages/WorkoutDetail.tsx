@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
@@ -11,6 +10,7 @@ import { toast } from "@/components/ui/use-toast";
 import { Workout, Exercise } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { Database } from "@/types/database.types";
 
 interface ExerciseStatus {
   id: string;
@@ -20,24 +20,9 @@ interface ExerciseStatus {
 }
 
 // Define types for database data
-interface WorkoutData {
-  id: string;
-  name: string;
-  created_at: string;
-  updated_at: string;
-}
-
-interface ExerciseData {
-  id: string;
-  name: string;
-  sets: number;
-  reps: number;
-  workout_id: string;
-}
-
-interface ExerciseWeightData {
-  weight: number;
-}
+type WorkoutRow = Database['public']['Tables']['workouts']['Row'];
+type ExerciseRow = Database['public']['Tables']['exercises']['Row'];
+type ExerciseWeightRow = Database['public']['Tables']['exercise_weights']['Row'];
 
 const WorkoutDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -102,22 +87,22 @@ const WorkoutDetail = () => {
         
         // Format workout for the app's structure
         const formattedWorkout: Workout = {
-          id: (workoutData as WorkoutData).id,
-          name: (workoutData as WorkoutData).name,
-          exercises: (exercisesData as ExerciseData[]).map(exercise => ({
+          id: (workoutData as WorkoutRow).id,
+          name: (workoutData as WorkoutRow).name,
+          exercises: (exercisesData as ExerciseRow[]).map(exercise => ({
             id: exercise.id,
             name: exercise.name,
             sets: exercise.sets,
             reps: exercise.reps
           })),
-          createdAt: (workoutData as WorkoutData).created_at,
-          updatedAt: (workoutData as WorkoutData).updated_at,
+          createdAt: (workoutData as WorkoutRow).created_at,
+          updatedAt: (workoutData as WorkoutRow).updated_at,
         };
         
         setWorkout(formattedWorkout);
         
         // Fetch latest weights for each exercise
-        const exerciseStatusPromises = (exercisesData as ExerciseData[]).map(async (exercise) => {
+        const exerciseStatusPromises = (exercisesData as ExerciseRow[]).map(async (exercise) => {
           // First try to get weights from exercise_weights table
           let { data: weightData, error: weightError } = await supabase
             .from('exercise_weights')
@@ -135,7 +120,7 @@ const WorkoutDetail = () => {
             id: exercise.id,
             completed: false,
             weight: 0,
-            previousWeight: weightData ? Number((weightData as ExerciseWeightData).weight) : 0
+            previousWeight: weightData ? Number((weightData as ExerciseWeightRow).weight) : 0
           };
         });
         

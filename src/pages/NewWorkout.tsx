@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
@@ -24,6 +23,7 @@ import { Workout, Exercise } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Database } from "@/types/database.types";
 
 // Form schema
 const workoutFormSchema = z.object({
@@ -47,7 +47,7 @@ interface PreviousWeight {
   weight: number;
 }
 
-interface ExerciseWeightData {
+type ExerciseWeightData = {
   exercises: {
     name: string;
   } | null;
@@ -72,14 +72,12 @@ const NewWorkout = () => {
     },
   });
 
-  // Fetch previous weights from exercise_weights table when authenticated
   useEffect(() => {
     const fetchPreviousWeights = async () => {
       if (!profile?.id) return;
       
       setIsLoadingWeights(true);
       try {
-        // Get all exercises with their latest weights
         const { data, error } = await supabase
           .from('exercise_weights')
           .select('*, exercises(name)')
@@ -107,7 +105,6 @@ const NewWorkout = () => {
     fetchPreviousWeights();
   }, [profile]);
   
-  // Find the previous weight for an exercise by name
   const findPreviousWeight = (exerciseName: string): number | undefined => {
     if (!exerciseName || exerciseName.trim() === '') return undefined;
     
@@ -149,7 +146,6 @@ const NewWorkout = () => {
         throw new Error("Usuário não autenticado");
       }
 
-      // Insert the workout into Supabase
       const workoutId = uuidv4();
       const { data: workoutData, error: workoutError } = await supabase
         .from('workouts')
@@ -165,13 +161,12 @@ const NewWorkout = () => {
         throw new Error(`Error creating workout: ${workoutError.message}`);
       }
       
-      // Insert all exercises linked to the workout
       const exercisesWithWorkoutId = data.exercises.map(exercise => ({
         id: exercise.id,
         name: exercise.name,
         sets: exercise.sets,
         reps: exercise.reps,
-        workout_id: workoutData?.id
+        workout_id: workoutData!.id
       }));
       
       const { error: exercisesError } = await supabase
@@ -182,7 +177,6 @@ const NewWorkout = () => {
         throw new Error(`Error creating exercises: ${exercisesError.message}`);
       }
       
-      // Save exercise weights if provided
       for (const exercise of data.exercises) {
         if (exercise.lastWeight && exercise.lastWeight > 0) {
           const { error: weightError } = await supabase
@@ -218,11 +212,9 @@ const NewWorkout = () => {
     }
   };
 
-  // Update the last weight automatically when the exercise name changes
   const handleExerciseNameChange = (index: number, name: string) => {
     form.setValue(`exercises.${index}.name`, name);
     
-    // Try to find a previous weight for this exercise
     const previousWeight = findPreviousWeight(name);
     if (previousWeight) {
       form.setValue(`exercises.${index}.lastWeight`, previousWeight);

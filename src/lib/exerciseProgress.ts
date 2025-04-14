@@ -3,11 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { ExerciseProgress } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
+import { Database } from "@/types/database.types";
 
-// Define the type for exercise data
-type ExerciseData = {
-  id: string;
-  name: string;
+// Define the type for exercise data with weights
+type ExerciseWithWeights = Database['public']['Tables']['exercises']['Row'] & {
   exercise_weights: {
     weight: number;
     created_at: string;
@@ -51,7 +50,7 @@ export const useExerciseProgress = () => {
         // Process and transform the data
         const progress: ExerciseProgress[] = [];
         
-        for (const exercise of exercisesData as ExerciseData[]) {
+        for (const exercise of exercisesData as ExerciseWithWeights[]) {
           if (!exercise.exercise_weights || exercise.exercise_weights.length < 2) {
             continue; // Skip exercises with insufficient data
           }
