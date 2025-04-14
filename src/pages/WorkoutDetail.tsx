@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/use-toast";
 import { mockWorkouts } from "@/data/mockData";
 import { Workout, Exercise } from "@/types";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ExerciseStatus {
   id: string;
@@ -21,6 +23,7 @@ interface ExerciseStatus {
 const WorkoutDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { profile } = useAuth();
   const [workout, setWorkout] = useState<Workout | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [exerciseStatus, setExerciseStatus] = useState<ExerciseStatus[]>([]);
@@ -31,24 +34,117 @@ const WorkoutDetail = () => {
     // Fetch the workout data
     if (!id) return;
     
-    const foundWorkout = mockWorkouts.find(w => w.id === id);
+    const fetchWorkoutData = async () => {
+      setIsLoading(true);
+      try {
+        // Check if user is authenticated
+        if (!profile?.id) {
+          // Fallback to mock data if not authenticated
+          const foundWorkout = mockWorkouts.find(w => w.id === id);
+          
+          if (foundWorkout) {
+            setWorkout(foundWorkout);
+            
+            // Initialize exercise status with mock data
+            const initialStatus = foundWorkout.exercises.map(exercise => ({
+              id: exercise.id,
+              completed: false,
+              weight: 0,
+              previousWeight: Math.floor(Math.random() * 20) + 10, // Mock previous weight
+            }));
+            
+            setExerciseStatus(initialStatus);
+          }
+          setIsLoading(false);
+          return;
+        }
+        
+        // Try to fetch from database if authenticated
+        let { data: workoutData, error: workoutError } = await supabase
+          .from('workouts')
+          .select('*')
+          .eq('id', id)
+          .single();
+          
+        if (workoutError || !workoutData) {
+          // Fallback to mock data if not found in database
+          const foundWorkout = mockWorkouts.find(w => w.id === id);
+          if (foundWorkout) {
+            setWorkout(foundWorkout);
+            
+            // Initialize exercise status from mock data
+            const initialStatus = foundWorkout.exercises.map(exercise => ({
+              id: exercise.id,
+              completed: false,
+              weight: 0,
+              previousWeight: Math.floor(Math.random() * 20) + 10,
+            }));
+            
+            setExerciseStatus(initialStatus);
+          }
+        } else {
+          // Fetch associated exercises
+          let { data: exercisesData, error: exercisesError } = await supabase
+            .from('exercises')
+            .select('*')
+            .eq('workout_id', id);
+            
+          if (exercisesError || !exercisesData) {
+            console.error("Error fetching exercises:", exercisesError);
+            toast({
+              title: "Erro ao carregar exercícios",
+              description: "Não foi possível carregar os detalhes dos exercícios.",
+              variant: "destructive",
+            });
+            return;
+          }
+          
+          // Format workout for the app's structure
+          const formattedWorkout: Workout = {
+            id: workoutData.id,
+            name: workoutData.name,
+            exercises: exercisesData,
+            createdAt: workoutData.created_at,
+            updatedAt: workoutData.updated_at,
+          };
+          
+          setWorkout(formattedWorkout);
+          
+          // Fetch latest weights for each exercise
+          const exerciseStatusPromises = exercisesData.map(async (exercise) => {
+            let { data: weightData, error: weightError } = await supabase
+              .from('exercise_weights')
+              .select('*')
+              .eq('exercise_id', exercise.id)
+              .eq('user_id', profile.id)
+              .eq('is_latest', true)
+              .maybeSingle();
+              
+            return {
+              id: exercise.id,
+              completed: false,
+              weight: 0,
+              previousWeight: weightData ? Number(weightData.weight) : undefined
+            };
+          });
+          
+          const exerciseStatusResults = await Promise.all(exerciseStatusPromises);
+          setExerciseStatus(exerciseStatusResults);
+        }
+      } catch (error) {
+        console.error("Error fetching workout:", error);
+        toast({
+          title: "Erro ao carregar treino",
+          description: "Não foi possível carregar os detalhes do treino.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
     
-    if (foundWorkout) {
-      setWorkout(foundWorkout);
-      
-      // Initialize exercise status
-      const initialStatus = foundWorkout.exercises.map(exercise => ({
-        id: exercise.id,
-        completed: false,
-        weight: 0,
-        previousWeight: Math.floor(Math.random() * 20) + 10, // Mock previous weight
-      }));
-      
-      setExerciseStatus(initialStatus);
-    }
-    
-    setIsLoading(false);
-  }, [id]);
+    fetchWorkoutData();
+  }, [id, profile]);
   
   const toggleExerciseCompletion = (exerciseId: string) => {
     setExerciseStatus(prev => 
@@ -70,26 +166,73 @@ const WorkoutDetail = () => {
     );
   };
   
-  const handleFinishWorkout = () => {
+  const handleFinishWorkout = async () => {
     setIsSubmitting(true);
     
     try {
       // Create a copy of the current exercise status to update
       const updatedStatus = [...exerciseStatus];
       
-      // Update the mock data with new weights for future reference
-      for (let i = 0; i < updatedStatus.length; i++) {
-        const status = updatedStatus[i];
-        if (status.completed && status.weight > 0) {
-          // Update the previousWeight with the current weight for next time
-          updatedStatus[i] = {
-            ...status,
-            previousWeight: status.weight
-          };
+      // If authenticated, save to database
+      if (profile?.id) {
+        // Create workout session record
+        const { data: sessionData, error: sessionError } = await supabase
+          .from('workout_sessions')
+          .insert({
+            workout_id: id,
+            user_id: profile.id,
+            date: today.toISOString(),
+            completed: true
+          })
+          .select()
+          .single();
+          
+        if (sessionError) {
+          throw new Error(`Error saving workout session: ${sessionError.message}`);
+        }
+        
+        // Save each completed exercise weight to the database
+        for (const status of updatedStatus) {
+          if (status.completed && status.weight > 0) {
+            // Insert new weight record
+            const { error: weightError } = await supabase
+              .from('exercise_weights')
+              .insert({
+                exercise_id: status.id,
+                user_id: profile.id,
+                weight: status.weight,
+                is_latest: true
+              });
+              
+            if (weightError) {
+              console.error(`Error saving weight for exercise ${status.id}:`, weightError);
+            }
+            
+            // Update the status for UI display
+            const index = updatedStatus.findIndex(s => s.id === status.id);
+            if (index !== -1) {
+              updatedStatus[index] = {
+                ...status,
+                previousWeight: status.weight
+              };
+            }
+          }
+        }
+      } else {
+        // Fallback to mock data behavior
+        for (let i = 0; i < updatedStatus.length; i++) {
+          const status = updatedStatus[i];
+          if (status.completed && status.weight > 0) {
+            // Update the previousWeight with the current weight for next time
+            updatedStatus[i] = {
+              ...status,
+              previousWeight: status.weight
+            };
+          }
         }
       }
       
-      // Log the workout data that would be saved to a database
+      // Log the workout data
       const workoutData = {
         workoutId: id,
         date: today,

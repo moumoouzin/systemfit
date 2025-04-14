@@ -22,6 +22,8 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Workout, Exercise } from "@/types";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Form schema
 const workoutFormSchema = z.object({
@@ -41,6 +43,7 @@ type WorkoutFormValues = z.infer<typeof workoutFormSchema>;
 
 const NewWorkout = () => {
   const navigate = useNavigate();
+  const { profile } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [workoutsList, setWorkoutsList] = useState<Workout[]>(mockWorkouts);
   
@@ -92,21 +95,67 @@ const NewWorkout = () => {
         reps: exercise.reps
       }));
       
-      const newWorkout: Workout = {
-        id: uuidv4(),
-        name: data.name,
-        exercises: validExercises,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      
-      // Update local state with the new workout
-      const updatedWorkouts = [...workoutsList, newWorkout];
-      setWorkoutsList(updatedWorkouts);
-      
-      // In a real app with Supabase, we would save to the database here
-      // For now we update our mockWorkouts in a way that persists during the session
-      mockWorkouts.push(newWorkout);
+      // Check if user is authenticated
+      if (profile?.id) {
+        // Insert the workout into Supabase
+        const { data: workoutData, error: workoutError } = await supabase
+          .from('workouts')
+          .insert({
+            id: uuidv4(), // Generate a UUID for the workout
+            name: data.name,
+            user_id: profile.id
+          })
+          .select()
+          .single();
+          
+        if (workoutError) {
+          throw new Error(`Error creating workout: ${workoutError.message}`);
+        }
+        
+        // Insert all exercises linked to the workout
+        const exercisesWithWorkoutId = validExercises.map(exercise => ({
+          id: exercise.id,
+          name: exercise.name,
+          sets: exercise.sets,
+          reps: exercise.reps,
+          workout_id: workoutData.id
+        }));
+        
+        const { error: exercisesError } = await supabase
+          .from('exercises')
+          .insert(exercisesWithWorkoutId);
+          
+        if (exercisesError) {
+          throw new Error(`Error creating exercises: ${exercisesError.message}`);
+        }
+        
+        const newWorkout: Workout = {
+          id: workoutData.id,
+          name: workoutData.name,
+          exercises: validExercises,
+          createdAt: workoutData.created_at,
+          updatedAt: workoutData.updated_at,
+        };
+        
+        // Update local state
+        setWorkoutsList(prev => [...prev, newWorkout]);
+      } else {
+        // Fallback for non-authenticated users - use mock data
+        const newWorkout: Workout = {
+          id: uuidv4(),
+          name: data.name,
+          exercises: validExercises,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        
+        // Update local state with the new workout
+        const updatedWorkouts = [...workoutsList, newWorkout];
+        setWorkoutsList(updatedWorkouts);
+        
+        // For now we update our mockWorkouts in a way that persists during the session
+        mockWorkouts.push(newWorkout);
+      }
       
       toast({
         title: "Treino criado",

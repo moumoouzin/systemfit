@@ -3,12 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dumbbell, Plus, Search, AlertCircle } from "lucide-react";
 import { mockWorkouts } from "@/data/mockData";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import WorkoutCard from "@/components/WorkoutCard";
 import { toast } from "@/components/ui/use-toast";
 import { Workout } from "@/types";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,9 +24,78 @@ import {
 
 const Workouts = () => {
   const navigate = useNavigate();
+  const { profile } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
-  const [workouts, setWorkouts] = useState<Workout[]>(mockWorkouts);
+  const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [workoutToDelete, setWorkoutToDelete] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  useEffect(() => {
+    const fetchWorkouts = async () => {
+      setIsLoading(true);
+      
+      try {
+        if (profile?.id) {
+          // Fetch workouts from Supabase
+          const { data: workoutsData, error: workoutsError } = await supabase
+            .from('workouts')
+            .select('*')
+            .eq('user_id', profile.id)
+            .order('created_at', { ascending: false });
+            
+          if (workoutsError) {
+            throw new Error(`Error fetching workouts: ${workoutsError.message}`);
+          }
+          
+          // For each workout, fetch its exercises
+          const workoutsWithExercises = await Promise.all(
+            workoutsData.map(async (workout) => {
+              const { data: exercisesData, error: exercisesError } = await supabase
+                .from('exercises')
+                .select('*')
+                .eq('workout_id', workout.id);
+                
+              if (exercisesError) {
+                console.error(`Error fetching exercises for workout ${workout.id}:`, exercisesError);
+                return null;
+              }
+              
+              return {
+                id: workout.id,
+                name: workout.name,
+                exercises: exercisesData || [],
+                createdAt: workout.created_at,
+                updatedAt: workout.updated_at,
+              };
+            })
+          );
+          
+          // Filter out any null results from failed fetches
+          const validWorkouts = workoutsWithExercises.filter(
+            (workout): workout is Workout => workout !== null
+          );
+          
+          setWorkouts(validWorkouts);
+        } else {
+          // Use mock data if not authenticated
+          setWorkouts(mockWorkouts);
+        }
+      } catch (error) {
+        console.error("Error fetching workouts:", error);
+        toast({
+          title: "Erro ao carregar treinos",
+          description: "Não foi possível carregar seus treinos.",
+          variant: "destructive",
+        });
+        // Fallback to mock data
+        setWorkouts(mockWorkouts);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchWorkouts();
+  }, [profile]);
   
   // Filter workouts based on search query
   const filteredWorkouts = workouts.filter(workout => 
@@ -35,11 +106,24 @@ const Workouts = () => {
     setWorkoutToDelete(workoutId);
   };
   
-  const confirmDeleteWorkout = () => {
+  const confirmDeleteWorkout = async () => {
     if (!workoutToDelete) return;
     
     try {
-      // Filter out the workout to delete
+      if (profile?.id) {
+        // Delete from database
+        const { error } = await supabase
+          .from('workouts')
+          .delete()
+          .eq('id', workoutToDelete)
+          .eq('user_id', profile.id);
+          
+        if (error) {
+          throw new Error(`Error deleting workout: ${error.message}`);
+        }
+      }
+      
+      // Update local state
       const updatedWorkouts = workouts.filter(w => w.id !== workoutToDelete);
       setWorkouts(updatedWorkouts);
       
@@ -87,7 +171,11 @@ const Workouts = () => {
         />
       </div>
       
-      {filteredWorkouts.length > 0 ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      ) : filteredWorkouts.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredWorkouts.map((workout) => (
             <WorkoutCard 
