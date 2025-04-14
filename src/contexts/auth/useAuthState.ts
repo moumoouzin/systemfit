@@ -24,7 +24,12 @@ export const useAuthState = () => {
         setUser(session?.user || null);
         
         if (session?.user) {
-          await fetchUserProfile(session.user.id);
+          try {
+            await fetchUserProfile(session.user.id);
+          } catch (error) {
+            console.error("Erro ao buscar perfil após mudança de auth:", error);
+            setIsLoading(false);
+          }
         } else {
           setProfile(null);
           setIsLoading(false);
@@ -105,6 +110,7 @@ export const useAuthState = () => {
     } catch (error) {
       console.error("Erro ao buscar perfil:", error);
       setIsLoading(false);
+      throw error;
     }
   };
 

@@ -1,3 +1,4 @@
+
 import MainLayout from "@/layouts/MainLayout";
 import UserAvatar from "@/components/UserAvatar";
 import WeeklyProgress from "@/components/WeeklyProgress";
@@ -8,10 +9,36 @@ import { Trophy, Dumbbell, Plus, BarChart2 } from "lucide-react";
 import { mockWorkouts, mockExerciseProgress } from "@/data/mockData";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/auth/AuthContext";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { profile } = useAuth();
+  const { profile, isLoading } = useAuth();
+  
+  // Renderizar um esqueleto de carregamento se o perfil ainda estiver carregando
+  if (isLoading) {
+    return (
+      <div className="space-y-6 p-6">
+        <div className="flex items-center space-x-4">
+          <Skeleton className="h-12 w-12 rounded-full" />
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-[250px]" />
+            <Skeleton className="h-4 w-[200px]" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Skeleton className="h-[200px] rounded-xl" />
+          <Skeleton className="h-[200px] rounded-xl" />
+        </div>
+        <Skeleton className="h-8 w-[150px]" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Skeleton className="h-[180px] rounded-xl" />
+          <Skeleton className="h-[180px] rounded-xl" />
+          <Skeleton className="h-[180px] rounded-xl" />
+        </div>
+      </div>
+    );
+  }
   
   return (
     <MainLayout>
