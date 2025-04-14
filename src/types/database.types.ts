@@ -9,7 +9,7 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export interface Database extends SupabaseDatabase {
+export interface Database extends Omit<SupabaseDatabase, 'public'> {
   public: {
     Tables: {
       profiles: {
@@ -166,13 +166,6 @@ export interface Database extends SupabaseDatabase {
             columns: ["exercise_id"]
             isOneToOne: false
             referencedRelation: "exercises"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "exercise_weights_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
             referencedColumns: ["id"]
           }
         ]
