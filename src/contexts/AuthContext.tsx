@@ -21,9 +21,12 @@ type User = {
 
 interface AuthContextType {
   user: User | null;
+  profile: User | null; // Alias for user to maintain compatibility
   isLoading: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
+  updateProfile: (data: Partial<User>) => Promise<{ success: boolean, error?: string }>;
+  register: (username: string, password: string, displayName?: string, additionalData?: Partial<User>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -105,13 +108,96 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
   };
 
+  // Add updateProfile function
+  const updateProfile = async (data: Partial<User>): Promise<{ success: boolean, error?: string }> => {
+    try {
+      if (!user) {
+        return { success: false, error: "Usuário não autenticado" };
+      }
+
+      // Update the user object with the new data
+      const updatedUser = { ...user, ...data };
+      
+      // Save to localStorage
+      localStorage.setItem("systemFitUser", JSON.stringify(updatedUser));
+      
+      // Update state
+      setUser(updatedUser);
+      
+      return { success: true };
+    } catch (error) {
+      console.error("Erro ao atualizar perfil:", error);
+      return { success: false, error: "Falha ao atualizar perfil" };
+    }
+  };
+
+  // Add register function for compatibility
+  const register = async (
+    username: string, 
+    password: string, 
+    displayName?: string, 
+    additionalData?: Partial<User>
+  ) => {
+    setIsLoading(true);
+    
+    try {
+      // In this simplified version, we'll just create a new user
+      // For now, we'll only accept the hardcoded credentials
+      if (username === "Mohamed" && password === "isaque123") {
+        const newUser: User = {
+          id: "mohamed-1",
+          name: displayName || username,
+          level: 1,
+          xp: 0,
+          avatarUrl: additionalData?.avatarUrl || "https://api.dicebear.com/7.x/bottts/svg?seed=Mohamed",
+          attributes: additionalData?.attributes || {
+            strength: 1,
+            vitality: 1,
+            focus: 1
+          },
+          streakDays: 0,
+          daysTrainedThisWeek: 0
+        };
+        
+        // Set user in state and local storage
+        setUser(newUser);
+        localStorage.setItem("systemFitUser", JSON.stringify(newUser));
+        
+        toast({
+          title: "Conta criada com sucesso",
+          description: "Bem-vindo ao SystemFit!",
+        });
+        
+        navigate("/dashboard");
+      } else {
+        toast({
+          title: "Erro ao criar conta",
+          description: "Apenas o usuário Mohamed com senha isaque123 é aceito.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao registrar:", error);
+      toast({
+        title: "Erro ao criar conta",
+        description: "Ocorreu um erro ao tentar criar sua conta.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
         user,
+        profile: user, // Alias for backward compatibility
         isLoading,
         login,
-        logout
+        logout,
+        updateProfile,
+        register
       }}
     >
       {children}
