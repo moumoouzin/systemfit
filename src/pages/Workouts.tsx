@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dumbbell, Plus, Search, AlertCircle } from "lucide-react";
@@ -46,7 +45,7 @@ const Workouts = () => {
       setIsLoading(true);
       
       try {
-        if (profile?.id) {
+        if (profile?.id && typeof profile.id === 'string' && profile.id.length > 30) {
           // Fetch workouts from Supabase
           const { data: workoutsData, error: workoutsError } = await supabase
             .from('workouts')
@@ -96,14 +95,15 @@ const Workouts = () => {
           
           setWorkouts(validWorkouts);
         } else {
-          // Use mock data if not authenticated
+          // Use mock data if not authenticated or invalid UUID
           setWorkouts(mockWorkouts);
+          console.log("Using mock data - user not authenticated with valid UUID");
         }
       } catch (error) {
         console.error("Error fetching workouts:", error);
         toast({
           title: "Erro ao carregar treinos",
-          description: "Não foi possível carregar seus treinos.",
+          description: "Não foi possível carregar seus treinos. Usando dados offline.",
           variant: "destructive",
         });
         // Fallback to mock data
@@ -129,7 +129,7 @@ const Workouts = () => {
     if (!workoutToDelete) return;
     
     try {
-      if (profile?.id) {
+      if (profile?.id && typeof profile.id === 'string' && profile.id.length > 30) {
         // Delete from database
         const { error } = await supabase
           .from('workouts')

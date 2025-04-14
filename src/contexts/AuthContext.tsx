@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/components/ui/use-toast";
+import { v4 as uuidv4 } from "uuid";
 
 // Define user type
 type User = {
@@ -50,9 +51,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       // Only accept Mohamed/isaque123 combination
       if (username === "Mohamed" && password === "isaque123") {
-        // Create hardcoded user profile
+        // Create hardcoded user profile with a proper UUID
         const mohamedUser: User = {
-          id: "mohamed-1",
+          id: uuidv4(), // Generate a proper UUID
           name: "Mohamed",
           level: 5,
           xp: 750,
@@ -145,7 +146,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // For now, we'll only accept the hardcoded credentials
       if (username === "Mohamed" && password === "isaque123") {
         const newUser: User = {
-          id: "mohamed-1",
+          id: uuidv4(), // Generate a proper UUID
           name: displayName || username,
           level: 1,
           xp: 0,

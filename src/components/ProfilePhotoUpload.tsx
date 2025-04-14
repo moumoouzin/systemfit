@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -69,7 +68,7 @@ const ProfilePhotoUpload = () => {
       
       // Update profile with new avatar URL
       const result = await updateProfile({
-        avatar_url: avatarUrl,
+        avatarUrl: avatarUrl,
       });
       
       if (!result.success) {
