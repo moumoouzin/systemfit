@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "@/components/ui/use-toast";
@@ -16,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, X, Save } from "lucide-react";
+import { Plus, X, Save, Weight, Info } from "lucide-react";
 import { mockWorkouts } from "@/data/mockData";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,6 +24,7 @@ import * as z from "zod";
 import { Workout, Exercise } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Form schema
 const workoutFormSchema = z.object({
@@ -35,17 +36,25 @@ const workoutFormSchema = z.object({
       name: z.string().min(2, "Nome do exercício é obrigatório"),
       sets: z.number().min(1, "Mínimo 1 série").max(20, "Máximo 20 séries"),
       reps: z.number().min(1, "Mínimo 1 repetição").max(100, "Máximo 100 repetições"),
+      lastWeight: z.number().optional(),
     })
   ).min(1, "Adicione pelo menos 1 exercício"),
 });
 
 type WorkoutFormValues = z.infer<typeof workoutFormSchema>;
 
+interface PreviousWeight {
+  exerciseName: string;
+  weight: number;
+}
+
 const NewWorkout = () => {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [workoutsList, setWorkoutsList] = useState<Workout[]>(mockWorkouts);
+  const [previousWeights, setPreviousWeights] = useState<PreviousWeight[]>([]);
+  const [isLoadingWeights, setIsLoadingWeights] = useState(false);
   
   const form = useForm<WorkoutFormValues>({
     resolver: zodResolver(workoutFormSchema),
@@ -53,16 +62,62 @@ const NewWorkout = () => {
       name: "",
       description: "",
       exercises: [
-        { id: uuidv4(), name: "", sets: 3, reps: 10 }
+        { id: uuidv4(), name: "", sets: 3, reps: 10, lastWeight: undefined }
       ],
     },
   });
+
+  // Fetch previous weights from exercise_weights table when authenticated
+  useEffect(() => {
+    const fetchPreviousWeights = async () => {
+      if (!profile?.id) return;
+      
+      setIsLoadingWeights(true);
+      try {
+        // Get all exercises with their latest weights
+        const { data, error } = await supabase
+          .from('exercise_weights')
+          .select('*, exercises(name)')
+          .eq('user_id', profile.id)
+          .eq('is_latest', true);
+          
+        if (error) {
+          console.error('Error fetching previous weights:', error);
+          return;
+        }
+        
+        const formattedWeights: PreviousWeight[] = data.map(item => ({
+          exerciseName: item.exercises?.name || '',
+          weight: Number(item.weight)
+        }));
+        
+        setPreviousWeights(formattedWeights);
+      } catch (error) {
+        console.error('Error fetching previous weights:', error);
+      } finally {
+        setIsLoadingWeights(false);
+      }
+    };
+    
+    fetchPreviousWeights();
+  }, [profile]);
+  
+  // Find the previous weight for an exercise by name
+  const findPreviousWeight = (exerciseName: string): number | undefined => {
+    if (!exerciseName || exerciseName.trim() === '') return undefined;
+    
+    const match = previousWeights.find(item => 
+      item.exerciseName.toLowerCase() === exerciseName.toLowerCase()
+    );
+    
+    return match?.weight;
+  };
 
   const addExercise = () => {
     const exercises = form.getValues().exercises || [];
     form.setValue("exercises", [
       ...exercises, 
-      { id: uuidv4(), name: "", sets: 3, reps: 10 }
+      { id: uuidv4(), name: "", sets: 3, reps: 10, lastWeight: undefined }
     ]);
   };
 
@@ -129,6 +184,25 @@ const NewWorkout = () => {
           throw new Error(`Error creating exercises: ${exercisesError.message}`);
         }
         
+        // Save any exercise weights that were manually entered
+        for (let i = 0; i < data.exercises.length; i++) {
+          const exercise = data.exercises[i];
+          if (exercise.lastWeight && exercise.lastWeight > 0) {
+            const { error: weightError } = await supabase
+              .from('exercise_weights')
+              .insert({
+                exercise_id: exercise.id,
+                user_id: profile.id,
+                weight: exercise.lastWeight,
+                is_latest: true
+              });
+              
+            if (weightError) {
+              console.error(`Error saving weight for ${exercise.name}:`, weightError);
+            }
+          }
+        }
+        
         const newWorkout: Workout = {
           id: workoutData.id,
           name: workoutData.name,
@@ -172,6 +246,17 @@ const NewWorkout = () => {
       });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Update the last weight automatically when the exercise name changes
+  const handleExerciseNameChange = (index: number, name: string) => {
+    form.setValue(`exercises.${index}.name`, name);
+    
+    // Try to find a previous weight for this exercise
+    const previousWeight = findPreviousWeight(name);
+    if (previousWeight) {
+      form.setValue(`exercises.${index}.lastWeight`, previousWeight);
     }
   };
 
@@ -285,6 +370,7 @@ const NewWorkout = () => {
                               id={`exercises.${index}.name`}
                               placeholder="ex: Agachamento"
                               {...field}
+                              onChange={(e) => handleExerciseNameChange(index, e.target.value)}
                             />
                           )}
                         />
@@ -339,6 +425,40 @@ const NewWorkout = () => {
                             </p>
                           )}
                         </div>
+                      </div>
+                      
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <FormLabel htmlFor={`exercises.${index}.lastWeight`}>Última carga (kg)</FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Registre a última carga utilizada neste exercício</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                        <Controller
+                          control={form.control}
+                          name={`exercises.${index}.lastWeight`}
+                          render={({ field }) => (
+                            <div className="flex items-center gap-2">
+                              <Input
+                                id={`exercises.${index}.lastWeight`}
+                                type="number"
+                                min={0}
+                                placeholder={isLoadingWeights ? "Carregando..." : "0"}
+                                value={field.value === undefined ? "" : field.value}
+                                onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                                className="w-full"
+                              />
+                              <Weight className="h-5 w-5 text-muted-foreground" />
+                            </div>
+                          )}
+                        />
                       </div>
                     </div>
                   </div>
