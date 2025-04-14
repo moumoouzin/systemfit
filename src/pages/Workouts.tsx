@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import WorkoutCard from "@/components/WorkoutCard";
 import { toast } from "@/components/ui/use-toast";
-import { Workout } from "@/types";
+import { Workout, Exercise } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -21,6 +21,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+
+// Define the database exercise type to handle the shape from Supabase
+type DbExercise = {
+  id: string;
+  name: string;
+  sets: number;
+  reps: number;
+  workout_id: string;
+  created_at: string;
+  updated_at: string;
+};
 
 const Workouts = () => {
   const navigate = useNavigate();
@@ -60,10 +71,18 @@ const Workouts = () => {
                 return null;
               }
               
+              // Map DB exercises to app Exercise type
+              const exercises: Exercise[] = exercisesData.map((dbExercise: DbExercise) => ({
+                id: dbExercise.id,
+                name: dbExercise.name,
+                sets: dbExercise.sets,
+                reps: dbExercise.reps
+              }));
+              
               return {
                 id: workout.id,
                 name: workout.name,
-                exercises: exercisesData || [],
+                exercises: exercises,
                 createdAt: workout.created_at,
                 updatedAt: workout.updated_at,
               };
