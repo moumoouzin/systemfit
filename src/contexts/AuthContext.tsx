@@ -1,10 +1,14 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { User, Session } from '@supabase/supabase-js';
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { User as AppUser } from "@/types";
+
+interface ProfileUpdateData {
+  name?: string;
+  avatar_url?: string;
+}
 
 interface AuthContextType {
   user: User | null;
@@ -13,6 +17,8 @@ interface AuthContextType {
   isLoading: boolean;
   login: (usernameOrEmail: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  updateProfile: (data: ProfileUpdateData) => Promise<{ success: boolean, error?: any }>;
+  register?: (username: string, password: string, name?: string, additionalData?: any) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -208,7 +214,41 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // Create Mohamed account if it doesn't exist
+  const updateProfile = async (data: ProfileUpdateData) => {
+    try {
+      if (!user) {
+        throw new Error("Usuário não autenticado");
+      }
+
+      const { error } = await supabase
+        .from('profiles')
+        .update(data)
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      // Update the local profile state
+      setProfile(prev => {
+        if (!prev) return null;
+        
+        return {
+          ...prev,
+          name: data.name || prev.name,
+          avatarUrl: data.avatar_url || prev.avatarUrl
+        };
+      });
+
+      return { success: true };
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      return { success: false, error };
+    }
+  };
+
+  const register = async (username: string, password: string, name?: string, additionalData?: any) => {
+    throw new Error("Registration is disabled");
+  };
+
   useEffect(() => {
     const createMohamedAccount = async () => {
       try {
@@ -260,7 +300,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         session,
         isLoading,
         login,
-        logout
+        logout,
+        updateProfile,
+        register
       }}
     >
       {children}
