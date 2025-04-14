@@ -361,7 +361,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (error) throw error;
 
       console.log("Specific user created successfully:", data.user?.id);
-      return data;
     } catch (error: any) {
       console.error("Error creating specific user:", error);
       throw error;
