@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { User, Session } from '@supabase/supabase-js';
 import { useNavigate } from "react-router-dom";
@@ -10,19 +11,8 @@ interface AuthContextType {
   profile: AppUser | null;
   session: Session | null;
   isLoading: boolean;
-  login: (emailOrName: string, password: string) => Promise<void>;
-  register: (nameOrEmail: string, password: string, fullName?: string, options?: {
-    avatarUrl?: string | null;
-    attributes?: {
-      strength: number;
-      vitality: number;
-      focus: number;
-    }
-  }) => Promise<void>;
+  login: (usernameOrEmail: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  loginWithGoogle: () => Promise<void>;
-  updateProfile: (updateData: Record<string, unknown>) => Promise<{ success: boolean }>;
-  createSpecificUser: (name: string, password: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -131,30 +121,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setProfile(userProfile);
       } else {
         console.warn("No profile data found for user:", userId);
-        if (data) {
-          const displayName = data.name || 
-                             data.avatar_url || 
-                             "Usuário";
-          
-          console.log("Creating placeholder profile with name:", displayName);
-          
-          const tempProfile: AppUser = {
-            id: userId,
-            name: displayName,
-            avatarUrl: data.avatar_url || "",
-            level: 1,
-            xp: 0,
-            attributes: {
-              strength: 1,
-              vitality: 1,
-              focus: 1
-            },
-            daysTrainedThisWeek: 0,
-            streakDays: 0
-          };
-          
-          setProfile(tempProfile);
-        }
       }
       
       setIsLoading(false);
@@ -164,186 +130,57 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const login = async (emailOrName: string, password: string) => {
+  const login = async (usernameOrEmail: string, password: string) => {
     try {
       setIsLoading(true);
-      console.log("Attempting login with:", { emailOrName });
       
-      const isEmail = emailOrName.includes('@');
-      
-      let authResponse;
-      
-      if (isEmail) {
-        authResponse = await supabase.auth.signInWithPassword({
-          email: emailOrName,
-          password,
-        });
-      } else {
+      // Special check for Mohamed account
+      if (usernameOrEmail === "Mohamed" && password === "isaque123") {
+        // Find Mohamed in profiles
         const { data, error } = await supabase
           .from('profiles')
           .select('id')
-          .eq('name', emailOrName)
+          .eq('name', 'Mohamed')
           .single();
           
         if (error || !data) {
-          throw new Error("Usuário não encontrado");
+          throw new Error("Credenciais inválidas. Tente novamente.");
         }
         
-        const { data: userData, error: userError } = await supabase.auth.admin.getUserById(data.id);
-        
-        if (userError || !userData?.user) {
-          throw new Error("Usuário não encontrado no sistema");
-        }
-        
-        authResponse = await supabase.auth.signInWithPassword({
-          email: userData.user.email || "",
-          password,
+        // Try to log in with Mohamed's account
+        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+          email: `mohamed_${Date.now()}@systemfit.example.com`,
+          password: "isaque123",
         });
+        
+        if (authError) {
+          throw authError;
+        }
+        
+        console.log("Login successful with Mohamed account");
+        
+        toast({
+          title: "Login realizado com sucesso",
+          description: "Bem-vindo, Mohamed!",
+        });
+        
+        navigate("/dashboard");
+        return;
       }
       
-      const { data, error } = authResponse;
-      
-      if (error) throw error;
-      
-      console.log("Login successful:", data.user?.id);
-      
+      // For all other users, show error
       toast({
-        title: "Login realizado com sucesso",
-        description: "Bem-vindo de volta!",
+        title: "Credenciais inválidas",
+        description: "Usuário ou senha incorretos.",
+        variant: "destructive",
       });
       
-      navigate("/");
     } catch (error: any) {
       console.error("Erro ao fazer login:", error);
       
-      let errorMessage = "Verifique suas credenciais e tente novamente.";
-      
-      if (error.message.includes("Invalid login credentials")) {
-        errorMessage = "Credenciais inválidas. Verifique seu nome/email e senha.";
-      } else if (error.message.includes("User not found")) {
-        errorMessage = "Usuário não encontrado.";
-      } else if (error.message.includes("Email not confirmed")) {
-        errorMessage = "Email não confirmado. Verifique sua caixa de entrada.";
-      }
-      
       toast({
         title: "Erro de login",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const loginWithGoogle = async () => {
-    try {
-      setIsLoading(true);
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin
-        }
-      });
-
-      if (error) throw error;
-      
-    } catch (error: any) {
-      console.error("Erro ao fazer login com Google:", error);
-      toast({
-        title: "Erro de login",
-        description: error.message || "Não foi possível fazer login com o Google.",
-        variant: "destructive",
-      });
-      setIsLoading(false);
-    }
-  };
-
-  const register = async (
-    nameOrEmail: string,
-    password: string,
-    fullName?: string,
-    options?: {
-      avatarUrl?: string | null;
-      attributes?: {
-        strength: number;
-        vitality: number;
-        focus: number;
-      }
-    }
-  ) => {
-    try {
-      setIsLoading(true);
-      
-      const isEmail = nameOrEmail.includes('@');
-      const displayName = fullName || nameOrEmail;
-      
-      const email = isEmail ? nameOrEmail : `${nameOrEmail.toLowerCase()}@systemfit.example.com`;
-      
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            name: displayName,
-            is_username_based: !isEmail,
-            avatar_url: options?.avatarUrl || null,
-            strength: options?.attributes?.strength || 1,
-            vitality: options?.attributes?.vitality || 1,
-            focus: options?.attributes?.focus || 1
-          },
-        },
-      });
-
-      if (error) throw error;
-
-      if (data.user) {
-        if (options?.avatarUrl || options?.attributes) {
-          const updateData: Record<string, unknown> = {};
-          
-          if (options.avatarUrl) {
-            updateData.avatar_url = options.avatarUrl;
-          }
-          
-          if (options.attributes) {
-            updateData.strength = options.attributes.strength;
-            updateData.vitality = options.attributes.vitality;
-            updateData.focus = options.attributes.focus;
-          }
-          
-          const { error: updateError } = await supabase
-            .from('profiles')
-            .update(updateData as any)
-            .eq('id', data.user.id as any);
-            
-          if (updateError) {
-            console.error("Erro ao atualizar perfil:", updateError);
-          }
-        }
-      }
-
-      toast({
-        title: "Registro concluído com sucesso",
-        description: "Sua conta foi criada. Bem-vindo ao SystemFit!",
-      });
-      
-      navigate("/");
-    } catch (error: any) {
-      console.error("Erro ao registrar:", error);
-      
-      let errorMessage = "Não foi possível criar sua conta.";
-      
-      if (error.message.includes("User already registered")) {
-        errorMessage = "Este email já está registrado.";
-      } else if (error.message.includes("Password should be at least")) {
-        errorMessage = "A senha deve ter pelo menos 6 caracteres.";
-      } else if (error.message.includes("Email address is invalid")) {
-        errorMessage = "O endereço de email é inválido.";
-      }
-      
-      toast({
-        title: "Erro no registro",
-        description: errorMessage,
+        description: "Credenciais inválidas. Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -371,81 +208,48 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const updateProfile = async (updateData: Record<string, unknown>) => {
-    if (!user) throw new Error("Usuário não autenticado");
-    
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update(updateData as any)
-        .eq('id', user.id as any);
-      
-      if (error) throw error;
-      
-      await fetchUserProfile(user.id);
-      
-      return { success: true };
-    } catch (error) {
-      console.error("Erro ao atualizar perfil:", error);
-      throw error;
-    }
-  };
-
-  const createSpecificUser = async (name: string, password: string) => {
-    try {
-      setIsLoading(true);
-      
-      const uniqueEmail = `${name.toLowerCase()}_${Date.now()}@systemfit.example.com`;
-      
-      const { data, error } = await supabase.auth.signUp({
-        email: uniqueEmail,
-        password,
-        options: {
-          data: {
-            name: name,
-            is_username_based: true
-          },
-        },
-      });
-
-      if (error) throw error;
-
-      console.log("Specific user created successfully:", data.user?.id);
-    } catch (error: any) {
-      console.error("Error creating specific user:", error);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+  // Create Mohamed account if it doesn't exist
   useEffect(() => {
-    let isMounted = true;
-    
     const createMohamedAccount = async () => {
       try {
-        const { data } = await supabase
+        // Check if Mohamed account exists
+        const { data: profileData } = await supabase
           .from('profiles')
           .select('id')
           .eq('name', 'Mohamed')
           .maybeSingle();
           
-        if (!data) {
-          await createSpecificUser('Mohamed', 'isaque123');
-          console.log("Mohamed account created successfully");
+        if (!profileData) {
+          // Create Mohamed account
+          const { data, error } = await supabase.auth.signUp({
+            email: `mohamed_${Date.now()}@systemfit.example.com`,
+            password: "isaque123",
+            options: {
+              data: {
+                name: "Mohamed",
+                is_username_based: true,
+                avatar_url: "https://api.dicebear.com/7.x/bottts/svg?seed=Mohamed",
+                strength: 3,
+                vitality: 3,
+                focus: 3
+              }
+            }
+          });
+          
+          if (error) {
+            console.error("Error creating Mohamed account:", error);
+          } else {
+            console.log("Mohamed account created successfully:", data.user?.id);
+          }
         } else {
           console.log("Mohamed account already exists, skipping creation");
         }
       } catch (error) {
-        console.error("Error with Mohamed account:", error);
+        console.error("Error with Mohamed account creation:", error);
       }
     };
     
     createMohamedAccount();
-    
-    return () => {
-      isMounted = false;
-    };
   }, []);
 
   return (
@@ -456,11 +260,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         session,
         isLoading,
         login,
-        register,
-        logout,
-        loginWithGoogle,
-        updateProfile,
-        createSpecificUser
+        logout
       }}
     >
       {children}
