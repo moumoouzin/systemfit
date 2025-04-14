@@ -8,7 +8,6 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/use-toast";
-import { mockWorkouts } from "@/data/mockData";
 import { Workout, Exercise } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -39,27 +38,16 @@ const WorkoutDetail = () => {
       try {
         // Check if user is authenticated
         if (!profile?.id) {
-          // Fallback to mock data if not authenticated
-          const foundWorkout = mockWorkouts.find(w => w.id === id);
-          
-          if (foundWorkout) {
-            setWorkout(foundWorkout);
-            
-            // Initialize exercise status with mock data
-            const initialStatus = foundWorkout.exercises.map(exercise => ({
-              id: exercise.id,
-              completed: false,
-              weight: 0,
-              previousWeight: Math.floor(Math.random() * 20) + 10, // Mock previous weight
-            }));
-            
-            setExerciseStatus(initialStatus);
-          }
-          setIsLoading(false);
+          toast({
+            title: "Usuário não autenticado",
+            description: "Por favor, faça login para visualizar os treinos.",
+            variant: "destructive",
+          });
+          navigate("/login");
           return;
         }
         
-        // Try to fetch from database if authenticated
+        // Try to fetch from database
         let { data: workoutData, error: workoutError } = await supabase
           .from('workouts')
           .select('*')
@@ -67,81 +55,73 @@ const WorkoutDetail = () => {
           .single();
           
         if (workoutError || !workoutData) {
-          // Fallback to mock data if not found in database
-          const foundWorkout = mockWorkouts.find(w => w.id === id);
-          if (foundWorkout) {
-            setWorkout(foundWorkout);
-            
-            // Initialize exercise status from mock data
-            const initialStatus = foundWorkout.exercises.map(exercise => ({
-              id: exercise.id,
-              completed: false,
-              weight: 0,
-              previousWeight: Math.floor(Math.random() * 20) + 10,
-            }));
-            
-            setExerciseStatus(initialStatus);
-          }
-        } else {
-          // Fetch associated exercises
-          let { data: exercisesData, error: exercisesError } = await supabase
-            .from('exercises')
-            .select('*')
-            .eq('workout_id', id);
-            
-          if (exercisesError || !exercisesData) {
-            console.error("Error fetching exercises:", exercisesError);
-            toast({
-              title: "Erro ao carregar exercícios",
-              description: "Não foi possível carregar os detalhes dos exercícios.",
-              variant: "destructive",
-            });
-            return;
-          }
-          
-          // Format workout for the app's structure
-          const formattedWorkout: Workout = {
-            id: workoutData.id,
-            name: workoutData.name,
-            exercises: exercisesData.map(exercise => ({
-              id: exercise.id,
-              name: exercise.name,
-              sets: exercise.sets,
-              reps: exercise.reps
-            })),
-            createdAt: workoutData.created_at,
-            updatedAt: workoutData.updated_at,
-          };
-          
-          setWorkout(formattedWorkout);
-          
-          // Fetch latest weights for each exercise - directly from exercise_weights table
-          const exerciseStatusPromises = exercisesData.map(async (exercise) => {
-            // First try to get weights from exercise_weights table
-            let { data: weightData, error: weightError } = await supabase
-              .from('exercise_weights')
-              .select('*')
-              .eq('exercise_id', exercise.id)
-              .eq('user_id', profile.id)
-              .eq('is_latest', true)
-              .maybeSingle();
-              
-            if (weightError) {
-              console.error(`Error fetching weight for exercise ${exercise.id}:`, weightError);
-            }
-            
-            return {
-              id: exercise.id,
-              completed: false,
-              weight: 0,
-              previousWeight: weightData ? Number(weightData.weight) : 0
-            };
+          console.error("Error fetching workout:", workoutError);
+          toast({
+            title: "Erro ao carregar treino",
+            description: "O treino solicitado não foi encontrado.",
+            variant: "destructive",
           });
-          
-          const exerciseStatusResults = await Promise.all(exerciseStatusPromises);
-          console.log("Exercise status with weights:", exerciseStatusResults);
-          setExerciseStatus(exerciseStatusResults);
+          return;
         }
+        
+        // Fetch associated exercises
+        let { data: exercisesData, error: exercisesError } = await supabase
+          .from('exercises')
+          .select('*')
+          .eq('workout_id', id);
+          
+        if (exercisesError || !exercisesData) {
+          console.error("Error fetching exercises:", exercisesError);
+          toast({
+            title: "Erro ao carregar exercícios",
+            description: "Não foi possível carregar os detalhes dos exercícios.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        // Format workout for the app's structure
+        const formattedWorkout: Workout = {
+          id: workoutData.id,
+          name: workoutData.name,
+          exercises: exercisesData.map(exercise => ({
+            id: exercise.id,
+            name: exercise.name,
+            sets: exercise.sets,
+            reps: exercise.reps
+          })),
+          createdAt: workoutData.created_at,
+          updatedAt: workoutData.updated_at,
+        };
+        
+        setWorkout(formattedWorkout);
+        
+        // Fetch latest weights for each exercise
+        const exerciseStatusPromises = exercisesData.map(async (exercise) => {
+          // First try to get weights from exercise_weights table
+          let { data: weightData, error: weightError } = await supabase
+            .from('exercise_weights')
+            .select('*')
+            .eq('exercise_id', exercise.id)
+            .eq('user_id', profile.id)
+            .eq('is_latest', true)
+            .maybeSingle();
+            
+          if (weightError) {
+            console.error(`Error fetching weight for exercise ${exercise.id}:`, weightError);
+          }
+          
+          return {
+            id: exercise.id,
+            completed: false,
+            weight: 0,
+            previousWeight: weightData ? Number(weightData.weight) : 0
+          };
+        });
+        
+        const exerciseStatusResults = await Promise.all(exerciseStatusPromises);
+        console.log("Exercise status with weights:", exerciseStatusResults);
+        setExerciseStatus(exerciseStatusResults);
       } catch (error) {
         console.error("Error fetching workout:", error);
         toast({
@@ -155,7 +135,7 @@ const WorkoutDetail = () => {
     };
     
     fetchWorkoutData();
-  }, [id, profile]);
+  }, [id, profile, navigate]);
   
   const toggleExerciseCompletion = (exerciseId: string) => {
     setExerciseStatus(prev => 
@@ -184,70 +164,66 @@ const WorkoutDetail = () => {
       // Create a copy of the current exercise status to update
       const updatedStatus = [...exerciseStatus];
       
-      // If authenticated, save to database
-      if (profile?.id) {
-        // Create workout session record
-        const { data: sessionData, error: sessionError } = await supabase
-          .from('workout_sessions')
-          .insert({
-            workout_id: id,
-            user_id: profile.id,
-            date: today.toISOString(),
-            completed: true
-          })
-          .select()
-          .single();
-          
-        if (sessionError) {
-          throw new Error(`Error saving workout session: ${sessionError.message}`);
-        }
+      // Check if authenticated
+      if (!profile?.id) {
+        toast({
+          title: "Usuário não autenticado",
+          description: "Por favor, faça login para registrar o treino.",
+          variant: "destructive",
+        });
+        navigate("/login");
+        return;
+      }
+      
+      // Create workout session record
+      const { data: sessionData, error: sessionError } = await supabase
+        .from('workout_sessions')
+        .insert({
+          workout_id: id,
+          user_id: profile.id,
+          date: today.toISOString(),
+          completed: true
+        })
+        .select()
+        .single();
         
-        // Save each completed exercise weight to the database
-        for (const status of updatedStatus) {
-          if (status.completed && status.weight > 0) {
-            // First, update any existing is_latest records to false
-            const { error: updateError } = await supabase
-              .from('exercise_weights')
-              .update({ is_latest: false })
-              .eq('exercise_id', status.id)
-              .eq('user_id', profile.id)
-              .eq('is_latest', true);
-              
-            if (updateError) {
-              console.error(`Error updating previous weight records for exercise ${status.id}:`, updateError);
-            }
+      if (sessionError) {
+        throw new Error(`Error saving workout session: ${sessionError.message}`);
+      }
+      
+      // Save each completed exercise weight to the database
+      for (const status of updatedStatus) {
+        if (status.completed && status.weight > 0) {
+          // First, update any existing is_latest records to false
+          const { error: updateError } = await supabase
+            .from('exercise_weights')
+            .update({ is_latest: false })
+            .eq('exercise_id', status.id)
+            .eq('user_id', profile.id)
+            .eq('is_latest', true);
             
-            // Insert new weight record
-            const { error: weightError } = await supabase
-              .from('exercise_weights')
-              .insert({
-                exercise_id: status.id,
-                user_id: profile.id,
-                weight: status.weight,
-                is_latest: true
-              });
-              
-            if (weightError) {
-              console.error(`Error saving weight for exercise ${status.id}:`, weightError);
-            }
-            
-            // Update the status for UI display
-            const index = updatedStatus.findIndex(s => s.id === status.id);
-            if (index !== -1) {
-              updatedStatus[index] = {
-                ...status,
-                previousWeight: status.weight
-              };
-            }
+          if (updateError) {
+            console.error(`Error updating previous weight records for exercise ${status.id}:`, updateError);
           }
-        }
-      } else {
-        // Fallback to mock data behavior
-        for (let i = 0; i < updatedStatus.length; i++) {
-          const status = updatedStatus[i];
-          if (status.completed && status.weight > 0) {
-            // Update the previousWeight with the current weight for next time
-            updatedStatus[i] = {
+          
+          // Insert new weight record
+          const { error: weightError } = await supabase
+            .from('exercise_weights')
+            .insert({
+              exercise_id: status.id,
+              user_id: profile.id,
+              weight: status.weight,
+              is_latest: true
+            });
+            
+          if (weightError) {
+            console.error(`Error saving weight for exercise ${status.id}:`, weightError);
+          }
+          
+          // Update the status for UI display
+          const index = updatedStatus.findIndex(s => s.id === status.id);
+          if (index !== -1) {
+            updatedStatus[index] = {
               ...status,
               previousWeight: status.weight
             };
@@ -328,7 +304,7 @@ const WorkoutDetail = () => {
       </div>
       
       <div className="space-y-4">
-        {workout.exercises.map((exercise, index) => {
+        {workout.exercises.map((exercise) => {
           const status = exerciseStatus.find(s => s.id === exercise.id);
           const hasPreviousWeight = status?.previousWeight && status.previousWeight > 0;
           const weightDifference = status ? status.weight - (status.previousWeight || 0) : 0;

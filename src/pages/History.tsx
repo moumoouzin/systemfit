@@ -6,16 +6,17 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
-import { mockWorkoutHistory } from "@/data/mockData";
 import { useState } from "react";
 import { Calendar, History as HistoryIcon, FilterX } from "lucide-react";
 import { WorkoutHistory } from "@/types";
+import { useWorkoutHistory } from "@/lib/workoutHistory";
 
 const History = () => {
   const [filter, setFilter] = useState<string | null>(null);
+  const { workoutHistory, isLoading } = useWorkoutHistory();
   
   // Group workout history by date
-  const groupedHistory = mockWorkoutHistory.reduce((acc, entry) => {
+  const groupedHistory = workoutHistory.reduce((acc, entry) => {
     const date = format(new Date(entry.date), 'yyyy-MM-dd');
     if (!acc[date]) {
       acc[date] = [];
@@ -35,9 +36,11 @@ const History = () => {
     : groupedHistory;
   
   const hasEntries = Object.values(filteredHistory).some(entries => 
-    // Adicionamos a verificação de tipo aqui
     Array.isArray(entries) && entries.length > 0
   );
+  
+  // Get unique workout names for filter buttons
+  const uniqueWorkoutNames = Array.from(new Set(workoutHistory.map(h => h.workoutName)));
   
   return (
     <MainLayout>
@@ -60,7 +63,7 @@ const History = () => {
             Todos
           </Button>
           
-          {Array.from(new Set(mockWorkoutHistory.map(h => h.workoutName))).map(name => (
+          {uniqueWorkoutNames.map(name => (
             <Button
               key={name}
               variant={filter === name ? "default" : "outline"}
@@ -83,12 +86,15 @@ const History = () => {
           )}
         </div>
         
-        {hasEntries ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          </div>
+        ) : hasEntries ? (
           <div className="space-y-4">
             {Object.entries(filteredHistory)
               .sort(([dateA], [dateB]) => new Date(dateB).getTime() - new Date(dateA).getTime())
               .map(([date, entries]) => {
-                // Adicionamos a verificação de tipo aqui
                 if (!Array.isArray(entries) || entries.length === 0) return null;
                 
                 return (
@@ -101,8 +107,7 @@ const History = () => {
                     </CardHeader>
                     <CardContent className="p-0">
                       <ScrollArea className="max-h-[300px]">
-                        {/* Usamos a verificação de tipo para garantir que entries é um array */}
-                        {Array.isArray(entries) && entries.map((history) => (
+                        {entries.map((history) => (
                           <HistoryItem key={history.date} history={history} />
                         ))}
                       </ScrollArea>
