@@ -1,134 +1,103 @@
 
-import MainLayout from "@/layouts/MainLayout";
-import HistoryItem from "@/components/HistoryItem";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { Calendar, History as HistoryIcon, FilterX } from "lucide-react";
-import { WorkoutHistory } from "@/types";
+import { format, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import HistoryItem from "@/components/HistoryItem";
 import { useWorkoutHistory } from "@/lib/workoutHistory";
 
 const History = () => {
-  const [filter, setFilter] = useState<string | null>(null);
-  const { workoutHistory, isLoading } = useWorkoutHistory();
+  const [activeTab, setActiveTab] = useState<string>("all");
+  const { workoutHistory, isLoading, error } = useWorkoutHistory();
   
-  // Group workout history by date
-  const groupedHistory = workoutHistory.reduce((acc, entry) => {
-    const date = format(new Date(entry.date), 'yyyy-MM-dd');
-    if (!acc[date]) {
-      acc[date] = [];
+  // Filter history based on active tab
+  const filteredHistory = workoutHistory.filter(item => {
+    if (activeTab === "all") return true;
+    if (activeTab === "completed") return item.completed;
+    if (activeTab === "incomplete") return !item.completed;
+    return true;
+  });
+  
+  // Group history by month
+  const groupedHistory: Record<string, typeof filteredHistory> = {};
+  
+  filteredHistory.forEach(item => {
+    const date = parseISO(item.date);
+    const monthKey = format(date, "MMMM yyyy", { locale: ptBR });
+    
+    if (!groupedHistory[monthKey]) {
+      groupedHistory[monthKey] = [];
     }
-    acc[date].push(entry);
-    return acc;
-  }, {} as Record<string, WorkoutHistory[]>);
-  
-  // Apply filter if needed
-  const filteredHistory = filter 
-    ? Object.fromEntries(
-        Object.entries(groupedHistory).map(([date, entries]) => [
-          date,
-          entries.filter(entry => entry.workoutName.includes(filter))
-        ]).filter(([_, entries]) => entries.length > 0)
-      )
-    : groupedHistory;
-  
-  const hasEntries = Object.values(filteredHistory).some(entries => 
-    Array.isArray(entries) && entries.length > 0
-  );
-  
-  // Get unique workout names for filter buttons
-  const uniqueWorkoutNames = Array.from(new Set(workoutHistory.map(h => h.workoutName)));
+    
+    groupedHistory[monthKey].push(item);
+  });
   
   return (
-    <MainLayout>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Histórico</h1>
-          <p className="text-muted-foreground">
-            Histórico completo de todos os seus treinos
-          </p>
-        </div>
-        
-        <div className="flex gap-2 flex-wrap">
-          <Button 
-            variant={!filter ? "default" : "outline"}
-            size="sm"
-            onClick={() => setFilter(null)}
-            className="mr-2"
-          >
-            <HistoryIcon className="h-4 w-4 mr-2" />
-            Todos
-          </Button>
-          
-          {uniqueWorkoutNames.map(name => (
-            <Button
-              key={name}
-              variant={filter === name ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFilter(name)}
-            >
-              {name.replace(/Treino [A-Z] - /, '')}
-            </Button>
-          ))}
-          
-          {filter && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setFilter(null)}
-            >
-              <FilterX className="h-4 w-4 mr-1" />
-              Limpar
-            </Button>
-          )}
-        </div>
-        
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          </div>
-        ) : hasEntries ? (
-          <div className="space-y-4">
-            {Object.entries(filteredHistory)
-              .sort(([dateA], [dateB]) => new Date(dateB).getTime() - new Date(dateA).getTime())
-              .map(([date, entries]) => {
-                if (!Array.isArray(entries) || entries.length === 0) return null;
-                
-                return (
-                  <Card key={date}>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-base flex items-center">
-                        <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                        {format(new Date(date), "EEEE, dd 'de' MMMM, yyyy", { locale: ptBR })}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                      <ScrollArea className="max-h-[300px]">
-                        {entries.map((history) => (
-                          <HistoryItem key={history.date} history={history} />
-                        ))}
-                      </ScrollArea>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <HistoryIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-2">Nenhum registro encontrado</h3>
-            <p className="text-muted-foreground">
-              {filter 
-                ? "Nenhum treino corresponde ao filtro selecionado." 
-                : "Você ainda não registrou nenhum treino."}
-            </p>
-          </div>
-        )}
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Histórico</h1>
+        <p className="text-muted-foreground">
+          Veja seu histórico de treinos
+        </p>
       </div>
-    </MainLayout>
+      
+      <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="all">Todos</TabsTrigger>
+          <TabsTrigger value="completed">Concluídos</TabsTrigger>
+          <TabsTrigger value="incomplete">Incompletos</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value={activeTab} className="mt-4">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+          ) : error ? (
+            <Card>
+              <CardContent className="pt-6">
+                <p className="text-center text-destructive">
+                  Erro ao carregar o histórico: {error}
+                </p>
+              </CardContent>
+            </Card>
+          ) : Object.keys(groupedHistory).length > 0 ? (
+            <div className="space-y-6">
+              {Object.entries(groupedHistory).map(([month, items]) => (
+                <Card key={month}>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="capitalize text-lg">{month}</CardTitle>
+                    <CardDescription>
+                      {items.length} {items.length === 1 ? 'treino' : 'treinos'}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <div className="divide-y">
+                      {items.map(item => (
+                        <HistoryItem key={`${item.workoutId}-${item.date}`} history={item} />
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="pt-6">
+                <p className="text-center text-muted-foreground">
+                  Nenhum treino {activeTab === "completed" 
+                    ? "concluído" 
+                    : activeTab === "incomplete" 
+                      ? "incompleto" 
+                      : ""} encontrado.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 };
 

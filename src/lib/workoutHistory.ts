@@ -27,6 +27,7 @@ export const useWorkoutHistory = () => {
             date,
             completed,
             workout_id,
+            xp_earned,
             workouts (
               name
             )
@@ -44,7 +45,7 @@ export const useWorkoutHistory = () => {
           workoutId: session.workout_id,
           workoutName: session.workouts?.name || "Treino sem nome",
           completed: session.completed,
-          xpEarned: 25, // Default XP value
+          xpEarned: session.xp_earned || 25, // Use the database value or default to 25
         }));
         
         setWorkoutHistory(formattedHistory);

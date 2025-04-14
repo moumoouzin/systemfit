@@ -1,241 +1,192 @@
 
-import MainLayout from "@/layouts/MainLayout";
-import UserAvatar from "@/components/UserAvatar";
-import WeeklyProgress from "@/components/WeeklyProgress";
-import WorkoutCard from "@/components/WorkoutCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trophy, Dumbbell, Plus, BarChart2 } from "lucide-react";
+import { DumbbellIcon, TrendingUp, Calendar, Trophy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import WeeklyProgress from "@/components/WeeklyProgress";
+import UserAvatar from "@/components/UserAvatar";
+import HistoryItem from "@/components/HistoryItem";
+import ExerciseProgressCard from "@/components/ExerciseProgressCard";
 import { useAuth } from "@/contexts/AuthContext";
-import { useState, useEffect } from "react";
-import { Workout } from "@/types";
-import { supabase } from "@/integrations/supabase/client";
+import { useWorkoutHistory } from "@/lib/workoutHistory";
 import { useExerciseProgress } from "@/lib/exerciseProgress";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { profile } = useAuth();
-  const [workouts, setWorkouts] = useState<Workout[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const { exerciseProgress } = useExerciseProgress();
-  
-  useEffect(() => {
-    const fetchWorkouts = async () => {
-      setIsLoading(true);
-      
-      try {
-        if (profile?.id) {
-          // Fetch workouts from Supabase
-          const { data: workoutsData, error: workoutsError } = await supabase
-            .from('workouts')
-            .select('*')
-            .eq('user_id', profile.id)
-            .limit(3);
-            
-          if (workoutsError) {
-            console.error("Error fetching workouts:", workoutsError);
-            return;
-          }
-          
-          // For each workout, fetch its exercises
-          const workoutsWithExercises = await Promise.all(
-            workoutsData.map(async (workout) => {
-              const { data: exercisesData, error: exercisesError } = await supabase
-                .from('exercises')
-                .select('*')
-                .eq('workout_id', workout.id);
-                
-              if (exercisesError) {
-                console.error(`Error fetching exercises for workout ${workout.id}:`, exercisesError);
-                return null;
-              }
-              
-              // Map DB exercises to app Exercise type
-              const exercises = exercisesData.map((dbExercise) => ({
-                id: dbExercise.id,
-                name: dbExercise.name,
-                sets: dbExercise.sets,
-                reps: dbExercise.reps
-              }));
-              
-              return {
-                id: workout.id,
-                name: workout.name,
-                exercises: exercises,
-                createdAt: workout.created_at,
-                updatedAt: workout.updated_at,
-              };
-            })
-          );
-          
-          // Filter out any null results from failed fetches
-          const validWorkouts = workoutsWithExercises.filter(
-            (workout): workout is Workout => workout !== null
-          );
-          
-          setWorkouts(validWorkouts);
-        }
-      } catch (error) {
-        console.error("Error fetching workouts:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchWorkouts();
-  }, [profile]);
-  
+  const { user } = useAuth();
+  const { workoutHistory, isLoading: isLoadingHistory } = useWorkoutHistory();
+  const { exerciseProgress, isLoading: isLoadingProgress } = useExerciseProgress();
+
+  // Filter for recent completed workouts
+  const recentWorkouts = workoutHistory
+    .filter(w => w.completed)
+    .slice(0, 3);
+
+  // Get improved exercises
+  const improvedExercises = exerciseProgress
+    .filter(ex => ex.progress === 'increased')
+    .slice(0, 3);
+
+  const isLoading = isLoadingHistory || isLoadingProgress;
+
+  if (!user) return null;
+
   return (
-    <MainLayout>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Olá, {profile?.name || 'Atleta'}! Vamos treinar hoje?
-          </p>
-        </div>
-        
-        {profile && <UserAvatar user={profile} />}
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <WeeklyProgress 
-            daysTrainedThisWeek={profile?.daysTrainedThisWeek || 0} 
-            totalDaysGoal={4} 
-          />
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg flex items-center">
-                <Trophy className="mr-2 h-5 w-5 text-rpg-gold" />
-                Próximo Objetivo
-              </CardTitle>
+    <div className="space-y-6">
+      <UserAvatar user={user} />
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="bg-rpg-strength/10 border-rpg-strength/20">
+          <CardHeader className="pb-2">
+            <CardDescription>Força</CardDescription>
+            <CardTitle>{user.attributes.strength}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card className="bg-rpg-vitality/10 border-rpg-vitality/20">
+          <CardHeader className="pb-2">
+            <CardDescription>Vigor</CardDescription>
+            <CardTitle>{user.attributes.vitality}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card className="bg-rpg-focus/10 border-rpg-focus/20">
+          <CardHeader className="pb-2">
+            <CardDescription>Foco</CardDescription>
+            <CardTitle>{user.attributes.focus}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card className="bg-rpg-xp/10 border-rpg-xp/20">
+          <CardHeader className="pb-2">
+            <CardDescription>XP Total</CardDescription>
+            <CardTitle>{user.xp}</CardTitle>
+          </CardHeader>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Card className="md:col-span-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <div>
+              <CardTitle>Seu progresso semanal</CardTitle>
               <CardDescription>
-                Complete para receber recompensas
+                Esta semana você treinou {user.daysTrainedThisWeek} de 7 dias
               </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <p className="font-medium">
-                  Treine 4 dias nesta semana
-                </p>
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <div className="font-medium text-rpg-xp">+100 XP</div>
-                  <span className="mx-2">•</span>
-                  <div className="font-medium">+1 Ponto de Atributo</div>
-                </div>
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => navigate('/workouts')}
-                >
-                  Ver Treinos
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold">Seus Treinos</h2>
+            </div>
+            <div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => navigate('/stats')}
+              >
+                <TrendingUp className="mr-2 h-4 w-4" />
+                Estatísticas
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <WeeklyProgress daysTrainedThisWeek={user.daysTrainedThisWeek} />
+          </CardContent>
+        </Card>
+
+        <Card className="flex flex-col justify-between">
+          <CardHeader>
+            <CardTitle>Novo Treino</CardTitle>
+            <CardDescription>
+              Crie um novo treino personalizado
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex-1 flex flex-col justify-center items-center space-y-4">
+            <DumbbellIcon className="h-12 w-12 text-muted-foreground" />
+            <Button 
+              className="w-full" 
+              onClick={() => navigate('/workouts/new')}
+            >
+              Criar Treino
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <div>
+              <CardTitle>Histórico Recente</CardTitle>
+              <CardDescription>
+                Seus últimos treinos concluídos
+              </CardDescription>
+            </div>
             <Button 
               variant="outline" 
               size="sm"
-              onClick={() => navigate('/workouts')}
+              onClick={() => navigate('/history')}
             >
-              Ver Todos
+              <Calendar className="mr-2 h-4 w-4" />
+              Ver tudo
             </Button>
-          </div>
-          
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-6">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : recentWorkouts.length > 0 ? (
+              <div className="divide-y">
+                {recentWorkouts.map((history) => (
+                  <HistoryItem key={`${history.workoutId}-${history.date}`} history={history} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6 text-muted-foreground">
+                <Trophy className="h-8 w-8 mx-auto mb-2 opacity-70" />
+                <p>Complete seu primeiro treino</p>
+                <p className="text-sm">Vamos começar a jornada!</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <div>
+              <CardTitle>Progresso nos Exercícios</CardTitle>
+              <CardDescription>
+                Exercícios com melhoria de carga
+              </CardDescription>
             </div>
-          ) : workouts.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {workouts.map((workout) => (
-                <WorkoutCard key={workout.id} workout={workout} />
-              ))}
-              <Card className="flex flex-col items-center justify-center h-full border-dashed p-6">
-                <Dumbbell className="h-8 w-8 text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground mb-4 text-center">
-                  Adicione um novo treino personalizado
-                </p>
-                <Button 
-                  variant="outline"
-                  onClick={() => navigate('/workouts/new')}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Novo Treino
-                </Button>
-              </Card>
-            </div>
-          ) : (
-            <Card className="flex flex-col items-center justify-center p-6">
-              <Dumbbell className="h-8 w-8 text-muted-foreground mb-2" />
-              <p className="text-sm text-muted-foreground mb-4 text-center">
-                Você ainda não criou nenhum treino
-              </p>
-              <Button 
-                variant="outline"
-                onClick={() => navigate('/workouts/new')}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Novo Treino
-              </Button>
-            </Card>
-          )}
-        </div>
-        
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold">Progresso Recente</h2>
             <Button 
               variant="outline" 
               size="sm"
               onClick={() => navigate('/stats')}
             >
-              Ver Estatísticas
+              <TrendingUp className="mr-2 h-4 w-4" />
+              Ver tudo
             </Button>
-          </div>
-          
-          {exerciseProgress.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {exerciseProgress.slice(0, 3).map((progress, index) => (
-                <Card key={index}>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base">{progress.exercise}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="text-2xl font-bold">{progress.currentWeek.weight}kg</p>
-                        <p className="text-xs text-muted-foreground">Carga atual</p>
-                      </div>
-                      
-                      <div className="text-right">
-                        <p className="text-sm font-medium text-rpg-vitality">
-                          +{progress.currentWeek.weight - progress.previousWeek.weight}kg
-                        </p>
-                        <p className="text-xs text-muted-foreground">vs semana anterior</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <Card className="flex flex-col items-center justify-center p-6">
-              <BarChart2 className="h-8 w-8 text-muted-foreground mb-2" />
-              <p className="text-sm text-muted-foreground text-center">
-                Complete treinos para visualizar seu progresso
-              </p>
-            </Card>
-          )}
-        </div>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-6">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : improvedExercises.length > 0 ? (
+              <div className="space-y-4">
+                {improvedExercises.map((exercise) => (
+                  <ExerciseProgressCard 
+                    key={exercise.exercise} 
+                    exercise={exercise} 
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6 text-muted-foreground">
+                <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-70" />
+                <p>Ainda sem progressos registrados</p>
+                <p className="text-sm">Aumente as cargas para ver seu progresso!</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
-    </MainLayout>
+    </div>
   );
 };
 
