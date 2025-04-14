@@ -140,27 +140,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       setIsLoading(true);
       
-      // Special check for Mohamed account
       if (usernameOrEmail === "Mohamed" && password === "isaque123") {
-        // Find Mohamed in profiles
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('name', 'Mohamed')
-          .single();
-          
-        if (error || !data) {
-          throw new Error("Credenciais inválidas. Tente novamente.");
-        }
+        console.log("Logging in with Mohamed credentials");
         
-        // Try to log in with Mohamed's account
-        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-          email: `mohamed_${Date.now()}@systemfit.example.com`,
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: "mohamed@systemfit.example.com",
           password: "isaque123",
         });
         
-        if (authError) {
-          throw authError;
+        if (error) {
+          console.error("Error logging in with Mohamed account:", error);
+          throw error;
         }
         
         console.log("Login successful with Mohamed account");
@@ -174,7 +164,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
       
-      // For all other users, show error
       toast({
         title: "Credenciais inválidas",
         description: "Usuário ou senha incorretos.",
@@ -227,7 +216,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (error) throw error;
 
-      // Update the local profile state
       setProfile(prev => {
         if (!prev) return null;
         
@@ -252,7 +240,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const createMohamedAccount = async () => {
       try {
-        // Check if Mohamed account exists
         const { data: profileData } = await supabase
           .from('profiles')
           .select('id')
@@ -260,7 +247,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           .maybeSingle();
           
         if (!profileData) {
-          // Create Mohamed account
           const { data, error } = await supabase.auth.signUp({
             email: `mohamed_${Date.now()}@systemfit.example.com`,
             password: "isaque123",
