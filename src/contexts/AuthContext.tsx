@@ -22,6 +22,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   updateProfile: (updateData: Record<string, unknown>) => Promise<{ success: boolean }>;
+  createSpecificUser: (name: string, password: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -340,6 +341,64 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const createSpecificUser = async (name: string, password: string) => {
+    try {
+      setIsLoading(true);
+      
+      const uniqueEmail = `user_${name.toLowerCase()}_${Date.now()}@example.com`;
+      
+      const { data, error } = await supabase.auth.signUp({
+        email: uniqueEmail,
+        password,
+        options: {
+          data: {
+            name: name,
+            is_username_based: true
+          },
+        },
+      });
+
+      if (error) throw error;
+
+      console.log("Specific user created successfully:", data.user?.id);
+      return data;
+    } catch (error: any) {
+      console.error("Error creating specific user:", error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+    
+    const createMohamedAccount = async () => {
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('name', 'Mohamed')
+          .maybeSingle();
+          
+        if (!data) {
+          await createSpecificUser('Mohamed', 'isaque123');
+          console.log("Mohamed account created successfully");
+        } else {
+          console.log("Mohamed account already exists, skipping creation");
+        }
+      } catch (error) {
+        console.error("Error with Mohamed account:", error);
+      }
+    };
+    
+    createMohamedAccount();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -351,7 +410,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         register,
         logout,
         loginWithGoogle,
-        updateProfile
+        updateProfile,
+        createSpecificUser
       }}
     >
       {children}
