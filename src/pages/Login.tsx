@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "@/components/ui/use-toast";
 
 const Login = () => {
-  const [emailOrName, setEmailOrName] = useState("");
+  const [emailOrUsername, setEmailOrUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -19,7 +19,7 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!emailOrName || !password) {
+    if (!emailOrUsername || !password) {
       toast({
         title: "Campos obrigatórios",
         description: "Por favor, preencha todos os campos",
@@ -30,7 +30,7 @@ const Login = () => {
     
     setIsSubmitting(true);
     try {
-      await login(emailOrName, password);
+      await login(emailOrUsername, password);
     } catch (error) {
       console.error("Login error:", error);
     } finally {
@@ -69,15 +69,15 @@ const Login = () => {
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="emailOrName">Nome de usuário ou Email</Label>
+                <Label htmlFor="emailOrUsername">Nome de usuário ou Email</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    id="emailOrName"
+                    id="emailOrUsername"
                     type="text"
                     placeholder="usuario ou email@exemplo.com"
-                    value={emailOrName}
-                    onChange={(e) => setEmailOrName(e.target.value)}
+                    value={emailOrUsername}
+                    onChange={(e) => setEmailOrUsername(e.target.value)}
                     className="pl-10"
                     disabled={buttonLoading}
                   />

@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { User, Session } from '@supabase/supabase-js';
 import { useNavigate } from "react-router-dom";
@@ -10,15 +11,8 @@ interface AuthContextType {
   profile: AppUser | null;
   session: Session | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (nameOrEmail: string, password: string, fullName?: string, options?: {
-    avatarUrl?: string | null;
-    attributes?: {
-      strength: number;
-      vitality: number;
-      focus: number;
-    }
-  }) => Promise<void>;
+  login: (emailOrUsername: string, password: string) => Promise<void>;
+  register: (email: string, password: string, name: string, avatarUrl?: string | null) => Promise<void>;
   logout: () => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   updateProfile: (updateData: Record<string, unknown>) => Promise<{ success: boolean }>;
@@ -34,44 +28,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    console.log("AuthProvider initialized");
-    let isMounted = true;
+    let mounted = true;
     
-    const getSession = async () => {
-      setIsLoading(true);
-      try {
-        console.log("Fetching session");
-        const { data } = await supabase.auth.getSession();
-        console.log("Session data:", data);
-        
-        if (!isMounted) return;
-        
-        setSession(data.session);
-        setUser(data.session?.user || null);
-        
-        if (data.session?.user) {
-          await fetchUserProfile(data.session.user.id);
-        } else {
-          console.log("No active session found");
-          setIsLoading(false);
-        }
-      } catch (error) {
-        console.error("Erro ao verificar sessão:", error);
-        if (isMounted) {
-          toast({
-            title: "Erro de autenticação",
-            description: "Não foi possível verificar sua sessão.",
-            variant: "destructive",
-          });
-          setIsLoading(false);
-        }
-      }
-    };
-
+    // Configurar listener de mudanças de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        console.log("Auth state changed:", _event, session?.user?.id);
-        if (!isMounted) return;
+      async (event, session) => {
+        console.log("Auth state changed:", event, session?.user?.id);
+        
+        if (!mounted) return;
         
         setSession(session);
         setUser(session?.user || null);
@@ -85,17 +49,39 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     );
 
-    getSession();
+    // Verificar sessão atual
+    const initializeAuth = async () => {
+      setIsLoading(true);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!mounted) return;
+        
+        setSession(session);
+        setUser(session?.user || null);
+        
+        if (session?.user) {
+          await fetchUserProfile(session.user.id);
+        } else {
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error("Erro ao verificar sessão:", error);
+        setIsLoading(false);
+      }
+    };
+
+    initializeAuth();
 
     return () => {
-      isMounted = false;
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
 
   const fetchUserProfile = async (userId: string) => {
     try {
-      console.log("Fetching profile for user ID:", userId);
+      console.log("Buscando perfil para usuário ID:", userId);
       
       const { data, error } = await supabase
         .from('profiles')
@@ -104,11 +90,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .maybeSingle();
       
       if (error) {
-        console.error("Error fetching profile:", error);
+        console.error("Erro ao buscar perfil:", error);
         throw error;
       }
       
-      console.log("Profile data received:", data);
+      console.log("Dados do perfil recebidos:", data);
       
       if (data) {
         const userProfile: AppUser = {
@@ -126,34 +112,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           streakDays: data.streak_days
         };
         
-        console.log("Setting profile:", userProfile);
+        console.log("Perfil configurado:", userProfile);
         setProfile(userProfile);
       } else {
-        console.warn("No profile data found for user:", userId);
-        if (data) {
-          const displayName = data.name || 
-                             data.avatar_url || 
-                             "Usuário";
-          
-          console.log("Creating placeholder profile with name:", displayName);
-          
-          const tempProfile: AppUser = {
-            id: userId,
-            name: displayName,
-            avatarUrl: data.avatar_url || "",
-            level: 1,
-            xp: 0,
-            attributes: {
-              strength: 1,
-              vitality: 1,
-              focus: 1
-            },
-            daysTrainedThisWeek: 0,
-            streakDays: 0
-          };
-          
-          setProfile(tempProfile);
-        }
+        console.warn("Nenhum perfil encontrado para o usuário:", userId);
       }
       
       setIsLoading(false);
@@ -163,10 +125,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const login = async (email: string, password: string) => {
+  const login = async (emailOrUsername: string, password: string) => {
     try {
       setIsLoading(true);
-      console.log("Attempting login with:", { email });
+      
+      // Determinar se é um email ou nome de usuário
+      const isEmail = emailOrUsername.includes('@');
+      const email = isEmail ? emailOrUsername : `${emailOrUsername.toLowerCase()}@systemfit.com`;
+      
+      console.log("Tentando login com:", { email, isEmail });
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -175,7 +142,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (error) throw error;
       
-      console.log("Login successful:", data.user?.id);
+      console.log("Login bem-sucedido:", data.user?.id);
       
       toast({
         title: "Login realizado com sucesso",
@@ -220,67 +187,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const register = async (
-    nameOrEmail: string,
+    email: string,
     password: string,
-    fullName?: string,
-    options?: {
-      avatarUrl?: string | null;
-      attributes?: {
-        strength: number;
-        vitality: number;
-        focus: number;
-      }
-    }
+    name: string,
+    avatarUrl?: string | null
   ) => {
     try {
       setIsLoading(true);
-      
-      const isEmail = nameOrEmail.includes('@');
-      const displayName = fullName || nameOrEmail;
-      
-      const email = isEmail ? nameOrEmail : `user_${Date.now()}@example.com`;
       
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            name: displayName,
-            is_username_based: !isEmail,
-            avatar_url: options?.avatarUrl || null,
-            strength: options?.attributes?.strength || 1,
-            vitality: options?.attributes?.vitality || 1,
-            focus: options?.attributes?.focus || 1
+            name,
+            avatar_url: avatarUrl || null
           },
         },
       });
 
       if (error) throw error;
-
-      if (data.user) {
-        if (options?.avatarUrl || options?.attributes) {
-          const updateData: Record<string, unknown> = {};
-          
-          if (options.avatarUrl) {
-            updateData.avatar_url = options.avatarUrl;
-          }
-          
-          if (options.attributes) {
-            updateData.strength = options.attributes.strength;
-            updateData.vitality = options.attributes.vitality;
-            updateData.focus = options.attributes.focus;
-          }
-          
-          const { error: updateError } = await supabase
-            .from('profiles')
-            .update(updateData as any)
-            .eq('id', data.user.id as any);
-            
-          if (updateError) {
-            console.error("Erro ao atualizar perfil:", updateError);
-          }
-        }
-      }
 
       toast({
         title: "Registro concluído com sucesso",
@@ -295,6 +221,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         description: error.message || "Não foi possível criar sua conta.",
         variant: "destructive",
       });
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -327,10 +254,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const { error } = await supabase
         .from('profiles')
         .update(updateData as any)
-        .eq('id', user.id as any);
+        .eq('id', user.id);
       
       if (error) throw error;
       
+      // Atualizar o perfil localmente
       await fetchUserProfile(user.id);
       
       return { success: true };
