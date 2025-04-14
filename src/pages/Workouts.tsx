@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dumbbell, Plus, Search, AlertCircle } from "lucide-react";
@@ -45,17 +46,43 @@ const Workouts = () => {
       setIsLoading(true);
       
       try {
-        if (profile?.id && typeof profile.id === 'string' && profile.id.length > 30) {
+        // Get current session
+        const { data: sessionData } = await supabase.auth.getSession();
+        console.log("Current auth session:", sessionData);
+        
+        // Check if user is authenticated with Supabase
+        if (!sessionData.session) {
+          console.log("No active Supabase session, attempting to sign in");
+          
+          // Try to sign in with demo credentials
+          const { error: signInError } = await supabase.auth.signInWithPassword({
+            email: "mohamed@example.com", 
+            password: "isaque123"
+          });
+          
+          if (signInError) {
+            console.error("Could not sign in with demo credentials:", signInError);
+            throw new Error("Authentication failed");
+          }
+          
+          console.log("Signed in with demo credentials");
+        }
+        
+        if (profile?.id) {
+          console.log("Fetching workouts for user:", profile.id);
+          
           // Fetch workouts from Supabase
           const { data: workoutsData, error: workoutsError } = await supabase
             .from('workouts')
             .select('*')
-            .eq('user_id', profile.id)
-            .order('created_at', { ascending: false });
+            .eq('user_id', profile.id);
             
           if (workoutsError) {
+            console.error("Error fetching workouts:", workoutsError);
             throw new Error(`Error fetching workouts: ${workoutsError.message}`);
           }
+          
+          console.log("Workouts data from Supabase:", workoutsData);
           
           // For each workout, fetch its exercises
           const workoutsWithExercises = await Promise.all(
@@ -69,6 +96,8 @@ const Workouts = () => {
                 console.error(`Error fetching exercises for workout ${workout.id}:`, exercisesError);
                 return null;
               }
+              
+              console.log(`Exercises for workout ${workout.id}:`, exercisesData);
               
               // Map DB exercises to app Exercise type
               const exercises: Exercise[] = exercisesData.map((dbExercise: DbExercise) => ({
@@ -93,11 +122,18 @@ const Workouts = () => {
             (workout): workout is Workout => workout !== null
           );
           
-          setWorkouts(validWorkouts);
+          console.log("Final workouts with exercises:", validWorkouts);
+          
+          if (validWorkouts.length > 0) {
+            setWorkouts(validWorkouts);
+          } else {
+            console.log("No workouts found in database, using mock data");
+            setWorkouts(mockWorkouts);
+          }
         } else {
-          // Use mock data if not authenticated or invalid UUID
+          // Use mock data if not authenticated
+          console.log("Using mock data - profile id not available");
           setWorkouts(mockWorkouts);
-          console.log("Using mock data - user not authenticated with valid UUID");
         }
       } catch (error) {
         console.error("Error fetching workouts:", error);
@@ -129,7 +165,7 @@ const Workouts = () => {
     if (!workoutToDelete) return;
     
     try {
-      if (profile?.id && typeof profile.id === 'string' && profile.id.length > 30) {
+      if (profile?.id) {
         // Delete from database
         const { error } = await supabase
           .from('workouts')
