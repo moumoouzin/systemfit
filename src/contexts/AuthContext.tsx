@@ -10,7 +10,7 @@ interface AuthContextType {
   profile: AppUser | null;
   session: Session | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (emailOrName: string, password: string) => Promise<void>;
   register: (nameOrEmail: string, password: string, fullName?: string, options?: {
     avatarUrl?: string | null;
     attributes?: {
@@ -164,16 +164,45 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const login = async (email: string, password: string) => {
+  const login = async (emailOrName: string, password: string) => {
     try {
       setIsLoading(true);
-      console.log("Attempting login with:", { email });
+      console.log("Attempting login with:", { emailOrName });
       
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
+      const isEmail = emailOrName.includes('@');
+      
+      let authResponse;
+      
+      if (isEmail) {
+        authResponse = await supabase.auth.signInWithPassword({
+          email: emailOrName,
+          password,
+        });
+      } else {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('name', emailOrName)
+          .single();
+          
+        if (error || !data) {
+          throw new Error("Usuário não encontrado");
+        }
+        
+        const { data: userData, error: userError } = await supabase.auth.admin.getUserById(data.id);
+        
+        if (userError || !userData?.user) {
+          throw new Error("Usuário não encontrado no sistema");
+        }
+        
+        authResponse = await supabase.auth.signInWithPassword({
+          email: userData.user.email || "",
+          password,
+        });
+      }
+      
+      const { data, error } = authResponse;
+      
       if (error) throw error;
       
       console.log("Login successful:", data.user?.id);
@@ -186,12 +215,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       navigate("/");
     } catch (error: any) {
       console.error("Erro ao fazer login:", error);
+      
+      let errorMessage = "Verifique suas credenciais e tente novamente.";
+      
+      if (error.message.includes("Invalid login credentials")) {
+        errorMessage = "Credenciais inválidas. Verifique seu nome/email e senha.";
+      } else if (error.message.includes("User not found")) {
+        errorMessage = "Usuário não encontrado.";
+      } else if (error.message.includes("Email not confirmed")) {
+        errorMessage = "Email não confirmado. Verifique sua caixa de entrada.";
+      }
+      
       toast({
         title: "Erro de login",
-        description: error.message || "Verifique suas credenciais e tente novamente.",
+        description: errorMessage,
         variant: "destructive",
       });
-      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -239,7 +278,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const isEmail = nameOrEmail.includes('@');
       const displayName = fullName || nameOrEmail;
       
-      const email = isEmail ? nameOrEmail : `user_${Date.now()}@example.com`;
+      const email = isEmail ? nameOrEmail : `${nameOrEmail.toLowerCase()}@systemfit.example.com`;
       
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -291,9 +330,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       navigate("/");
     } catch (error: any) {
       console.error("Erro ao registrar:", error);
+      
+      let errorMessage = "Não foi possível criar sua conta.";
+      
+      if (error.message.includes("User already registered")) {
+        errorMessage = "Este email já está registrado.";
+      } else if (error.message.includes("Password should be at least")) {
+        errorMessage = "A senha deve ter pelo menos 6 caracteres.";
+      } else if (error.message.includes("Email address is invalid")) {
+        errorMessage = "O endereço de email é inválido.";
+      }
+      
       toast({
         title: "Erro no registro",
-        description: error.message || "Não foi possível criar sua conta.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -345,7 +395,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       setIsLoading(true);
       
-      const uniqueEmail = `user_${name.toLowerCase()}_${Date.now()}@example.com`;
+      const uniqueEmail = `${name.toLowerCase()}_${Date.now()}@systemfit.example.com`;
       
       const { data, error } = await supabase.auth.signUp({
         email: uniqueEmail,

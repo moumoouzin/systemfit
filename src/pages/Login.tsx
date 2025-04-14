@@ -33,6 +33,7 @@ const Login = () => {
       await login(emailOrName, password);
     } catch (error) {
       console.error("Login error:", error);
+      // Error handling is done inside the login function
     } finally {
       setIsSubmitting(false);
     }
