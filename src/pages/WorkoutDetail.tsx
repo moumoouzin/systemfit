@@ -103,15 +103,21 @@ const WorkoutDetail = () => {
           const formattedWorkout: Workout = {
             id: workoutData.id,
             name: workoutData.name,
-            exercises: exercisesData,
+            exercises: exercisesData.map(exercise => ({
+              id: exercise.id,
+              name: exercise.name,
+              sets: exercise.sets,
+              reps: exercise.reps
+            })),
             createdAt: workoutData.created_at,
             updatedAt: workoutData.updated_at,
           };
           
           setWorkout(formattedWorkout);
           
-          // Fetch latest weights for each exercise
+          // Fetch latest weights for each exercise - directly from exercise_weights table
           const exerciseStatusPromises = exercisesData.map(async (exercise) => {
+            // First try to get weights from exercise_weights table
             let { data: weightData, error: weightError } = await supabase
               .from('exercise_weights')
               .select('*')
@@ -120,15 +126,20 @@ const WorkoutDetail = () => {
               .eq('is_latest', true)
               .maybeSingle();
               
+            if (weightError) {
+              console.error(`Error fetching weight for exercise ${exercise.id}:`, weightError);
+            }
+            
             return {
               id: exercise.id,
               completed: false,
               weight: 0,
-              previousWeight: weightData ? Number(weightData.weight) : undefined
+              previousWeight: weightData ? Number(weightData.weight) : 0
             };
           });
           
           const exerciseStatusResults = await Promise.all(exerciseStatusPromises);
+          console.log("Exercise status with weights:", exerciseStatusResults);
           setExerciseStatus(exerciseStatusResults);
         }
       } catch (error) {
@@ -194,6 +205,18 @@ const WorkoutDetail = () => {
         // Save each completed exercise weight to the database
         for (const status of updatedStatus) {
           if (status.completed && status.weight > 0) {
+            // First, update any existing is_latest records to false
+            const { error: updateError } = await supabase
+              .from('exercise_weights')
+              .update({ is_latest: false })
+              .eq('exercise_id', status.id)
+              .eq('user_id', profile.id)
+              .eq('is_latest', true);
+              
+            if (updateError) {
+              console.error(`Error updating previous weight records for exercise ${status.id}:`, updateError);
+            }
+            
             // Insert new weight record
             const { error: weightError } = await supabase
               .from('exercise_weights')

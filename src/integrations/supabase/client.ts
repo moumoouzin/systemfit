@@ -22,23 +22,23 @@ export const supabase = createClient<Database>(
   }
 );
 
-// Inicializa o bucket de avatares se necessário
+// Initialize the avatars bucket if needed
 (async () => {
   try {
-    // Verificar se o bucket existe
+    // Check if the bucket exists
     const { data, error } = await supabase.storage.getBucket('avatars');
     
     if (error && error.message.includes('The resource was not found')) {
-      // Criar o bucket se não existir
+      // Create the bucket if it doesn't exist
       await supabase.storage.createBucket('avatars', {
         public: true,
         allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
         fileSizeLimit: 1024 * 1024 * 2, // 2MB
       });
       
-      console.log('Bucket de avatares criado com sucesso');
+      console.log('Avatars bucket created successfully');
     }
   } catch (error) {
-    console.error('Erro ao verificar/criar bucket de avatares:', error);
+    console.error('Error checking/creating avatars bucket:', error);
   }
 })();
