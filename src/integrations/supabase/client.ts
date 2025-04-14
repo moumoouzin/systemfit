@@ -17,7 +17,8 @@ export const supabase = createClient<Database>(
       persistSession: true,
       autoRefreshToken: true,
       flowType: 'pkce',
-      detectSessionInUrl: true
+      detectSessionInUrl: true,
+      storageKey: 'systemfit_supabase_auth'
     }
   }
 );

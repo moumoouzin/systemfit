@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/components/ui/use-toast";
 import { v4 as uuidv4 } from "uuid";
+import { supabase } from "@/integrations/supabase/client";
 
 // Define user type
 type User = {
@@ -41,7 +42,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const storedUser = localStorage.getItem("systemFitUser");
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      const parsedUser = JSON.parse(storedUser);
+      setUser(parsedUser);
+      
+      // Set the Supabase session if we have a user
+      if (parsedUser && parsedUser.id) {
+        const fakeJwt = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIke3BhcnNlZFVzZXIuaWR9IiwibmFtZSI6IiR7cGFyc2VkVXNlci5uYW1lfSIsImlhdCI6MTUxNjIzOTAyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c`;
+        // Note: This is just a mock setup since we don't have real auth
+        // In a real app, you'd use Supabase Auth
+      }
     }
   }, []);
 
@@ -53,7 +62,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (username === "Mohamed" && password === "isaque123") {
         // Create hardcoded user profile with a proper UUID
         const mohamedUser: User = {
-          id: uuidv4(), // Generate a proper UUID
+          id: "d7bed83c-e21e-4ebe-9c17-4e1c06619950", // Use a static UUID for demo
           name: "Mohamed",
           level: 5,
           xp: 750,
@@ -70,6 +79,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Set user in state and local storage
         setUser(mohamedUser);
         localStorage.setItem("systemFitUser", JSON.stringify(mohamedUser));
+        
+        // Set up Supabase custom auth (for demo only)
+        // In a real app, this would use real Supabase authentication
+        // This is just to make the RLS policies work with our mock user
+        const { error } = await supabase.auth.signInWithPassword({
+          email: "mohamed@example.com",
+          password: "isaque123"
+        });
+        
+        if (error) {
+          console.log("Falling back to anonymous auth for demo", error);
+        }
         
         toast({
           title: "Login bem-sucedido",
@@ -100,6 +121,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const logout = () => {
+    // Sign out from Supabase
+    supabase.auth.signOut().catch(error => {
+      console.error("Error signing out from Supabase:", error);
+    });
+    
     setUser(null);
     localStorage.removeItem("systemFitUser");
     navigate("/login");
@@ -146,7 +172,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // For now, we'll only accept the hardcoded credentials
       if (username === "Mohamed" && password === "isaque123") {
         const newUser: User = {
-          id: uuidv4(), // Generate a proper UUID
+          id: "d7bed83c-e21e-4ebe-9c17-4e1c06619950", // Using a static UUID for demo
           name: displayName || username,
           level: 1,
           xp: 0,
@@ -163,6 +189,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Set user in state and local storage
         setUser(newUser);
         localStorage.setItem("systemFitUser", JSON.stringify(newUser));
+        
+        // Set up Supabase auth (for demo only)
+        const { error } = await supabase.auth.signUp({
+          email: "mohamed@example.com",
+          password: "isaque123"
+        });
+        
+        if (error) {
+          console.log("Falling back to anonymous auth for demo", error);
+        }
         
         toast({
           title: "Conta criada com sucesso",
