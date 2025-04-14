@@ -169,10 +169,10 @@ const Dashboard = () => {
               </div>
             ) : improvedExercises.length > 0 ? (
               <div className="space-y-4">
-                {improvedExercises.map((exercise) => (
+                {improvedExercises.map((progress) => (
                   <ExerciseProgressCard 
-                    key={exercise.exercise} 
-                    exercise={exercise} 
+                    key={progress.exercise} 
+                    progress={progress} 
                   />
                 ))}
               </div>

@@ -4,6 +4,18 @@ import { WorkoutHistory } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 
+// Define the type for workout_sessions table data
+type WorkoutSessionData = {
+  id: string;
+  date: string;
+  completed: boolean;
+  workout_id: string;
+  xp_earned: number | null;
+  workouts: {
+    name: string;
+  } | null;
+}
+
 export const useWorkoutHistory = () => {
   const { profile } = useAuth();
   const [workoutHistory, setWorkoutHistory] = useState<WorkoutHistory[]>([]);
@@ -40,7 +52,7 @@ export const useWorkoutHistory = () => {
         }
         
         // Transform the data to match our WorkoutHistory type
-        const formattedHistory: WorkoutHistory[] = sessionData.map(session => ({
+        const formattedHistory: WorkoutHistory[] = (sessionData as WorkoutSessionData[]).map(session => ({
           date: session.date,
           workoutId: session.workout_id,
           workoutName: session.workouts?.name || "Treino sem nome",

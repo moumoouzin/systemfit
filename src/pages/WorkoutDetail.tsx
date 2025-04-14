@@ -19,6 +19,26 @@ interface ExerciseStatus {
   previousWeight?: number;
 }
 
+// Define types for database data
+interface WorkoutData {
+  id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface ExerciseData {
+  id: string;
+  name: string;
+  sets: number;
+  reps: number;
+  workout_id: string;
+}
+
+interface ExerciseWeightData {
+  weight: number;
+}
+
 const WorkoutDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -82,22 +102,22 @@ const WorkoutDetail = () => {
         
         // Format workout for the app's structure
         const formattedWorkout: Workout = {
-          id: workoutData.id,
-          name: workoutData.name,
-          exercises: exercisesData.map(exercise => ({
+          id: (workoutData as WorkoutData).id,
+          name: (workoutData as WorkoutData).name,
+          exercises: (exercisesData as ExerciseData[]).map(exercise => ({
             id: exercise.id,
             name: exercise.name,
             sets: exercise.sets,
             reps: exercise.reps
           })),
-          createdAt: workoutData.created_at,
-          updatedAt: workoutData.updated_at,
+          createdAt: (workoutData as WorkoutData).created_at,
+          updatedAt: (workoutData as WorkoutData).updated_at,
         };
         
         setWorkout(formattedWorkout);
         
         // Fetch latest weights for each exercise
-        const exerciseStatusPromises = exercisesData.map(async (exercise) => {
+        const exerciseStatusPromises = (exercisesData as ExerciseData[]).map(async (exercise) => {
           // First try to get weights from exercise_weights table
           let { data: weightData, error: weightError } = await supabase
             .from('exercise_weights')
@@ -115,7 +135,7 @@ const WorkoutDetail = () => {
             id: exercise.id,
             completed: false,
             weight: 0,
-            previousWeight: weightData ? Number(weightData.weight) : 0
+            previousWeight: weightData ? Number((weightData as ExerciseWeightData).weight) : 0
           };
         });
         

@@ -4,6 +4,17 @@ import { ExerciseProgress } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 
+// Define the type for exercise data
+type ExerciseData = {
+  id: string;
+  name: string;
+  exercise_weights: {
+    weight: number;
+    created_at: string;
+    is_latest: boolean;
+  }[];
+}
+
 export const useExerciseProgress = () => {
   const { profile } = useAuth();
   const [exerciseProgress, setExerciseProgress] = useState<ExerciseProgress[]>([]);
@@ -40,7 +51,7 @@ export const useExerciseProgress = () => {
         // Process and transform the data
         const progress: ExerciseProgress[] = [];
         
-        for (const exercise of exercisesData) {
+        for (const exercise of exercisesData as ExerciseData[]) {
           if (!exercise.exercise_weights || exercise.exercise_weights.length < 2) {
             continue; // Skip exercises with insufficient data
           }

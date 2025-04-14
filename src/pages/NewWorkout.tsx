@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
@@ -46,6 +47,13 @@ interface PreviousWeight {
   weight: number;
 }
 
+interface ExerciseWeightData {
+  exercises: {
+    name: string;
+  } | null;
+  weight: number;
+}
+
 const NewWorkout = () => {
   const navigate = useNavigate();
   const { profile } = useAuth();
@@ -83,7 +91,7 @@ const NewWorkout = () => {
           return;
         }
         
-        const formattedWeights: PreviousWeight[] = data.map(item => ({
+        const formattedWeights: PreviousWeight[] = (data as ExerciseWeightData[]).map(item => ({
           exerciseName: item.exercises?.name || '',
           weight: Number(item.weight)
         }));
@@ -163,7 +171,7 @@ const NewWorkout = () => {
         name: exercise.name,
         sets: exercise.sets,
         reps: exercise.reps,
-        workout_id: workoutData.id
+        workout_id: workoutData?.id
       }));
       
       const { error: exercisesError } = await supabase
