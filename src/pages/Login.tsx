@@ -1,34 +1,25 @@
 
-import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/auth/AuthContext";
+import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dumbbell, LogIn, Eye, EyeOff, Lock, User } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
 import { toast } from "@/components/ui/use-toast";
+import { useNavigate } from "react-router-dom";
 
 const Login = () => {
-  const [emailOrUsername, setEmailOrUsername] = useState("");
+  const [emailOrName, setEmailOrName] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { login, loginWithGoogle, isLoading, user } = useAuth();
+  const { login, isLoading } = useAuth();
   const navigate = useNavigate();
-  
-  // Redirecionar se já estiver logado
-  useEffect(() => {
-    if (user) {
-      console.log("User already logged in, redirecting to home");
-      navigate("/");
-    }
-  }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!emailOrUsername || !password) {
+    if (!emailOrName || !password) {
       toast({
         title: "Campos obrigatórios",
         description: "Por favor, preencha todos os campos",
@@ -39,21 +30,18 @@ const Login = () => {
     
     setIsSubmitting(true);
     try {
-      await login(emailOrUsername, password);
-      // A navegação será feita pelo useEffect quando o usuário for definido
+      await login(emailOrName, password);
+      // If login is successful, navigate to dashboard
+      navigate("/dashboard");
     } catch (error) {
       console.error("Login error:", error);
+      // Error handling is done inside the login function
+    } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleGoogleLogin = () => {
-    loginWithGoogle().catch(() => {
-      setIsSubmitting(false);
-    });
-  };
-
-  // Determinar se o botão deve mostrar o estado de carregamento
+  // Determine if button should show loading state
   const buttonLoading = isSubmitting || isLoading;
 
   return (
@@ -71,23 +59,24 @@ const Login = () => {
           <CardHeader>
             <CardTitle>Entrar na sua conta</CardTitle>
             <CardDescription>
-              Digite seu nome de usuário ou email para acessar o sistema
+              Digite seu nome de usuário para acessar o sistema
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="emailOrUsername">Nome de usuário ou Email</Label>
+                <Label htmlFor="emailOrName">Nome de usuário</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    id="emailOrUsername"
+                    id="emailOrName"
                     type="text"
-                    placeholder="usuario ou email@exemplo.com"
-                    value={emailOrUsername}
-                    onChange={(e) => setEmailOrUsername(e.target.value)}
+                    placeholder="Digite seu nome de usuário"
+                    value={emailOrName}
+                    onChange={(e) => setEmailOrName(e.target.value)}
                     className="pl-10"
                     disabled={buttonLoading}
+                    autoComplete="username"
                   />
                 </div>
               </div>
@@ -103,17 +92,19 @@ const Login = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10 pr-10"
                     disabled={buttonLoading}
+                    autoComplete="current-password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
                     disabled={buttonLoading}
+                    aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
                   >
                     {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      <EyeOff className="h-4 w-4" />
                     ) : (
-                      <Eye className="h-4 w-4 text-muted-foreground" />
+                      <Eye className="h-4 w-4" />
                     )}
                   </button>
                 </div>
@@ -126,9 +117,7 @@ const Login = () => {
                 disabled={buttonLoading}
               >
                 {buttonLoading ? (
-                  <>
-                    <span className="animate-pulse">Entrando...</span>
-                  </>
+                  <span className="animate-pulse">Entrando...</span>
                 ) : (
                   <>
                     Entrar
@@ -136,35 +125,6 @@ const Login = () => {
                   </>
                 )}
               </Button>
-              
-              <div className="flex items-center gap-2 w-full">
-                <Separator className="flex-1" />
-                <span className="text-xs text-muted-foreground">OU</span>
-                <Separator className="flex-1" />
-              </div>
-              
-              <Button 
-                type="button" 
-                variant="outline" 
-                className="w-full"
-                onClick={handleGoogleLogin}
-                disabled={buttonLoading}
-              >
-                <svg viewBox="0 0 24 24" className="h-5 w-5 mr-2" aria-hidden="true">
-                  <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z" fill="currentColor"/>
-                </svg>
-                Continuar com Google
-              </Button>
-              
-              <p className="text-center text-sm text-muted-foreground">
-                Não tem uma conta?{" "}
-                <Link
-                  to="/register"
-                  className="underline text-primary hover:text-primary/80"
-                >
-                  Criar conta
-                </Link>
-              </p>
             </CardFooter>
           </form>
         </Card>
