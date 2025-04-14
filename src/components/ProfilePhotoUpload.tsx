@@ -19,19 +19,39 @@ const ProfilePhotoUpload = () => {
         throw new Error('You must select an image to upload.');
       }
       
+      if (!profile?.id) {
+        throw new Error('User profile not found.');
+      }
+      
       const file = event.target.files[0];
       const fileExt = file.name.split('.').pop();
-      const fileName = `${profile?.id}.${fileExt}`;
+      const fileName = `${profile.id}.${fileExt}`;
       const filePath = `${fileName}`;
       
-      console.log('Uploading avatar:', { fileName, filePath });
+      console.log('Uploading avatar:', { fileName, filePath, fileSize: file.size });
+      
+      // First check if the avatars bucket exists
+      const { data: bucketData, error: bucketError } = await supabase.storage.getBucket('avatars');
+      
+      // If bucket doesn't exist, create it
+      if (bucketError && bucketError.message.includes('not found')) {
+        console.log('Creating avatars bucket...');
+        await supabase.storage.createBucket('avatars', {
+          public: true,
+          allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
+          fileSizeLimit: 1024 * 1024 * 2, // 2MB
+        });
+        console.log('Avatars bucket created successfully');
+      }
       
       // Upload file to Supabase storage
+      console.log('Uploading file to storage...');
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, file, { upsert: true });
         
       if (uploadError) {
+        console.error('Upload error:', uploadError);
         throw uploadError;
       }
       
@@ -48,9 +68,13 @@ const ProfilePhotoUpload = () => {
       console.log('Avatar URL:', avatarUrl);
       
       // Update profile with new avatar URL
-      await updateProfile({
+      const result = await updateProfile({
         avatar_url: avatarUrl,
       });
+      
+      if (!result.success) {
+        throw new Error('Failed to update profile with new avatar URL');
+      }
       
       toast({
         title: "Sucesso",

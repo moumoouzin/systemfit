@@ -14,7 +14,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const location = useLocation();
   const [timeoutExpired, setTimeoutExpired] = useState(false);
 
-  // Add a 3-second timeout to prevent infinite loading
+  // Add a timeout to prevent infinite loading
   useEffect(() => {
     const timer = setTimeout(() => {
       setTimeoutExpired(true);
@@ -24,7 +24,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   }, []);
 
   // Console log for debugging
-  console.log("ProtectedRoute - Auth state:", { user, isLoading, timeoutExpired });
+  console.log("ProtectedRoute - Auth state:", { user, isLoading, timeoutExpired, path: location.pathname });
 
   // If still loading and timeout hasn't expired, show loading indicator
   if (isLoading && !timeoutExpired) {
@@ -37,10 +37,12 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
   // If timeout expired or there's no user, redirect to login
   if (!user) {
+    console.log("No user found, redirecting to login");
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   // If there's a user, render the protected content
+  console.log("User found, rendering content");
   return <MainLayout>{children}</MainLayout>;
 };
 

@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dumbbell, LogIn, Mail, Eye, EyeOff, Lock, User } from "lucide-react";
+import { Dumbbell, LogIn, Eye, EyeOff, Lock, User } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { toast } from "@/components/ui/use-toast";
 
 const Login = () => {
   const [emailOrName, setEmailOrName] = useState("");
@@ -18,11 +19,20 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!emailOrName || !password) return;
+    if (!emailOrName || !password) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Por favor, preencha todos os campos",
+        variant: "destructive"
+      });
+      return;
+    }
     
     setIsSubmitting(true);
     try {
       await login(emailOrName, password);
+    } catch (error) {
+      console.error("Login error:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -30,11 +40,13 @@ const Login = () => {
 
   const handleGoogleLogin = () => {
     setIsSubmitting(true);
-    loginWithGoogle();
+    loginWithGoogle().catch(() => {
+      setIsSubmitting(false);
+    });
   };
 
   // Determinar se o botão deve mostrar o estado de carregamento
-  const buttonLoading = isSubmitting;
+  const buttonLoading = isSubmitting || isLoading;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
