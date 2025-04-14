@@ -1,6 +1,6 @@
 
 import { PropsWithChildren } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth/AuthContext";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 import { 
