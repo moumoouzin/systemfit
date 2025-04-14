@@ -1,162 +1,74 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { User, Session } from '@supabase/supabase-js';
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/components/ui/use-toast";
-import { User as AppUser } from "@/types";
 
-interface ProfileUpdateData {
-  name?: string;
-  avatar_url?: string;
-}
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "@/components/ui/use-toast";
+
+// Define user type
+type User = {
+  id: string;
+  name: string;
+  level: number;
+  xp: number;
+  avatarUrl: string;
+  attributes: {
+    strength: number;
+    vitality: number;
+    focus: number;
+  };
+  streakDays: number;
+  daysTrainedThisWeek: number;
+};
 
 interface AuthContextType {
   user: User | null;
-  profile: AppUser | null;
-  session: Session | null;
   isLoading: boolean;
-  login: (usernameOrEmail: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
-  updateProfile: (data: ProfileUpdateData) => Promise<{ success: boolean, error?: any }>;
-  register?: (username: string, password: string, name?: string, additionalData?: any) => Promise<void>;
+  login: (username: string, password: string) => Promise<void>;
+  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<AppUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
+  // Check if there's a user in localStorage on mount
   useEffect(() => {
-    console.log("AuthProvider initialized");
-    let isMounted = true;
-    
-    const getSession = async () => {
-      setIsLoading(true);
-      try {
-        console.log("Fetching session");
-        const { data } = await supabase.auth.getSession();
-        console.log("Session data:", data);
-        
-        if (!isMounted) return;
-        
-        setSession(data.session);
-        setUser(data.session?.user || null);
-        
-        if (data.session?.user) {
-          await fetchUserProfile(data.session.user.id);
-        } else {
-          console.log("No active session found");
-          setIsLoading(false);
-        }
-      } catch (error) {
-        console.error("Erro ao verificar sessão:", error);
-        if (isMounted) {
-          toast({
-            title: "Erro de autenticação",
-            description: "Não foi possível verificar sua sessão.",
-            variant: "destructive",
-          });
-          setIsLoading(false);
-        }
-      }
-    };
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        console.log("Auth state changed:", _event, session?.user?.id);
-        if (!isMounted) return;
-        
-        setSession(session);
-        setUser(session?.user || null);
-        
-        if (session?.user) {
-          await fetchUserProfile(session.user.id);
-        } else {
-          setProfile(null);
-          setIsLoading(false);
-        }
-      }
-    );
-
-    getSession();
-
-    return () => {
-      isMounted = false;
-      subscription.unsubscribe();
-    };
+    const storedUser = localStorage.getItem("systemFitUser");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
   }, []);
 
-  const fetchUserProfile = async (userId: string) => {
+  const login = async (username: string, password: string) => {
+    setIsLoading(true);
+    
     try {
-      console.log("Fetching profile for user ID:", userId);
-      
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
-      
-      if (error) {
-        console.error("Error fetching profile:", error);
-        throw error;
-      }
-      
-      console.log("Profile data received:", data);
-      
-      if (data) {
-        const userProfile: AppUser = {
-          id: data.id,
-          name: data.name,
-          avatarUrl: data.avatar_url || "",
-          level: data.level,
-          xp: data.xp,
+      // Only accept Mohamed/isaque123 combination
+      if (username === "Mohamed" && password === "isaque123") {
+        // Create hardcoded user profile
+        const mohamedUser: User = {
+          id: "mohamed-1",
+          name: "Mohamed",
+          level: 5,
+          xp: 750,
+          avatarUrl: "https://api.dicebear.com/7.x/bottts/svg?seed=Mohamed",
           attributes: {
-            strength: data.strength,
-            vitality: data.vitality,
-            focus: data.focus
+            strength: 3,
+            vitality: 3,
+            focus: 3
           },
-          daysTrainedThisWeek: data.days_trained_this_week,
-          streakDays: data.streak_days
+          streakDays: 5,
+          daysTrainedThisWeek: 3
         };
-        
-        console.log("Setting profile:", userProfile);
-        setProfile(userProfile);
-      } else {
-        console.warn("No profile data found for user:", userId);
-      }
-      
-      setIsLoading(false);
-    } catch (error) {
-      console.error("Erro ao buscar perfil:", error);
-      setIsLoading(false);
-    }
-  };
 
-  const login = async (usernameOrEmail: string, password: string) => {
-    try {
-      setIsLoading(true);
-      
-      if (usernameOrEmail === "Mohamed" && password === "isaque123") {
-        console.log("Logging in with Mohamed credentials");
-        
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: "mohamed@systemfit.example.com",
-          password: "isaque123",
-        });
-        
-        if (error) {
-          console.error("Error logging in with Mohamed account:", error);
-          throw error;
-        }
-        
-        console.log("Login successful with Mohamed account");
+        // Set user in state and local storage
+        setUser(mohamedUser);
+        localStorage.setItem("systemFitUser", JSON.stringify(mohamedUser));
         
         toast({
-          title: "Login realizado com sucesso",
+          title: "Login bem-sucedido",
           description: "Bem-vindo, Mohamed!",
         });
         
@@ -164,18 +76,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
       
+      // Any other credentials are invalid
       toast({
         title: "Credenciais inválidas",
         description: "Usuário ou senha incorretos.",
         variant: "destructive",
       });
       
-    } catch (error: any) {
+    } catch (error) {
       console.error("Erro ao fazer login:", error);
-      
       toast({
         title: "Erro de login",
-        description: "Credenciais inválidas. Tente novamente.",
+        description: "Ocorreu um erro ao tentar fazer login.",
         variant: "destructive",
       });
     } finally {
@@ -183,112 +95,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const logout = async () => {
-    try {
-      setIsLoading(true);
-      const { error } = await supabase.auth.signOut();
-      
-      if (error) throw error;
-      
-      navigate("/login");
-    } catch (error: any) {
-      console.error("Erro ao fazer logout:", error);
-      toast({
-        title: "Erro ao sair",
-        description: error.message || "Não foi possível fazer logout.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem("systemFitUser");
+    navigate("/login");
+    toast({
+      title: "Logout realizado",
+      description: "Você saiu da sua conta com sucesso.",
+    });
   };
-
-  const updateProfile = async (data: ProfileUpdateData) => {
-    try {
-      if (!user) {
-        throw new Error("Usuário não autenticado");
-      }
-
-      const { error } = await supabase
-        .from('profiles')
-        .update(data)
-        .eq('id', user.id);
-
-      if (error) throw error;
-
-      setProfile(prev => {
-        if (!prev) return null;
-        
-        return {
-          ...prev,
-          name: data.name || prev.name,
-          avatarUrl: data.avatar_url || prev.avatarUrl
-        };
-      });
-
-      return { success: true };
-    } catch (error) {
-      console.error("Error updating profile:", error);
-      return { success: false, error };
-    }
-  };
-
-  const register = async (username: string, password: string, name?: string, additionalData?: any) => {
-    throw new Error("Registration is disabled");
-  };
-
-  useEffect(() => {
-    const createMohamedAccount = async () => {
-      try {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('name', 'Mohamed')
-          .maybeSingle();
-          
-        if (!profileData) {
-          const { data, error } = await supabase.auth.signUp({
-            email: `mohamed_${Date.now()}@systemfit.example.com`,
-            password: "isaque123",
-            options: {
-              data: {
-                name: "Mohamed",
-                is_username_based: true,
-                avatar_url: "https://api.dicebear.com/7.x/bottts/svg?seed=Mohamed",
-                strength: 3,
-                vitality: 3,
-                focus: 3
-              }
-            }
-          });
-          
-          if (error) {
-            console.error("Error creating Mohamed account:", error);
-          } else {
-            console.log("Mohamed account created successfully:", data.user?.id);
-          }
-        } else {
-          console.log("Mohamed account already exists, skipping creation");
-        }
-      } catch (error) {
-        console.error("Error with Mohamed account creation:", error);
-      }
-    };
-    
-    createMohamedAccount();
-  }, []);
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        profile,
-        session,
         isLoading,
         login,
-        logout,
-        updateProfile,
-        register
+        logout
       }}
     >
       {children}

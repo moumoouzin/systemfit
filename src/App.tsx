@@ -33,15 +33,13 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <Routes>
-              {/* Rota inicial agora é o login */}
+              {/* Login route */}
               <Route path="/login" element={<Login />} />
               
-              {/* Redireciona a raiz para o login */}
+              {/* Redirect root to login */}
               <Route path="/" element={<Navigate to="/login" replace />} />
               
-              {/* Remove a rota de registro para impedir novos cadastros */}
-              
-              {/* Rotas protegidas */}
+              {/* Protected routes */}
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
               <Route path="/workouts" element={<ProtectedRoute><Workouts /></ProtectedRoute>} />
               <Route path="/workouts/new" element={<ProtectedRoute><NewWorkout /></ProtectedRoute>} />
@@ -50,7 +48,7 @@ const App = () => (
               <Route path="/stats" element={<ProtectedRoute><Stats /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
               
-              {/* Rota 404 */}
+              {/* 404 route */}
               <Route path="*" element={<NotFound />} />
             </Routes>
             <Toaster />

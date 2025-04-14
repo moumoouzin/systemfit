@@ -7,19 +7,17 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dumbbell, LogIn, Eye, EyeOff, Lock, User } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
-import { useNavigate } from "react-router-dom";
 
 const Login = () => {
-  const [emailOrName, setEmailOrName] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const { login, isLoading } = useAuth();
-  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!emailOrName || !password) {
+    
+    if (!username || !password) {
       toast({
         title: "Campos obrigatórios",
         description: "Por favor, preencha todos os campos",
@@ -28,21 +26,12 @@ const Login = () => {
       return;
     }
     
-    setIsSubmitting(true);
     try {
-      await login(emailOrName, password);
-      // If login is successful, navigate to dashboard
-      navigate("/dashboard");
+      await login(username, password);
     } catch (error) {
       console.error("Login error:", error);
-      // Error handling is done inside the login function
-    } finally {
-      setIsSubmitting(false);
     }
   };
-
-  // Determine if button should show loading state
-  const buttonLoading = isSubmitting || isLoading;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -65,18 +54,17 @@ const Login = () => {
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="emailOrName">Nome de usuário</Label>
+                <Label htmlFor="username">Nome de usuário</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    id="emailOrName"
+                    id="username"
                     type="text"
                     placeholder="Digite seu nome de usuário"
-                    value={emailOrName}
-                    onChange={(e) => setEmailOrName(e.target.value)}
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
                     className="pl-10"
-                    disabled={buttonLoading}
-                    autoComplete="username"
+                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -91,14 +79,13 @@ const Login = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10 pr-10"
-                    disabled={buttonLoading}
-                    autoComplete="current-password"
+                    disabled={isLoading}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
-                    disabled={buttonLoading}
+                    disabled={isLoading}
                     aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
                   >
                     {showPassword ? (
@@ -109,15 +96,19 @@ const Login = () => {
                   </button>
                 </div>
               </div>
+              <div className="text-sm text-muted-foreground">
+                <p>Usuário: Mohamed</p>
+                <p>Senha: isaque123</p>
+              </div>
             </CardContent>
             <CardFooter className="flex-col space-y-4">
               <Button
                 type="submit"
                 className="w-full"
-                disabled={buttonLoading}
+                disabled={isLoading}
               >
-                {buttonLoading ? (
-                  <span className="animate-pulse">Entrando...</span>
+                {isLoading ? (
+                  <span>Entrando...</span>
                 ) : (
                   <>
                     Entrar

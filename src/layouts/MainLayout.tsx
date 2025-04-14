@@ -17,15 +17,15 @@ import { Link, useLocation } from "react-router-dom";
 import { LayoutDashboard, Dumbbell, History, LineChart, Settings } from "lucide-react";
 
 const MainLayout = ({ children }: PropsWithChildren) => {
-  const { profile, logout } = useAuth();
+  const { user, logout } = useAuth();
   const location = useLocation();
 
   const routes = [
     {
-      href: "/",
+      href: "/dashboard",
       label: "Dashboard",
       icon: LayoutDashboard,
-      active: location.pathname === "/"
+      active: location.pathname === "/dashboard"
     },
     {
       href: "/workouts",
@@ -62,20 +62,20 @@ const MainLayout = ({ children }: PropsWithChildren) => {
             <p className="text-sm text-muted-foreground">Fitness RPG</p>
           </SidebarHeader>
           
-          {profile && (
+          {user && (
             <div className="px-4 mb-6 flex items-center gap-2">
               <div className="flex-shrink-0 h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
-                {profile.avatarUrl ? (
-                  <img src={profile.avatarUrl} alt={profile.name} className="h-full w-full object-cover" />
+                {user.avatarUrl ? (
+                  <img src={user.avatarUrl} alt={user.name} className="h-full w-full object-cover" />
                 ) : (
                   <span className="text-primary font-medium">
-                    {profile.name.charAt(0).toUpperCase()}
+                    {user.name.charAt(0).toUpperCase()}
                   </span>
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{profile.name}</p>
-                <p className="text-xs text-muted-foreground truncate">Nível {profile.level}</p>
+                <p className="text-sm font-medium truncate">{user.name}</p>
+                <p className="text-xs text-muted-foreground truncate">Nível {user.level}</p>
               </div>
               <Button variant="ghost" size="icon" onClick={logout} title="Sair">
                 <LogOut className="h-5 w-5" />
