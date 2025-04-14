@@ -1,6 +1,6 @@
 
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/auth/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,16 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { login, loginWithGoogle, isLoading } = useAuth();
+  const { login, loginWithGoogle, isLoading, user } = useAuth();
+  const navigate = useNavigate();
+  
+  // Redirecionar se já estiver logado
+  useEffect(() => {
+    if (user) {
+      console.log("User already logged in, redirecting to home");
+      navigate("/");
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,15 +40,14 @@ const Login = () => {
     setIsSubmitting(true);
     try {
       await login(emailOrUsername, password);
+      // A navegação será feita pelo useEffect quando o usuário for definido
     } catch (error) {
       console.error("Login error:", error);
-    } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleGoogleLogin = () => {
-    setIsSubmitting(true);
     loginWithGoogle().catch(() => {
       setIsSubmitting(false);
     });

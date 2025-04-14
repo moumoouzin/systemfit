@@ -45,11 +45,17 @@ export const useAuthState = () => {
         
         if (!mounted) return;
         
+        console.log("Sessão atual:", session?.user?.id);
         setSession(session);
         setUser(session?.user || null);
         
         if (session?.user) {
-          await fetchUserProfile(session.user.id);
+          try {
+            await fetchUserProfile(session.user.id);
+          } catch (error) {
+            console.error("Erro ao buscar perfil na inicialização:", error);
+            setIsLoading(false);
+          }
         } else {
           setIsLoading(false);
         }
@@ -79,6 +85,7 @@ export const useAuthState = () => {
       
       if (error) {
         console.error("Erro ao buscar perfil:", error);
+        setIsLoading(false);
         throw error;
       }
       
@@ -104,6 +111,7 @@ export const useAuthState = () => {
         setProfile(userProfile);
       } else {
         console.warn("Nenhum perfil encontrado para o usuário:", userId);
+        setProfile(null);
       }
       
       setIsLoading(false);

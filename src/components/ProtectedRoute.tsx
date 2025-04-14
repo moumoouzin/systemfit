@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/auth/AuthContext";
 import { Loader } from "lucide-react";
+import MainLayout from "@/layouts/MainLayout";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -39,9 +40,9 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Se houver um usuário, renderize o conteúdo protegido
+  // Se houver um usuário, renderize o conteúdo protegido com o layout
   console.log("User found, rendering content");
-  return children;
+  return <MainLayout>{children}</MainLayout>;
 };
 
 export default ProtectedRoute;
