@@ -161,12 +161,16 @@ const NewWorkout = () => {
         throw new Error(`Error creating workout: ${workoutError.message}`);
       }
       
+      if (!workoutData) {
+        throw new Error("No data returned from workout creation");
+      }
+      
       const exercisesWithWorkoutId = data.exercises.map(exercise => ({
         id: exercise.id,
         name: exercise.name,
         sets: exercise.sets,
         reps: exercise.reps,
-        workout_id: workoutData!.id
+        workout_id: workoutData.id
       }));
       
       const { error: exercisesError } = await supabase
