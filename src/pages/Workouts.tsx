@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dumbbell, Plus, Search, AlertCircle } from "lucide-react";
@@ -10,7 +9,7 @@ import WorkoutCard from "@/components/WorkoutCard";
 import { toast } from "@/components/ui/use-toast";
 import { Workout, Exercise } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth/AuthContext";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,7 +21,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-// Define the database exercise type to handle the shape from Supabase
 type DbExercise = {
   id: string;
   name: string;
@@ -47,7 +45,6 @@ const Workouts = () => {
       
       try {
         if (profile?.id) {
-          // Fetch workouts from Supabase
           const { data: workoutsData, error: workoutsError } = await supabase
             .from('workouts')
             .select('*')
@@ -58,7 +55,6 @@ const Workouts = () => {
             throw new Error(`Error fetching workouts: ${workoutsError.message}`);
           }
           
-          // For each workout, fetch its exercises
           const workoutsWithExercises = await Promise.all(
             workoutsData.map(async (workout) => {
               const { data: exercisesData, error: exercisesError } = await supabase
@@ -71,7 +67,6 @@ const Workouts = () => {
                 return null;
               }
               
-              // Map DB exercises to app Exercise type
               const exercises: Exercise[] = exercisesData.map((dbExercise: DbExercise) => ({
                 id: dbExercise.id,
                 name: dbExercise.name,
@@ -89,14 +84,12 @@ const Workouts = () => {
             })
           );
           
-          // Filter out any null results from failed fetches
           const validWorkouts = workoutsWithExercises.filter(
             (workout): workout is Workout => workout !== null
           );
           
           setWorkouts(validWorkouts);
         } else {
-          // Use mock data if not authenticated
           setWorkouts(mockWorkouts);
         }
       } catch (error) {
@@ -106,7 +99,6 @@ const Workouts = () => {
           description: "Não foi possível carregar seus treinos.",
           variant: "destructive",
         });
-        // Fallback to mock data
         setWorkouts(mockWorkouts);
       } finally {
         setIsLoading(false);
@@ -116,7 +108,6 @@ const Workouts = () => {
     fetchWorkouts();
   }, [profile]);
   
-  // Filter workouts based on search query
   const filteredWorkouts = workouts.filter(workout => 
     workout.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -130,7 +121,6 @@ const Workouts = () => {
     
     try {
       if (profile?.id) {
-        // Delete from database
         const { error } = await supabase
           .from('workouts')
           .delete()
@@ -142,7 +132,6 @@ const Workouts = () => {
         }
       }
       
-      // Update local state
       const updatedWorkouts = workouts.filter(w => w.id !== workoutToDelete);
       setWorkouts(updatedWorkouts);
       

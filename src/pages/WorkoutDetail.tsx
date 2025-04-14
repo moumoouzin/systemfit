@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
@@ -11,7 +10,7 @@ import { toast } from "@/components/ui/use-toast";
 import { mockWorkouts } from "@/data/mockData";
 import { Workout, Exercise } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth/AuthContext";
 
 interface ExerciseStatus {
   id: string;

@@ -1,4 +1,3 @@
-
 import MainLayout from "@/layouts/MainLayout";
 import UserAvatar from "@/components/UserAvatar";
 import WeeklyProgress from "@/components/WeeklyProgress";
@@ -8,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Trophy, Dumbbell, Plus, BarChart2 } from "lucide-react";
 import { mockWorkouts, mockExerciseProgress } from "@/data/mockData";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth/AuthContext";
 
 const Dashboard = () => {
   const navigate = useNavigate();
