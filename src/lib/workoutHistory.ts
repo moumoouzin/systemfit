@@ -6,12 +6,7 @@ import { useState, useEffect } from "react";
 import { Database } from "@/types/database.types";
 
 // Define the type for workout_sessions table data
-type WorkoutSessionRow = {
-  id: string;
-  date: string;
-  completed: boolean;
-  workout_id: string;
-  xp_earned: number | null;
+type WorkoutSessionRow = Database['public']['Tables']['workout_sessions']['Row'] & {
   workouts: {
     name: string;
   } | null;
@@ -53,7 +48,7 @@ export const useWorkoutHistory = () => {
         }
         
         // Transform the data to match our WorkoutHistory type
-        const formattedHistory: WorkoutHistory[] = (sessionData as unknown as WorkoutSessionRow[]).map(session => ({
+        const formattedHistory: WorkoutHistory[] = (sessionData as WorkoutSessionRow[]).map(session => ({
           date: session.date,
           workoutId: session.workout_id,
           workoutName: session.workouts?.name || "Treino sem nome",

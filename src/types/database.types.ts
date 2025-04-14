@@ -1,4 +1,6 @@
 
+import { Database as SupabaseDatabase } from "@/integrations/supabase/types";
+
 export type Json =
   | string
   | number
@@ -7,7 +9,7 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export interface Database {
+export interface Database extends SupabaseDatabase {
   public: {
     Tables: {
       profiles: {
