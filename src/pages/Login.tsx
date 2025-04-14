@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dumbbell, LogIn, Mail, Eye, EyeOff, Lock } from "lucide-react";
+import { Dumbbell, LogIn, Mail, Eye, EyeOff, Lock, User } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 const Login = () => {
-  const [email, setEmail] = useState("");
+  const [emailOrName, setEmailOrName] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -18,11 +18,11 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) return;
+    if (!emailOrName || !password) return;
     
     setIsSubmitting(true);
     try {
-      await login(email, password);
+      await login(emailOrName, password);
     } finally {
       setIsSubmitting(false);
     }
@@ -51,21 +51,21 @@ const Login = () => {
           <CardHeader>
             <CardTitle>Entrar na sua conta</CardTitle>
             <CardDescription>
-              Digite seu email e senha para acessar o sistema
+              Digite seu nome de usuário ou email para acessar o sistema
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="emailOrName">Nome de usuário ou Email</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    id="email"
-                    type="email"
-                    placeholder="seu@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    id="emailOrName"
+                    type="text"
+                    placeholder="usuario ou email@exemplo.com"
+                    value={emailOrName}
+                    onChange={(e) => setEmailOrName(e.target.value)}
                     className="pl-10"
                     disabled={buttonLoading}
                   />

@@ -11,7 +11,7 @@ interface AuthContextType {
   session: Session | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string, options?: {
+  register: (nameOrEmail: string, password: string, fullName?: string, options?: {
     avatarUrl?: string | null;
     attributes?: {
       strength: number;
@@ -37,7 +37,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     console.log("AuthProvider initialized");
     let isMounted = true;
     
-    // Verificar sessão atual
     const getSession = async () => {
       setIsLoading(true);
       try {
@@ -69,7 +68,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     };
 
-    // Escutar alterações de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         console.log("Auth state changed:", _event, session?.user?.id);
@@ -95,7 +93,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
-  // Buscar perfil do usuário do Supabase
   const fetchUserProfile = async (userId: string) => {
     try {
       console.log("Fetching profile for user ID:", userId);
@@ -133,21 +130,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setProfile(userProfile);
       } else {
         console.warn("No profile data found for user:", userId);
-        // If profile doesn't exist yet, try to get user metadata and create basic profile
-        const { data: userData } = await supabase.auth.getUser();
-        if (userData?.user) {
-          const displayName = userData.user.user_metadata?.name || 
-                             userData.user.user_metadata?.full_name || 
-                             userData.user.email?.split('@')[0] || 
+        if (data) {
+          const displayName = data.name || 
+                             data.avatar_url || 
                              "Usuário";
           
           console.log("Creating placeholder profile with name:", displayName);
           
-          // Set a basic profile while we wait for the database to catch up
           const tempProfile: AppUser = {
             id: userId,
             name: displayName,
-            avatarUrl: userData.user.user_metadata?.avatar_url || "",
+            avatarUrl: data.avatar_url || "",
             level: 1,
             xp: 0,
             attributes: {
@@ -163,12 +156,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       }
       
-      // Always set isLoading to false after fetching profile
       setIsLoading(false);
-      
     } catch (error) {
       console.error("Erro ao buscar perfil:", error);
-      // Ensure isLoading is set to false even if there's an error
       setIsLoading(false);
     }
   };
@@ -200,7 +190,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         description: error.message || "Verifique suas credenciais e tente novamente.",
         variant: "destructive",
       });
-      throw error; // Propagar o erro para o componente poder lidar com ele
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -230,9 +220,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const register = async (
-    email: string, 
-    password: string, 
-    name: string, 
+    nameOrEmail: string,
+    password: string,
+    fullName?: string,
     options?: {
       avatarUrl?: string | null;
       attributes?: {
@@ -245,13 +235,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       setIsLoading(true);
       
-      // Registrar o usuário com dados adicionais
+      const isEmail = nameOrEmail.includes('@');
+      const displayName = fullName || nameOrEmail;
+      
+      const email = isEmail ? nameOrEmail : `user_${Date.now()}@example.com`;
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            name,
+            name: displayName,
+            is_username_based: !isEmail,
             avatar_url: options?.avatarUrl || null,
             strength: options?.attributes?.strength || 1,
             vitality: options?.attributes?.vitality || 1,
@@ -262,8 +257,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (error) throw error;
 
-      // Se o cadastro for bem-sucedido e o perfil já tiver sido criado pelo trigger,
-      // podemos atualizar os atributos diretamente na tabela de perfis
       if (data.user) {
         if (options?.avatarUrl || options?.attributes) {
           const updateData: Record<string, unknown> = {};
@@ -327,7 +320,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // Atualizar perfil do usuário
   const updateProfile = async (updateData: Record<string, unknown>) => {
     if (!user) throw new Error("Usuário não autenticado");
     
@@ -339,7 +331,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (error) throw error;
       
-      // Atualizar o estado do perfil após a atualização
       await fetchUserProfile(user.id);
       
       return { success: true };

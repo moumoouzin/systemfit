@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "@/components/ui/use-toast";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const Register = () => {
   const [name, setName] = useState("");
@@ -30,14 +31,20 @@ const Register = () => {
     focus: 1,
   });
   const [attributePoints, setAttributePoints] = useState(3);
+  const [useEmail, setUseEmail] = useState(false);
   const { register, isLoading } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     
-    if (!name || !email || !password || !confirmPassword) {
-      setError("Preencha todos os campos");
+    if (!name || !password || !confirmPassword) {
+      setError("Preencha todos os campos obrigatórios");
+      return;
+    }
+    
+    if (useEmail && !email) {
+      setError("Preencha seu email");
       return;
     }
     
@@ -79,10 +86,15 @@ const Register = () => {
       }
       
       // Register user with additional data
-      await register(email, password, name, {
-        avatarUrl,
-        attributes
-      });
+      await register(
+        useEmail ? email : name, 
+        password, 
+        useEmail ? name : undefined, 
+        {
+          avatarUrl,
+          attributes
+        }
+      );
     } catch (error: any) {
       console.error("Erro ao registrar:", error);
       setError(error.message || "Erro ao criar conta");
@@ -141,20 +153,38 @@ const Register = () => {
           />
         </div>
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
-        <div className="relative">
-          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            id="email"
-            type="email"
-            placeholder="seu@email.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="pl-10"
-          />
-        </div>
+      
+      <div className="flex items-center space-x-2 my-4">
+        <Checkbox 
+          id="useEmail" 
+          checked={useEmail} 
+          onCheckedChange={(checked) => setUseEmail(checked as boolean)} 
+        />
+        <label
+          htmlFor="useEmail"
+          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+        >
+          Usar email para registro (opcional)
+        </label>
       </div>
+      
+      {useEmail && (
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <div className="relative">
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              id="email"
+              type="email"
+              placeholder="seu@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </div>
+      )}
+      
       <div className="space-y-2">
         <Label htmlFor="password">Senha</Label>
         <div className="relative">
