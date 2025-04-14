@@ -16,7 +16,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, X, Save, Weight, Info } from "lucide-react";
-import { mockWorkouts } from "@/data/mockData";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -51,7 +50,6 @@ const NewWorkout = () => {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [workoutsList, setWorkoutsList] = useState<Workout[]>(mockWorkouts);
   const [previousWeights, setPreviousWeights] = useState<PreviousWeight[]>([]);
   const [isLoadingWeights, setIsLoadingWeights] = useState(false);
   
@@ -139,162 +137,72 @@ const NewWorkout = () => {
     setIsSubmitting(true);
     
     try {
-      console.log("Creating new workout:", data);
+      if (!profile?.id) {
+        throw new Error("Usuário não autenticado");
+      }
+
+      // Insert the workout into Supabase
+      const workoutId = uuidv4();
+      const { data: workoutData, error: workoutError } = await supabase
+        .from('workouts')
+        .insert({
+          id: workoutId,
+          name: data.name,
+          user_id: profile.id
+        })
+        .select()
+        .single();
+        
+      if (workoutError) {
+        throw new Error(`Error creating workout: ${workoutError.message}`);
+      }
       
-      // Ensure exercises have all required properties
-      const validExercises: Exercise[] = data.exercises.map(exercise => ({
+      // Insert all exercises linked to the workout
+      const exercisesWithWorkoutId = data.exercises.map(exercise => ({
         id: exercise.id,
         name: exercise.name,
         sets: exercise.sets,
-        reps: exercise.reps
+        reps: exercise.reps,
+        workout_id: workoutData.id
       }));
       
-      // Check for valid Supabase authentication
-      const { data: sessionData } = await supabase.auth.getSession();
-      console.log("Current session:", sessionData);
+      const { error: exercisesError } = await supabase
+        .from('exercises')
+        .insert(exercisesWithWorkoutId);
+        
+      if (exercisesError) {
+        throw new Error(`Error creating exercises: ${exercisesError.message}`);
+      }
       
-      // Check if user is authenticated with a valid UUID
-      if (profile?.id) {
-        try {
-          // Check if we have a valid Supabase session
-          if (!sessionData.session) {
-            console.log("No valid Supabase session, trying to use demo auth");
-            // For demo purposes, try a simple auth method
-            const { data: demoAuthData, error: demoAuthError } = await supabase.auth.signInWithPassword({
-              email: "mohamed@example.com",
-              password: "isaque123"
+      // Save exercise weights if provided
+      for (const exercise of data.exercises) {
+        if (exercise.lastWeight && exercise.lastWeight > 0) {
+          const { error: weightError } = await supabase
+            .from('exercise_weights')
+            .insert({
+              exercise_id: exercise.id,
+              user_id: profile.id,
+              weight: exercise.lastWeight,
+              is_latest: true
             });
             
-            if (demoAuthError) {
-              console.error("Demo auth failed:", demoAuthError);
-              throw new Error("Falha na autenticação com o Supabase");
-            }
-            
-            console.log("Demo auth successful:", demoAuthData);
+          if (weightError) {
+            console.error(`Error saving weight for ${exercise.name}:`, weightError);
           }
-          
-          // Insert the workout into Supabase
-          const workoutId = uuidv4();
-          const { data: workoutData, error: workoutError } = await supabase
-            .from('workouts')
-            .insert({
-              id: workoutId,
-              name: data.name,
-              user_id: profile.id
-            })
-            .select()
-            .single();
-            
-          if (workoutError) {
-            console.error("Error inserting workout:", workoutError);
-            throw new Error(`Error creating workout: ${workoutError.message}`);
-          }
-          
-          // Insert all exercises linked to the workout
-          const exercisesWithWorkoutId = validExercises.map(exercise => ({
-            id: exercise.id,
-            name: exercise.name,
-            sets: exercise.sets,
-            reps: exercise.reps,
-            workout_id: workoutData?.id || workoutId
-          }));
-          
-          const { error: exercisesError } = await supabase
-            .from('exercises')
-            .insert(exercisesWithWorkoutId);
-            
-          if (exercisesError) {
-            console.error("Error inserting exercises:", exercisesError);
-            throw new Error(`Error creating exercises: ${exercisesError.message}`);
-          }
-          
-          // Save any exercise weights that were manually entered
-          for (let i = 0; i < data.exercises.length; i++) {
-            const exercise = data.exercises[i];
-            if (exercise.lastWeight && exercise.lastWeight > 0) {
-              const { error: weightError } = await supabase
-                .from('exercise_weights')
-                .insert({
-                  exercise_id: exercise.id,
-                  user_id: profile.id,
-                  weight: exercise.lastWeight,
-                  is_latest: true
-                });
-                
-              if (weightError) {
-                console.error(`Error saving weight for ${exercise.name}:`, weightError);
-              }
-            }
-          }
-          
-          const newWorkout: Workout = {
-            id: workoutData?.id || workoutId,
-            name: workoutData?.name || data.name,
-            exercises: validExercises,
-            createdAt: workoutData?.created_at || new Date().toISOString(),
-            updatedAt: workoutData?.updated_at || new Date().toISOString(),
-          };
-          
-          // Update local state
-          setWorkoutsList(prev => [...prev, newWorkout]);
-          
-          toast({
-            title: "Treino criado",
-            description: "Seu novo treino foi criado com sucesso!",
-          });
-          
-          navigate("/workouts");
-        } catch (error: any) {
-          console.error("Error interacting with Supabase:", error);
-          
-          // If there's an error with Supabase, fall back to local storage
-          const newWorkout: Workout = {
-            id: uuidv4(),
-            name: data.name,
-            exercises: validExercises,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          };
-          
-          mockWorkouts.push(newWorkout);
-          setWorkoutsList([...workoutsList, newWorkout]);
-          
-          toast({
-            title: "Treino criado",
-            description: "Seu novo treino foi criado com sucesso (modo offline)!",
-          });
-          
-          navigate("/workouts");
         }
-      } else {
-        // Fallback for non-authenticated users or users with invalid IDs - use mock data
-        const newWorkout: Workout = {
-          id: uuidv4(),
-          name: data.name,
-          exercises: validExercises,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-        
-        // Update local state with the new workout
-        const updatedWorkouts = [...workoutsList, newWorkout];
-        setWorkoutsList(updatedWorkouts);
-        
-        // For now we update our mockWorkouts in a way that persists during the session
-        mockWorkouts.push(newWorkout);
-        
-        toast({
-          title: "Treino criado",
-          description: "Seu novo treino foi criado com sucesso (modo offline)!",
-        });
-        
-        navigate("/workouts");
       }
+      
+      toast({
+        title: "Treino criado",
+        description: "Seu novo treino foi criado com sucesso!",
+      });
+      
+      navigate("/workouts");
     } catch (error) {
       console.error("Error creating workout:", error);
       toast({
-        title: "Erro",
-        description: "Não foi possível criar o treino",
+        title: "Erro ao criar treino",
+        description: "Não foi possível criar o treino. Tente novamente.",
         variant: "destructive",
       });
     } finally {

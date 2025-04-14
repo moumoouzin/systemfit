@@ -1,8 +1,6 @@
-
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dumbbell, Plus, Search, AlertCircle } from "lucide-react";
-import { mockWorkouts } from "@/data/mockData";
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
@@ -128,12 +126,12 @@ const Workouts = () => {
             setWorkouts(validWorkouts);
           } else {
             console.log("No workouts found in database, using mock data");
-            setWorkouts(mockWorkouts);
+            setWorkouts([]);
           }
         } else {
           // Use mock data if not authenticated
           console.log("Using mock data - profile id not available");
-          setWorkouts(mockWorkouts);
+          setWorkouts([]);
         }
       } catch (error) {
         console.error("Error fetching workouts:", error);
@@ -143,7 +141,7 @@ const Workouts = () => {
           variant: "destructive",
         });
         // Fallback to mock data
-        setWorkouts(mockWorkouts);
+        setWorkouts([]);
       } finally {
         setIsLoading(false);
       }
