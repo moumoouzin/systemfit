@@ -54,9 +54,13 @@ const MainLayout = ({ children }: PropsWithChildren) => {
   ];
 
   return (
-    <SidebarProvider defaultOpen={true}>
-      <div className="flex min-h-screen w-full">
-        <Sidebar side="left">
+    <SidebarProvider defaultOpen={false}>
+      <div className="flex min-h-screen w-full bg-background">
+        <Sidebar 
+          side="left"
+          variant="floating" 
+          className="border-none shadow-none md:border-r md:shadow-sm"
+        >
           <SidebarHeader className="px-4 mb-2">
             <div className="text-2xl font-bold">SystemFit</div>
             <p className="text-sm text-muted-foreground">Fitness RPG</p>
@@ -83,7 +87,7 @@ const MainLayout = ({ children }: PropsWithChildren) => {
             </div>
           )}
           
-          <SidebarContent className="px-2">
+          <SidebarContent>
             <SidebarMenu>
               {routes.map((route) => (
                 <SidebarMenuItem key={route.href}>

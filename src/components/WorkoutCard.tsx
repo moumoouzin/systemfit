@@ -50,19 +50,24 @@ const WorkoutCard = ({ workout, onDelete }: WorkoutCardProps) => {
   return (
     <Card className="h-full flex flex-col hover:shadow-md transition-shadow">
       <CardHeader className="pb-2">
-        <div className="flex justify-between items-start">
-          <div>
-            <CardTitle className="flex items-center text-lg">
-              <Dumbbell className="mr-2 h-5 w-5 text-primary" />
-              {workout.name}
+        <div className="flex justify-between items-start gap-2">
+          <div className="min-w-0 flex-1">
+            <CardTitle className="flex items-center text-lg gap-2 truncate">
+              <Dumbbell className="h-5 w-5 flex-shrink-0 text-primary" />
+              <span className="truncate">{workout.name}</span>
             </CardTitle>
             <CardDescription className="flex items-center text-xs">
-              <Clock className="mr-1 h-3 w-3" />
-              {estimatedTime} min • {workout.exercises.length} exercícios
+              <Clock className="mr-1 h-3 w-3 flex-shrink-0" />
+              <span>{estimatedTime} min • {workout.exercises.length} exercícios</span>
             </CardDescription>
           </div>
           {onDelete && (
-            <Button variant="ghost" size="icon" onClick={handleDelete} className="h-8 w-8 text-destructive">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={handleDelete} 
+              className="h-8 w-8 flex-shrink-0 text-destructive"
+            >
               <Trash className="h-4 w-4" />
             </Button>
           )}
@@ -71,7 +76,7 @@ const WorkoutCard = ({ workout, onDelete }: WorkoutCardProps) => {
       <CardContent className="flex-1">
         <ul className="space-y-1 text-sm">
           {workout.exercises.slice(0, 3).map((exercise) => (
-            <li key={exercise.id} className="text-muted-foreground">
+            <li key={exercise.id} className="text-muted-foreground truncate">
               {exercise.name}: {exercise.sets} séries × {exercise.reps} reps
             </li>
           ))}
@@ -83,7 +88,10 @@ const WorkoutCard = ({ workout, onDelete }: WorkoutCardProps) => {
         </ul>
       </CardContent>
       <CardFooter>
-        <Button className="w-full" onClick={handleStartWorkout}>
+        <Button 
+          className="w-full text-sm"
+          onClick={handleStartWorkout}
+        >
           Iniciar Treino
         </Button>
       </CardFooter>

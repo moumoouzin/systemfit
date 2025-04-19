@@ -92,14 +92,14 @@ const Workouts = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Seus Treinos</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Seus Treinos</h1>
+          <p className="text-sm text-muted-foreground">
             Gerencie seus treinos personalizados
           </p>
         </div>
-        <Button onClick={() => navigate('/workouts/new')}>
+        <Button onClick={() => navigate('/workouts/new')} className="w-full sm:w-auto">
           <Plus className="mr-2 h-4 w-4" />
           Novo Treino
         </Button>
@@ -110,7 +110,7 @@ const Workouts = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
       ) : workouts.length > 0 ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
           {workouts.map((workout) => (
             <WorkoutCard
               key={workout.id}
@@ -122,7 +122,9 @@ const Workouts = () => {
       ) : (
         <div className="text-center py-12">
           <p className="text-muted-foreground mb-4">Você ainda não tem treinos cadastrados</p>
-          <Button onClick={() => navigate('/workouts/new')}>Criar meu primeiro treino</Button>
+          <Button onClick={() => navigate('/workouts/new')} className="w-full sm:w-auto">
+            Criar meu primeiro treino
+          </Button>
         </div>
       )}
     </div>
