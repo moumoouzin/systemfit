@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   name: string;
@@ -36,6 +35,26 @@ export interface ExerciseStatus {
   previousWeight?: number;
 }
 
+export interface WorkoutHistory {
+  id: string;
+  date: string;
+  workoutId: string;
+  workoutName: string;
+  completed: boolean;
+  xpEarned: number;
+  exercises: WorkoutExerciseHistory[];
+  notes?: string;
+}
+
+export interface WorkoutExerciseHistory {
+  id: string;
+  name: string;
+  sets: number;
+  reps: number;
+  weight: number;
+  completed: boolean;
+}
+
 export interface WorkoutSession {
   id: string;
   workoutId: string;
@@ -71,12 +90,4 @@ export interface ExerciseProgress {
     totalReps: number;
   };
   progress: 'increased' | 'decreased' | 'maintained';
-}
-
-export interface WorkoutHistory {
-  date: string;
-  workoutId: string;
-  workoutName: string;
-  completed: boolean;
-  xpEarned: number;
 }

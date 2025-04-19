@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/use-toast";
-import { Workout, Exercise, ExerciseStatus, WorkoutHistory } from "@/types";
+import { Workout, Exercise, ExerciseStatus, WorkoutHistory, WorkoutExerciseHistory } from "@/types";
+import { v4 as uuidv4 } from 'uuid';
 
 const WorkoutDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -15,16 +17,16 @@ const WorkoutDetail = () => {
   const [workout, setWorkout] = useState<Workout | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [exerciseStatus, setExerciseStatus] = useState<ExerciseStatus[]>([]);
+  const [notes, setNotes] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const today = new Date();
-  
+
   useEffect(() => {
     if (!id) return;
     
     const fetchWorkout = () => {
       setIsLoading(true);
       try {
-        // Primeiro, tenta obter do localStorage.currentWorkout (caso venha direto do Card)
         const currentWorkoutStr = localStorage.getItem('currentWorkout');
         if (currentWorkoutStr) {
           const currentWorkout = JSON.parse(currentWorkoutStr);
@@ -36,7 +38,6 @@ const WorkoutDetail = () => {
           }
         }
         
-        // Se não encontrar ou não for o mesmo ID, busca da lista completa
         const allWorkoutsStr = localStorage.getItem('workouts');
         if (allWorkoutsStr) {
           const allWorkouts = JSON.parse(allWorkoutsStr);
@@ -46,7 +47,6 @@ const WorkoutDetail = () => {
             setWorkout(foundWorkout);
             initializeExerciseStatus(foundWorkout.exercises);
           } else {
-            // Workout não encontrado
             console.error("Workout not found:", id);
             toast({
               title: "Treino não encontrado",
@@ -55,7 +55,6 @@ const WorkoutDetail = () => {
             });
           }
         } else {
-          // Nenhum workout disponível
           console.error("No workouts available");
           toast({
             title: "Dados não disponíveis",
@@ -119,30 +118,41 @@ const WorkoutDetail = () => {
     setIsSubmitting(true);
     
     try {
-      // Salvar os pesos dos exercícios no localStorage
+      if (!workout) return;
+
       const weightsToSave: Record<string, number> = {};
-      
       exerciseStatus.forEach(status => {
         if (status.completed && status.weight > 0) {
           weightsToSave[status.id] = status.weight;
         }
       });
       
-      // Buscar os pesos já salvos e mesclar
       const savedWeightsStr = localStorage.getItem('exerciseWeights');
       const savedWeights = savedWeightsStr ? JSON.parse(savedWeightsStr) : {};
       const updatedWeights = { ...savedWeights, ...weightsToSave };
-      
-      // Salvar de volta no localStorage
       localStorage.setItem('exerciseWeights', JSON.stringify(updatedWeights));
       
-      // Registrar este treino no histórico
+      const exerciseHistory: WorkoutExerciseHistory[] = workout.exercises.map(exercise => {
+        const status = exerciseStatus.find(s => s.id === exercise.id);
+        return {
+          id: exercise.id,
+          name: exercise.name,
+          sets: exercise.sets,
+          reps: exercise.reps,
+          weight: status?.weight || 0,
+          completed: status?.completed || false
+        };
+      });
+
       const historyItem: WorkoutHistory = {
+        id: uuidv4(),
         date: today.toISOString(),
-        workoutId: id || '',
-        workoutName: workout?.name || "Treino sem nome",
+        workoutId: workout.id,
+        workoutName: workout.name,
         completed: true,
-        xpEarned: 25 // XP padrão por completar o treino
+        xpEarned: 25,
+        exercises: exerciseHistory,
+        notes: notes.trim() || undefined
       };
       
       const historyStr = localStorage.getItem('workoutHistory');
@@ -154,8 +164,7 @@ const WorkoutDetail = () => {
         description: "Seu treino foi registrado com sucesso!",
       });
       
-      // Navegar de volta para a página de treinos
-      navigate("/workouts");
+      navigate("/history");
     } catch (error) {
       console.error("Error finishing workout:", error);
       toast({
@@ -279,6 +288,20 @@ const WorkoutDetail = () => {
           );
         })}
       </div>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle>Anotações do Treino</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Textarea
+            placeholder="Adicione suas observações sobre o treino..."
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            className="min-h-[100px]"
+          />
+        </CardContent>
+      </Card>
       
       <CardFooter className="px-0 flex justify-end">
         <Button 
