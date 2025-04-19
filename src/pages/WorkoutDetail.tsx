@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/use-toast";
 import { Workout, Exercise, ExerciseStatus, WorkoutHistory, WorkoutExerciseHistory } from "@/types";
 import { v4 as uuidv4 } from 'uuid';
+import { useAuth } from "@/contexts/AuthContext";
 
 const WorkoutDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -20,6 +21,7 @@ const WorkoutDetail = () => {
   const [notes, setNotes] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const today = new Date();
+  const { user, updateProfile } = useAuth();
 
   useEffect(() => {
     if (!id) return;
@@ -118,8 +120,11 @@ const WorkoutDetail = () => {
     setIsSubmitting(true);
     
     try {
-      if (!workout) return;
+      if (!workout || !user) return;
 
+      const completedExercises = exerciseStatus.filter(status => status.completed);
+      const xpEarned = completedExercises.length * 5;
+      
       const weightsToSave: Record<string, number> = {};
       exerciseStatus.forEach(status => {
         if (status.completed && status.weight > 0) {
@@ -150,7 +155,7 @@ const WorkoutDetail = () => {
         workoutId: workout.id,
         workoutName: workout.name,
         completed: true,
-        xpEarned: 25,
+        xpEarned: xpEarned,
         exercises: exerciseHistory,
         notes: notes.trim() || undefined
       };
@@ -159,9 +164,27 @@ const WorkoutDetail = () => {
       const history: WorkoutHistory[] = historyStr ? JSON.parse(historyStr) : [];
       localStorage.setItem('workoutHistory', JSON.stringify([historyItem, ...history]));
       
+      const newXp = user.xp + xpEarned;
+      const daysTrainedThisWeek = user.daysTrainedThisWeek + 1;
+      
+      let newLevel = user.level;
+      if (Math.floor(newXp / 100) > Math.floor(user.xp / 100)) {
+        newLevel = Math.floor(newXp / 100) + 1;
+        toast({
+          title: "🎉 Nível Aumentado!",
+          description: `Parabéns! Você subiu para o nível ${newLevel}!`,
+        });
+      }
+      
+      await updateProfile({
+        xp: newXp,
+        level: newLevel,
+        daysTrainedThisWeek: Math.min(daysTrainedThisWeek, 7)
+      });
+      
       toast({
         title: "Treino finalizado",
-        description: "Seu treino foi registrado com sucesso!",
+        description: `Treino registrado! Você ganhou ${xpEarned} XP.`,
       });
       
       navigate("/history");
