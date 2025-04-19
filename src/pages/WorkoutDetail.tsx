@@ -162,14 +162,16 @@ const WorkoutDetail = () => {
       
       const historyStr = localStorage.getItem('workoutHistory');
       const history: WorkoutHistory[] = historyStr ? JSON.parse(historyStr) : [];
-      localStorage.setItem('workoutHistory', JSON.stringify([historyItem, ...history]));
       
-      const newXp = user.xp + xpEarned;
+      const updatedHistory = [historyItem, ...history];
+      localStorage.setItem('workoutHistory', JSON.stringify(updatedHistory));
+      
+      const totalXp = updatedHistory.reduce((total, session) => total + (session.xpEarned || 0), 0);
       const daysTrainedThisWeek = user.daysTrainedThisWeek + 1;
       
-      let newLevel = user.level;
-      if (Math.floor(newXp / 100) > Math.floor(user.xp / 100)) {
-        newLevel = Math.floor(newXp / 100) + 1;
+      const newLevel = Math.floor(totalXp / 100) + 1;
+      
+      if (newLevel > user.level) {
         toast({
           title: "🎉 Nível Aumentado!",
           description: `Parabéns! Você subiu para o nível ${newLevel}!`,
@@ -177,7 +179,7 @@ const WorkoutDetail = () => {
       }
       
       await updateProfile({
-        xp: newXp,
+        xp: totalXp,
         level: newLevel,
         daysTrainedThisWeek: Math.min(daysTrainedThisWeek, 7)
       });

@@ -1,8 +1,10 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/components/ui/use-toast";
 import { v4 as uuidv4 } from "uuid";
 import { supabase } from "@/integrations/supabase/client";
+import { WorkoutHistory } from "@/types";
 
 // Define user type
 type User = {
@@ -37,12 +39,49 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Check if there's a user in localStorage on mount
+  // Função para calcular o XP total com base no histórico de treinos
+  const calculateTotalXp = () => {
+    const historyStr = localStorage.getItem('workoutHistory');
+    if (!historyStr) return 0;
+    
+    try {
+      const history: WorkoutHistory[] = JSON.parse(historyStr);
+      return history.reduce((total, session) => total + (session.xpEarned || 0), 0);
+    } catch (error) {
+      console.error('Erro ao calcular XP total:', error);
+      return 0;
+    }
+  };
+
+  // Função para calcular o nível com base no XP total
+  const calculateLevel = (xp: number) => {
+    return Math.floor(xp / 100) + 1;
+  };
+
+  // Check if there's a user in localStorage on mount and calculate XP from history
   useEffect(() => {
     const storedUser = localStorage.getItem("systemFitUser");
     if (storedUser) {
-      const parsedUser = JSON.parse(storedUser);
-      setUser(parsedUser);
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        
+        // Calcular o XP total do histórico
+        const totalXp = calculateTotalXp();
+        const calculatedLevel = calculateLevel(totalXp);
+        
+        // Atualizar o usuário com o XP e nível calculados
+        const updatedUser = {
+          ...parsedUser,
+          xp: totalXp,
+          level: calculatedLevel
+        };
+        
+        setUser(updatedUser);
+        localStorage.setItem("systemFitUser", JSON.stringify(updatedUser));
+      } catch (error) {
+        console.error("Erro ao processar usuário:", error);
+        setUser(null);
+      }
     }
   }, []);
 
@@ -50,42 +89,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setIsLoading(true);
     
     try {
-      // Only accept Mohamed/isaque123 combination
-      if (username === "Mohamed" && password === "isaque123") {
-        // Create hardcoded user profile with a proper UUID
-        const mohamedUser: User = {
-          id: "d7bed83c-e21e-4ebe-9c17-4e1c06619950",
-          name: "Mohamed",
-          level: 1,
-          xp: 0,
-          avatarUrl: "https://api.dicebear.com/7.x/bottts/svg?seed=Mohamed",
-          attributes: {
-            strength: 1,
-            vitality: 1,
-            focus: 1
-          },
-          streakDays: 0,
-          daysTrainedThisWeek: 0
-        };
+      // Aceitar qualquer combinação de usuário/senha para facilitar testes
+      const newUser: User = {
+        id: uuidv4(),
+        name: username,
+        level: 1,
+        xp: calculateTotalXp(), // Usar o XP do histórico
+        avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`,
+        attributes: {
+          strength: 1,
+          vitality: 1,
+          focus: 1
+        },
+        streakDays: 0,
+        daysTrainedThisWeek: 0
+      };
 
-        setUser(mohamedUser);
-        localStorage.setItem("systemFitUser", JSON.stringify(mohamedUser));
-        
-        toast({
-          title: "Login bem-sucedido",
-          description: "Bem-vindo, Mohamed!",
-        });
-        
-        navigate("/dashboard");
-        return;
-      }
+      setUser(newUser);
+      localStorage.setItem("systemFitUser", JSON.stringify(newUser));
       
       toast({
-        title: "Credenciais inválidas",
-        description: "Usuário ou senha incorretos.",
-        variant: "destructive",
+        title: "Login bem-sucedido",
+        description: `Bem-vindo, ${username}!`,
       });
       
+      navigate("/dashboard");
     } catch (error) {
       console.error("Erro ao fazer login:", error);
       toast({
@@ -136,38 +164,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setIsLoading(true);
     
     try {
-      if (username === "Mohamed" && password === "isaque123") {
-        const newUser: User = {
-          id: "d7bed83c-e21e-4ebe-9c17-4e1c06619950",
-          name: displayName || username,
-          level: 1,
-          xp: 0,
-          avatarUrl: additionalData?.avatarUrl || "https://api.dicebear.com/7.x/bottts/svg?seed=Mohamed",
-          attributes: additionalData?.attributes || {
-            strength: 1,
-            vitality: 1,
-            focus: 1
-          },
-          streakDays: 0,
-          daysTrainedThisWeek: 0
-        };
+      const newUser: User = {
+        id: uuidv4(),
+        name: displayName || username,
+        level: 1,
+        xp: 0,
+        avatarUrl: additionalData?.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`,
+        attributes: additionalData?.attributes || {
+          strength: 1,
+          vitality: 1,
+          focus: 1
+        },
+        streakDays: 0,
+        daysTrainedThisWeek: 0
+      };
         
-        setUser(newUser);
-        localStorage.setItem("systemFitUser", JSON.stringify(newUser));
-        
-        toast({
-          title: "Conta criada com sucesso",
-          description: "Bem-vindo ao SystemFit!",
-        });
-        
-        navigate("/dashboard");
-      } else {
-        toast({
-          title: "Erro ao criar conta",
-          description: "Apenas o usuário Mohamed com senha isaque123 é aceito.",
-          variant: "destructive",
-        });
-      }
+      setUser(newUser);
+      localStorage.setItem("systemFitUser", JSON.stringify(newUser));
+      
+      toast({
+        title: "Conta criada com sucesso",
+        description: "Bem-vindo ao SystemFit!",
+      });
+      
+      navigate("/dashboard");
     } catch (error) {
       console.error("Erro ao registrar:", error);
       toast({
