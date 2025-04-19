@@ -1,4 +1,4 @@
-import { MainLayout } from "@/layouts/MainLayout";
+import MainLayout from "@/layouts/MainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DumbbellIcon, TrendingUp, Calendar, Trophy } from "lucide-react";
@@ -17,12 +17,10 @@ const Dashboard = () => {
   const { workoutHistory, isLoading: isLoadingHistory } = useWorkoutHistory();
   const { exerciseProgress, isLoading: isLoadingProgress } = useExerciseProgress();
 
-  // Filter for recent completed workouts
   const recentWorkouts = workoutHistory
     .filter(w => w.completed)
     .slice(0, 3);
 
-  // Get improved exercises
   const improvedExercises = exerciseProgress
     .filter(ex => ex.progress === 'increased')
     .slice(0, 3);
