@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -96,12 +95,8 @@ const Login = () => {
                   </button>
                 </div>
               </div>
-              <div className="text-sm text-muted-foreground">
-                <p>Usuário: Mohamed</p>
-                <p>Senha: isaque123</p>
-              </div>
             </CardContent>
-            <CardFooter className="flex-col space-y-4">
+            <CardFooter>
               <Button
                 type="submit"
                 className="w-full"

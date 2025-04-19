@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/components/ui/use-toast";
@@ -47,7 +46,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, []);
 
-  // Função de login - alterada para não usar Supabase diretamente, já que estamos tendo problemas com isso
   const login = async (username: string, password: string) => {
     setIsLoading(true);
     
@@ -56,21 +54,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (username === "Mohamed" && password === "isaque123") {
         // Create hardcoded user profile with a proper UUID
         const mohamedUser: User = {
-          id: "d7bed83c-e21e-4ebe-9c17-4e1c06619950", // Use a static UUID for demo
+          id: "d7bed83c-e21e-4ebe-9c17-4e1c06619950",
           name: "Mohamed",
-          level: 5,
-          xp: 750,
+          level: 1,
+          xp: 0,
           avatarUrl: "https://api.dicebear.com/7.x/bottts/svg?seed=Mohamed",
           attributes: {
-            strength: 3,
-            vitality: 3,
-            focus: 3
+            strength: 1,
+            vitality: 1,
+            focus: 1
           },
-          streakDays: 5,
-          daysTrainedThisWeek: 3
+          streakDays: 0,
+          daysTrainedThisWeek: 0
         };
 
-        // Set user in state and local storage
         setUser(mohamedUser);
         localStorage.setItem("systemFitUser", JSON.stringify(mohamedUser));
         
@@ -83,7 +80,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
       
-      // Any other credentials are invalid
       toast({
         title: "Credenciais inválidas",
         description: "Usuário ou senha incorretos.",
@@ -112,20 +108,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
   };
 
-  // Add updateProfile function
   const updateProfile = async (data: Partial<User>): Promise<{ success: boolean, error?: string }> => {
     try {
       if (!user) {
         return { success: false, error: "Usuário não autenticado" };
       }
 
-      // Update the user object with the new data
       const updatedUser = { ...user, ...data };
       
-      // Save to localStorage
       localStorage.setItem("systemFitUser", JSON.stringify(updatedUser));
       
-      // Update state
       setUser(updatedUser);
       
       return { success: true };
@@ -135,7 +127,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // Add register function for compatibility
   const register = async (
     username: string, 
     password: string, 
@@ -145,11 +136,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setIsLoading(true);
     
     try {
-      // In this simplified version, we'll just create a new user
-      // For now, we'll only accept the hardcoded credentials
       if (username === "Mohamed" && password === "isaque123") {
         const newUser: User = {
-          id: "d7bed83c-e21e-4ebe-9c17-4e1c06619950", // Using a static UUID for demo
+          id: "d7bed83c-e21e-4ebe-9c17-4e1c06619950",
           name: displayName || username,
           level: 1,
           xp: 0,
@@ -163,7 +152,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           daysTrainedThisWeek: 0
         };
         
-        // Set user in state and local storage
         setUser(newUser);
         localStorage.setItem("systemFitUser", JSON.stringify(newUser));
         
@@ -196,7 +184,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     <AuthContext.Provider
       value={{
         user,
-        profile: user, // Alias for backward compatibility
+        profile: user,
         isLoading,
         login,
         logout,
