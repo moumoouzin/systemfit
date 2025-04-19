@@ -18,8 +18,8 @@ export interface Workout {
   id: string;
   name: string;
   exercises: Exercise[];
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Exercise {

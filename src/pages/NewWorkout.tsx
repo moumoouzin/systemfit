@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
@@ -113,11 +112,8 @@ const NewWorkout = () => {
     setIsSubmitting(true);
     
     try {
-      if (!profile?.id) {
-        throw new Error("Usuário não autenticado");
-      }
-
       // Criar novo treino simulado com dados do formulário
+      const currentDate = new Date().toISOString();
       const newWorkout: Workout = {
         id: uuidv4(),
         name: data.name,
@@ -126,7 +122,9 @@ const NewWorkout = () => {
           name: ex.name,
           sets: ex.sets,
           reps: ex.reps
-        }))
+        })),
+        createdAt: currentDate,
+        updatedAt: currentDate
       };
       
       // Armazenar no localStorage

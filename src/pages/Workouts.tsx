@@ -25,6 +25,7 @@ const Workouts = () => {
           setWorkouts(JSON.parse(savedWorkouts));
         } else {
           // Dados iniciais de exemplo se não houver nada no localStorage
+          const currentDate = new Date().toISOString();
           const exampleWorkouts: Workout[] = [
             {
               id: "1",
@@ -34,7 +35,9 @@ const Workouts = () => {
                 { id: "1-2", name: "Leg Press", sets: 3, reps: 15 },
                 { id: "1-3", name: "Cadeira Extensora", sets: 3, reps: 12 },
                 { id: "1-4", name: "Stiff", sets: 3, reps: 12 },
-              ]
+              ],
+              createdAt: currentDate,
+              updatedAt: currentDate
             },
             {
               id: "2",
@@ -44,7 +47,9 @@ const Workouts = () => {
                 { id: "2-2", name: "Crucifixo", sets: 3, reps: 12 },
                 { id: "2-3", name: "Desenvolvimento", sets: 3, reps: 10 },
                 { id: "2-4", name: "Elevação Lateral", sets: 3, reps: 15 },
-              ]
+              ],
+              createdAt: currentDate,
+              updatedAt: currentDate
             }
           ];
           setWorkouts(exampleWorkouts);
