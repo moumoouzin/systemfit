@@ -29,6 +29,13 @@ export interface Exercise {
   reps: number;
 }
 
+export interface ExerciseStatus {
+  id: string;
+  completed: boolean;
+  weight: number;
+  previousWeight?: number;
+}
+
 export interface WorkoutSession {
   id: string;
   workoutId: string;

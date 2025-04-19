@@ -17,6 +17,9 @@ const WorkoutCard = ({ workout, onDelete }: WorkoutCardProps) => {
   const handleStartWorkout = () => {
     console.log("Starting workout:", workout.id);
     try {
+      // Armazenar o treino atual no localStorage para acesso na página de detalhes
+      localStorage.setItem('currentWorkout', JSON.stringify(workout));
+      
       toast({
         title: "Treino iniciado",
         description: `Você iniciou o treino: ${workout.name}`,

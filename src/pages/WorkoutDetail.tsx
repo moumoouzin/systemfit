@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
@@ -7,10 +8,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/use-toast";
-import { Workout, Exercise } from "@/types";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
-import { Database } from "@/types/database.types";
+import { Workout, Exercise, ExerciseStatus } from "@/types";
 
 interface ExerciseStatus {
   id: string;
@@ -19,15 +17,9 @@ interface ExerciseStatus {
   previousWeight?: number;
 }
 
-// Define types for database data
-type WorkoutRow = Database['public']['Tables']['workouts']['Row'];
-type ExerciseRow = Database['public']['Tables']['exercises']['Row'];
-type ExerciseWeightRow = Database['public']['Tables']['exercise_weights']['Row'];
-
 const WorkoutDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { profile } = useAuth();
   const [workout, setWorkout] = useState<Workout | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [exerciseStatus, setExerciseStatus] = useState<ExerciseStatus[]>([]);
@@ -35,98 +27,50 @@ const WorkoutDetail = () => {
   const today = new Date();
   
   useEffect(() => {
-    // Fetch the workout data
     if (!id) return;
     
-    const fetchWorkoutData = async () => {
+    const fetchWorkout = () => {
       setIsLoading(true);
       try {
-        // Check if user is authenticated
-        if (!profile?.id) {
-          toast({
-            title: "Usuário não autenticado",
-            description: "Por favor, faça login para visualizar os treinos.",
-            variant: "destructive",
-          });
-          navigate("/login");
-          return;
-        }
-        
-        // Try to fetch from database
-        let { data: workoutData, error: workoutError } = await supabase
-          .from('workouts')
-          .select('*')
-          .eq('id', id)
-          .single();
-          
-        if (workoutError || !workoutData) {
-          console.error("Error fetching workout:", workoutError);
-          toast({
-            title: "Erro ao carregar treino",
-            description: "O treino solicitado não foi encontrado.",
-            variant: "destructive",
-          });
-          return;
-        }
-        
-        // Fetch associated exercises
-        let { data: exercisesData, error: exercisesError } = await supabase
-          .from('exercises')
-          .select('*')
-          .eq('workout_id', id);
-          
-        if (exercisesError || !exercisesData) {
-          console.error("Error fetching exercises:", exercisesError);
-          toast({
-            title: "Erro ao carregar exercícios",
-            description: "Não foi possível carregar os detalhes dos exercícios.",
-            variant: "destructive",
-          });
-          return;
-        }
-        
-        // Format workout for the app's structure
-        const formattedWorkout: Workout = {
-          id: (workoutData as WorkoutRow).id,
-          name: (workoutData as WorkoutRow).name,
-          exercises: (exercisesData as ExerciseRow[]).map(exercise => ({
-            id: exercise.id,
-            name: exercise.name,
-            sets: exercise.sets,
-            reps: exercise.reps
-          })),
-          createdAt: (workoutData as WorkoutRow).created_at,
-          updatedAt: (workoutData as WorkoutRow).updated_at,
-        };
-        
-        setWorkout(formattedWorkout);
-        
-        // Fetch latest weights for each exercise
-        const exerciseStatusPromises = (exercisesData as ExerciseRow[]).map(async (exercise) => {
-          // First try to get weights from exercise_weights table
-          let { data: weightData, error: weightError } = await supabase
-            .from('exercise_weights')
-            .select('*')
-            .eq('exercise_id', exercise.id)
-            .eq('user_id', profile.id)
-            .eq('is_latest', true)
-            .maybeSingle();
-            
-          if (weightError) {
-            console.error(`Error fetching weight for exercise ${exercise.id}:`, weightError);
+        // Primeiro, tenta obter do localStorage.currentWorkout (caso venha direto do Card)
+        const currentWorkoutStr = localStorage.getItem('currentWorkout');
+        if (currentWorkoutStr) {
+          const currentWorkout = JSON.parse(currentWorkoutStr);
+          if (currentWorkout.id === id) {
+            setWorkout(currentWorkout);
+            initializeExerciseStatus(currentWorkout.exercises);
+            setIsLoading(false);
+            return;
           }
-          
-          return {
-            id: exercise.id,
-            completed: false,
-            weight: 0,
-            previousWeight: weightData ? Number((weightData as ExerciseWeightRow).weight) : 0
-          };
-        });
+        }
         
-        const exerciseStatusResults = await Promise.all(exerciseStatusPromises);
-        console.log("Exercise status with weights:", exerciseStatusResults);
-        setExerciseStatus(exerciseStatusResults);
+        // Se não encontrar ou não for o mesmo ID, busca da lista completa
+        const allWorkoutsStr = localStorage.getItem('workouts');
+        if (allWorkoutsStr) {
+          const allWorkouts = JSON.parse(allWorkoutsStr);
+          const foundWorkout = allWorkouts.find((w: Workout) => w.id === id);
+          
+          if (foundWorkout) {
+            setWorkout(foundWorkout);
+            initializeExerciseStatus(foundWorkout.exercises);
+          } else {
+            // Workout não encontrado
+            console.error("Workout not found:", id);
+            toast({
+              title: "Treino não encontrado",
+              description: "O treino solicitado não foi encontrado.",
+              variant: "destructive",
+            });
+          }
+        } else {
+          // Nenhum workout disponível
+          console.error("No workouts available");
+          toast({
+            title: "Dados não disponíveis",
+            description: "Não há dados de treino disponíveis.",
+            variant: "destructive",
+          });
+        }
       } catch (error) {
         console.error("Error fetching workout:", error);
         toast({
@@ -139,8 +83,25 @@ const WorkoutDetail = () => {
       }
     };
     
-    fetchWorkoutData();
-  }, [id, profile, navigate]);
+    fetchWorkout();
+  }, [id]);
+  
+  const initializeExerciseStatus = (exercises: Exercise[]) => {
+    const savedWeightsStr = localStorage.getItem('exerciseWeights');
+    const savedWeights = savedWeightsStr ? JSON.parse(savedWeightsStr) : {};
+    
+    const status = exercises.map(exercise => {
+      const prevWeight = savedWeights[exercise.id] || 0;
+      return {
+        id: exercise.id,
+        completed: false,
+        weight: 0,
+        previousWeight: prevWeight > 0 ? prevWeight : undefined
+      };
+    });
+    
+    setExerciseStatus(status);
+  };
   
   const toggleExerciseCompletion = (exerciseId: string) => {
     setExerciseStatus(prev => 
@@ -166,94 +127,42 @@ const WorkoutDetail = () => {
     setIsSubmitting(true);
     
     try {
-      // Create a copy of the current exercise status to update
-      const updatedStatus = [...exerciseStatus];
+      // Salvar os pesos dos exercícios no localStorage
+      const weightsToSave: Record<string, number> = {};
       
-      // Check if authenticated
-      if (!profile?.id) {
-        toast({
-          title: "Usuário não autenticado",
-          description: "Por favor, faça login para registrar o treino.",
-          variant: "destructive",
-        });
-        navigate("/login");
-        return;
-      }
-      
-      // Create workout session record
-      const { data: sessionData, error: sessionError } = await supabase
-        .from('workout_sessions')
-        .insert({
-          workout_id: id,
-          user_id: profile.id,
-          date: today.toISOString(),
-          completed: true
-        })
-        .select()
-        .single();
-        
-      if (sessionError) {
-        throw new Error(`Error saving workout session: ${sessionError.message}`);
-      }
-      
-      // Save each completed exercise weight to the database
-      for (const status of updatedStatus) {
+      exerciseStatus.forEach(status => {
         if (status.completed && status.weight > 0) {
-          // First, update any existing is_latest records to false
-          const { error: updateError } = await supabase
-            .from('exercise_weights')
-            .update({ is_latest: false })
-            .eq('exercise_id', status.id)
-            .eq('user_id', profile.id)
-            .eq('is_latest', true);
-            
-          if (updateError) {
-            console.error(`Error updating previous weight records for exercise ${status.id}:`, updateError);
-          }
-          
-          // Insert new weight record
-          const { error: weightError } = await supabase
-            .from('exercise_weights')
-            .insert({
-              exercise_id: status.id,
-              user_id: profile.id,
-              weight: status.weight,
-              is_latest: true
-            });
-            
-          if (weightError) {
-            console.error(`Error saving weight for exercise ${status.id}:`, weightError);
-          }
-          
-          // Update the status for UI display
-          const index = updatedStatus.findIndex(s => s.id === status.id);
-          if (index !== -1) {
-            updatedStatus[index] = {
-              ...status,
-              previousWeight: status.weight
-            };
-          }
+          weightsToSave[status.id] = status.weight;
         }
-      }
+      });
       
-      // Log the workout data
-      const workoutData = {
+      // Buscar os pesos já salvos e mesclar
+      const savedWeightsStr = localStorage.getItem('exerciseWeights');
+      const savedWeights = savedWeightsStr ? JSON.parse(savedWeightsStr) : {};
+      const updatedWeights = { ...savedWeights, ...weightsToSave };
+      
+      // Salvar de volta no localStorage
+      localStorage.setItem('exerciseWeights', JSON.stringify(updatedWeights));
+      
+      // Registrar este treino no histórico
+      const historyItem = {
+        date: today.toISOString(),
         workoutId: id,
-        date: today,
-        exercises: updatedStatus
+        workoutName: workout?.name || "Treino sem nome",
+        completed: true,
+        xpEarned: 25 // XP padrão por completar o treino
       };
       
-      console.log("Workout completed:", workoutData);
-      
-      // Update the state with the new previous weights
-      setExerciseStatus(updatedStatus);
+      const historyStr = localStorage.getItem('workoutHistory');
+      const history = historyStr ? JSON.parse(historyStr) : [];
+      localStorage.setItem('workoutHistory', JSON.stringify([historyItem, ...history]));
       
       toast({
         title: "Treino finalizado",
         description: "Seu treino foi registrado com sucesso!",
       });
       
-      // Navigate back to workouts page
+      // Navegar de volta para a página de treinos
       navigate("/workouts");
     } catch (error) {
       console.error("Error finishing workout:", error);
