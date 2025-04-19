@@ -1,184 +1,75 @@
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Dumbbell, Plus, Search, AlertCircle } from "lucide-react";
+
 import { useState, useEffect } from "react";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import WorkoutCard from "@/components/WorkoutCard";
-import { toast } from "@/components/ui/use-toast";
-import { Workout, Exercise } from "@/types";
-import { supabase } from "@/integrations/supabase/client";
+import { Workout } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-
-// Define the database exercise type to handle the shape from Supabase
-type DbExercise = {
-  id: string;
-  name: string;
-  sets: number;
-  reps: number;
-  workout_id: string;
-  created_at: string;
-  updated_at: string;
-};
+import { toast } from "@/components/ui/use-toast";
 
 const Workouts = () => {
-  const navigate = useNavigate();
-  const { profile } = useAuth();
-  const [searchQuery, setSearchQuery] = useState("");
   const [workouts, setWorkouts] = useState<Workout[]>([]);
-  const [workoutToDelete, setWorkoutToDelete] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  // Carregando dados do localStorage para manter a funcionalidade offline
   useEffect(() => {
-    const fetchWorkouts = async () => {
+    const loadWorkouts = () => {
       setIsLoading(true);
-      
       try {
-        // Get current session
-        const { data: sessionData } = await supabase.auth.getSession();
-        console.log("Current auth session:", sessionData);
-        
-        // Check if user is authenticated with Supabase
-        if (!sessionData.session) {
-          console.log("No active Supabase session, attempting to sign in");
-          
-          // Try to sign in with demo credentials
-          const { error: signInError } = await supabase.auth.signInWithPassword({
-            email: "mohamed@example.com", 
-            password: "isaque123"
-          });
-          
-          if (signInError) {
-            console.error("Could not sign in with demo credentials:", signInError);
-            throw new Error("Authentication failed");
-          }
-          
-          console.log("Signed in with demo credentials");
-        }
-        
-        if (profile?.id) {
-          console.log("Fetching workouts for user:", profile.id);
-          
-          // Fetch workouts from Supabase
-          const { data: workoutsData, error: workoutsError } = await supabase
-            .from('workouts')
-            .select('*')
-            .eq('user_id', profile.id);
-            
-          if (workoutsError) {
-            console.error("Error fetching workouts:", workoutsError);
-            throw new Error(`Error fetching workouts: ${workoutsError.message}`);
-          }
-          
-          console.log("Workouts data from Supabase:", workoutsData);
-          
-          // For each workout, fetch its exercises
-          const workoutsWithExercises = await Promise.all(
-            workoutsData.map(async (workout) => {
-              const { data: exercisesData, error: exercisesError } = await supabase
-                .from('exercises')
-                .select('*')
-                .eq('workout_id', workout.id);
-                
-              if (exercisesError) {
-                console.error(`Error fetching exercises for workout ${workout.id}:`, exercisesError);
-                return null;
-              }
-              
-              console.log(`Exercises for workout ${workout.id}:`, exercisesData);
-              
-              // Map DB exercises to app Exercise type
-              const exercises: Exercise[] = exercisesData.map((dbExercise: DbExercise) => ({
-                id: dbExercise.id,
-                name: dbExercise.name,
-                sets: dbExercise.sets,
-                reps: dbExercise.reps
-              }));
-              
-              return {
-                id: workout.id,
-                name: workout.name,
-                exercises: exercises,
-                createdAt: workout.created_at,
-                updatedAt: workout.updated_at,
-              };
-            })
-          );
-          
-          // Filter out any null results from failed fetches
-          const validWorkouts = workoutsWithExercises.filter(
-            (workout): workout is Workout => workout !== null
-          );
-          
-          console.log("Final workouts with exercises:", validWorkouts);
-          
-          if (validWorkouts.length > 0) {
-            setWorkouts(validWorkouts);
-          } else {
-            console.log("No workouts found in database, using mock data");
-            setWorkouts([]);
-          }
+        // Carregar do localStorage
+        const savedWorkouts = localStorage.getItem('workouts');
+        if (savedWorkouts) {
+          setWorkouts(JSON.parse(savedWorkouts));
         } else {
-          // Use mock data if not authenticated
-          console.log("Using mock data - profile id not available");
-          setWorkouts([]);
+          // Dados iniciais de exemplo se não houver nada no localStorage
+          const exampleWorkouts: Workout[] = [
+            {
+              id: "1",
+              name: "Treino de Pernas",
+              exercises: [
+                { id: "1-1", name: "Agachamento", sets: 4, reps: 12 },
+                { id: "1-2", name: "Leg Press", sets: 3, reps: 15 },
+                { id: "1-3", name: "Cadeira Extensora", sets: 3, reps: 12 },
+                { id: "1-4", name: "Stiff", sets: 3, reps: 12 },
+              ]
+            },
+            {
+              id: "2",
+              name: "Treino de Peito e Ombro",
+              exercises: [
+                { id: "2-1", name: "Supino Reto", sets: 4, reps: 10 },
+                { id: "2-2", name: "Crucifixo", sets: 3, reps: 12 },
+                { id: "2-3", name: "Desenvolvimento", sets: 3, reps: 10 },
+                { id: "2-4", name: "Elevação Lateral", sets: 3, reps: 15 },
+              ]
+            }
+          ];
+          setWorkouts(exampleWorkouts);
+          localStorage.setItem('workouts', JSON.stringify(exampleWorkouts));
         }
       } catch (error) {
-        console.error("Error fetching workouts:", error);
+        console.error("Error loading workouts:", error);
         toast({
           title: "Erro ao carregar treinos",
-          description: "Não foi possível carregar seus treinos. Usando dados offline.",
+          description: "Não foi possível carregar seus treinos.",
           variant: "destructive",
         });
-        // Fallback to mock data
-        setWorkouts([]);
       } finally {
         setIsLoading(false);
       }
     };
-    
-    fetchWorkouts();
-  }, [profile]);
-  
-  // Filter workouts based on search query
-  const filteredWorkouts = workouts.filter(workout => 
-    workout.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-  
-  const handleDeleteWorkout = (workoutId: string) => {
-    setWorkoutToDelete(workoutId);
-  };
-  
-  const confirmDeleteWorkout = async () => {
-    if (!workoutToDelete) return;
-    
+
+    loadWorkouts();
+  }, []);
+
+  const handleDelete = (workoutId: string) => {
     try {
-      if (profile?.id) {
-        // Delete from database
-        const { error } = await supabase
-          .from('workouts')
-          .delete()
-          .eq('id', workoutToDelete)
-          .eq('user_id', profile.id);
-          
-        if (error) {
-          throw new Error(`Error deleting workout: ${error.message}`);
-        }
-      }
-      
-      // Update local state
-      const updatedWorkouts = workouts.filter(w => w.id !== workoutToDelete);
+      const updatedWorkouts = workouts.filter((w) => w.id !== workoutId);
       setWorkouts(updatedWorkouts);
+      localStorage.setItem('workouts', JSON.stringify(updatedWorkouts));
       
       toast({
         title: "Treino excluído",
@@ -187,102 +78,48 @@ const Workouts = () => {
     } catch (error) {
       console.error("Error deleting workout:", error);
       toast({
-        title: "Erro ao excluir treino",
+        title: "Erro ao excluir",
         description: "Não foi possível excluir o treino.",
         variant: "destructive",
       });
-    } finally {
-      setWorkoutToDelete(null);
     }
   };
-  
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Treinos</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Seus Treinos</h1>
           <p className="text-muted-foreground">
-            Gerenciar seus treinos personalizados
+            Gerencie seus treinos personalizados
           </p>
         </div>
-        <Button 
-          onClick={() => navigate('/workouts/new')}
-          className="hidden sm:flex"
-        >
-          <Plus className="h-4 w-4 mr-2" />
+        <Button onClick={() => navigate('/workouts/new')}>
+          <Plus className="mr-2 h-4 w-4" />
           Novo Treino
         </Button>
       </div>
-      
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Buscar treinos..."
-          className="pl-9"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-      </div>
-      
+
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
-      ) : filteredWorkouts.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredWorkouts.map((workout) => (
-            <WorkoutCard 
-              key={workout.id} 
-              workout={workout} 
-              onDelete={handleDeleteWorkout}
+      ) : workouts.length > 0 ? (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {workouts.map((workout) => (
+            <WorkoutCard
+              key={workout.id}
+              workout={workout}
+              onDelete={handleDelete}
             />
           ))}
-          <Card className="flex flex-col items-center justify-center h-full border-dashed p-6">
-            <Dumbbell className="h-8 w-8 text-muted-foreground mb-2" />
-            <p className="text-sm text-muted-foreground mb-4 text-center">
-              Adicione um novo treino personalizado
-            </p>
-            <Button 
-              variant="outline"
-              onClick={() => navigate('/workouts/new')}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Treino
-            </Button>
-          </Card>
         </div>
       ) : (
         <div className="text-center py-12">
-          <Dumbbell className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-medium mb-2">Nenhum treino encontrado</h3>
-          <p className="text-muted-foreground mb-6">
-            {searchQuery ? 
-              "Nenhum treino corresponde à sua busca." : 
-              "Você ainda não criou nenhum treino."}
-          </p>
-          <Button onClick={() => navigate('/workouts/new')}>
-            <Plus className="h-4 w-4 mr-2" />
-            Criar Novo Treino
-          </Button>
+          <p className="text-muted-foreground mb-4">Você ainda não tem treinos cadastrados</p>
+          <Button onClick={() => navigate('/workouts/new')}>Criar meu primeiro treino</Button>
         </div>
       )}
-      
-      <AlertDialog open={!!workoutToDelete} onOpenChange={(open) => !open && setWorkoutToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir treino</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir este treino? Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteWorkout} className="bg-destructive text-destructive-foreground">
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };

@@ -38,58 +38,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Check if there's a user in localStorage on mount and set up Supabase session
+  // Check if there's a user in localStorage on mount
   useEffect(() => {
     const storedUser = localStorage.getItem("systemFitUser");
     if (storedUser) {
       const parsedUser = JSON.parse(storedUser);
       setUser(parsedUser);
-      
-      // Set up Supabase session for the demo user
-      if (parsedUser && parsedUser.id) {
-        initSupabaseSession(parsedUser);
-      }
     }
-    
-    // Set up auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log("Auth state changed:", event, session);
-      }
-    );
-    
-    return () => {
-      subscription.unsubscribe();
-    };
   }, []);
 
-  // Initialize Supabase session for the demo user
-  const initSupabaseSession = async (userData: User) => {
-    try {
-      // Check current session
-      const { data: sessionData } = await supabase.auth.getSession();
-      
-      if (!sessionData.session) {
-        // If no session exists, sign in with demo credentials
-        console.log("No active session, signing in with demo credentials");
-        const { error } = await supabase.auth.signInWithPassword({
-          email: "mohamed@example.com",
-          password: "isaque123"
-        });
-        
-        if (error) {
-          console.error("Error signing in with demo credentials:", error);
-        } else {
-          console.log("Successfully signed in with demo credentials");
-        }
-      } else {
-        console.log("Active session exists:", sessionData.session.user.id);
-      }
-    } catch (error) {
-      console.error("Error initializing Supabase session:", error);
-    }
-  };
-
+  // Função de login - alterada para não usar Supabase diretamente, já que estamos tendo problemas com isso
   const login = async (username: string, password: string) => {
     setIsLoading(true);
     
@@ -115,19 +73,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Set user in state and local storage
         setUser(mohamedUser);
         localStorage.setItem("systemFitUser", JSON.stringify(mohamedUser));
-        
-        // Set up Supabase authentication for the demo user
-        const { error } = await supabase.auth.signInWithPassword({
-          email: "mohamed@example.com",
-          password: "isaque123"
-        });
-        
-        if (error) {
-          console.error("Error signing in with Supabase:", error);
-          // Continue anyway for demo purposes
-        } else {
-          console.log("Successfully signed in with Supabase");
-        }
         
         toast({
           title: "Login bem-sucedido",
@@ -157,12 +102,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const logout = async () => {
-    // Sign out from Supabase
-    await supabase.auth.signOut().catch(error => {
-      console.error("Error signing out from Supabase:", error);
-    });
-    
+  const logout = () => {
     setUser(null);
     localStorage.removeItem("systemFitUser");
     navigate("/login");
@@ -208,27 +148,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // In this simplified version, we'll just create a new user
       // For now, we'll only accept the hardcoded credentials
       if (username === "Mohamed" && password === "isaque123") {
-        // Register with Supabase
-        const { error: authError } = await supabase.auth.signUp({
-          email: "mohamed@example.com",
-          password: "isaque123"
-        });
-        
-        if (authError) {
-          console.error("Error registering with Supabase:", authError);
-          
-          // Try to sign in if registration fails (user might already exist)
-          const { error: signInError } = await supabase.auth.signInWithPassword({
-            email: "mohamed@example.com",
-            password: "isaque123"
-          });
-          
-          if (signInError) {
-            console.error("Error signing in after registration failed:", signInError);
-            throw new Error("Falha na autenticação");
-          }
-        }
-        
         const newUser: User = {
           id: "d7bed83c-e21e-4ebe-9c17-4e1c06619950", // Using a static UUID for demo
           name: displayName || username,

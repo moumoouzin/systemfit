@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "@/components/ui/use-toast";
@@ -20,10 +21,8 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Workout, Exercise } from "@/types";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Database } from "@/types/database.types";
 
 // Form schema
 const workoutFormSchema = z.object({
@@ -47,13 +46,6 @@ interface PreviousWeight {
   weight: number;
 }
 
-type ExerciseWeightData = {
-  exercises: {
-    name: string;
-  } | null;
-  weight: number;
-}
-
 const NewWorkout = () => {
   const navigate = useNavigate();
   const { profile } = useAuth();
@@ -72,38 +64,16 @@ const NewWorkout = () => {
     },
   });
 
-  useEffect(() => {
-    const fetchPreviousWeights = async () => {
-      if (!profile?.id) return;
-      
-      setIsLoadingWeights(true);
-      try {
-        const { data, error } = await supabase
-          .from('exercise_weights')
-          .select('*, exercises(name)')
-          .eq('user_id', profile.id)
-          .eq('is_latest', true);
-          
-        if (error) {
-          console.error('Error fetching previous weights:', error);
-          return;
-        }
-        
-        const formattedWeights: PreviousWeight[] = (data as ExerciseWeightData[]).map(item => ({
-          exerciseName: item.exercises?.name || '',
-          weight: Number(item.weight)
-        }));
-        
-        setPreviousWeights(formattedWeights);
-      } catch (error) {
-        console.error('Error fetching previous weights:', error);
-      } finally {
-        setIsLoadingWeights(false);
-      }
-    };
-    
-    fetchPreviousWeights();
-  }, [profile]);
+  // Simulação de pesos anteriores para demonstração
+  useState(() => {
+    setPreviousWeights([
+      { exerciseName: 'Supino', weight: 60 },
+      { exerciseName: 'Agachamento', weight: 80 },
+      { exerciseName: 'Levantamento terra', weight: 100 },
+      { exerciseName: 'Puxada', weight: 50 },
+      { exerciseName: 'Rosca', weight: 20 },
+    ]);
+  }, []);
   
   const findPreviousWeight = (exerciseName: string): number | undefined => {
     if (!exerciseName || exerciseName.trim() === '') return undefined;
@@ -138,6 +108,7 @@ const NewWorkout = () => {
     }
   };
 
+  // Simulação da criação do treino usando apenas localStorage
   const onSubmit = async (data: WorkoutFormValues) => {
     setIsSubmitting(true);
     
@@ -146,57 +117,21 @@ const NewWorkout = () => {
         throw new Error("Usuário não autenticado");
       }
 
-      const workoutId = uuidv4();
-      const { data: workoutData, error: workoutError } = await supabase
-        .from('workouts')
-        .insert({
-          id: workoutId,
-          name: data.name,
-          user_id: profile.id
-        })
-        .select()
-        .single();
-        
-      if (workoutError) {
-        throw new Error(`Error creating workout: ${workoutError.message}`);
-      }
+      // Criar novo treino simulado com dados do formulário
+      const newWorkout: Workout = {
+        id: uuidv4(),
+        name: data.name,
+        exercises: data.exercises.map(ex => ({
+          id: ex.id,
+          name: ex.name,
+          sets: ex.sets,
+          reps: ex.reps
+        }))
+      };
       
-      if (!workoutData) {
-        throw new Error("No data returned from workout creation");
-      }
-      
-      const exercisesWithWorkoutId = data.exercises.map(exercise => ({
-        id: exercise.id,
-        name: exercise.name,
-        sets: exercise.sets,
-        reps: exercise.reps,
-        workout_id: workoutData.id
-      }));
-      
-      const { error: exercisesError } = await supabase
-        .from('exercises')
-        .insert(exercisesWithWorkoutId);
-        
-      if (exercisesError) {
-        throw new Error(`Error creating exercises: ${exercisesError.message}`);
-      }
-      
-      for (const exercise of data.exercises) {
-        if (exercise.lastWeight && exercise.lastWeight > 0) {
-          const { error: weightError } = await supabase
-            .from('exercise_weights')
-            .insert({
-              exercise_id: exercise.id,
-              user_id: profile.id,
-              weight: exercise.lastWeight,
-              is_latest: true
-            });
-            
-          if (weightError) {
-            console.error(`Error saving weight for ${exercise.name}:`, weightError);
-          }
-        }
-      }
+      // Armazenar no localStorage
+      const existingWorkouts = JSON.parse(localStorage.getItem('workouts') || '[]');
+      localStorage.setItem('workouts', JSON.stringify([...existingWorkouts, newWorkout]));
       
       toast({
         title: "Treino criado",
