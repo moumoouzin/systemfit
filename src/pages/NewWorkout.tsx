@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "@/components/ui/use-toast";
@@ -23,7 +23,6 @@ import { Workout, Exercise } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-// Form schema
 const workoutFormSchema = z.object({
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres").max(50, "Nome deve ter no máximo 50 caracteres"),
   description: z.string().optional(),
@@ -63,8 +62,7 @@ const NewWorkout = () => {
     },
   });
 
-  // Simulação de pesos anteriores para demonstração
-  useState(() => {
+  useEffect(() => {
     setPreviousWeights([
       { exerciseName: 'Supino', weight: 60 },
       { exerciseName: 'Agachamento', weight: 80 },
@@ -73,7 +71,7 @@ const NewWorkout = () => {
       { exerciseName: 'Rosca', weight: 20 },
     ]);
   }, []);
-  
+
   const findPreviousWeight = (exerciseName: string): number | undefined => {
     if (!exerciseName || exerciseName.trim() === '') return undefined;
     
@@ -107,12 +105,10 @@ const NewWorkout = () => {
     }
   };
 
-  // Simulação da criação do treino usando apenas localStorage
   const onSubmit = async (data: WorkoutFormValues) => {
     setIsSubmitting(true);
     
     try {
-      // Criar novo treino simulado com dados do formulário
       const currentDate = new Date().toISOString();
       const newWorkout: Workout = {
         id: uuidv4(),
@@ -127,7 +123,6 @@ const NewWorkout = () => {
         updatedAt: currentDate
       };
       
-      // Armazenar no localStorage
       const existingWorkouts = JSON.parse(localStorage.getItem('workouts') || '[]');
       localStorage.setItem('workouts', JSON.stringify([...existingWorkouts, newWorkout]));
       
