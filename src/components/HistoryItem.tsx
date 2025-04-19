@@ -51,24 +51,28 @@ const HistoryItem = ({ history }: HistoryItemProps) => {
           <AccordionContent>
             <div className="space-y-4 pt-4">
               <div className="space-y-2">
-                {history.exercises.map(exercise => (
-                  <div 
-                    key={exercise.id} 
-                    className="flex items-center justify-between p-2 rounded-lg bg-muted/30"
-                  >
-                    <div>
-                      <p className="font-medium">{exercise.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {exercise.sets} séries × {exercise.reps} reps
-                      </p>
+                {history.exercises && history.exercises.length > 0 ? (
+                  history.exercises.map(exercise => (
+                    <div 
+                      key={exercise.id} 
+                      className="flex items-center justify-between p-2 rounded-lg bg-muted/30"
+                    >
+                      <div>
+                        <p className="font-medium">{exercise.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {exercise.sets} séries × {exercise.reps} reps
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <Badge variant={exercise.completed ? "default" : "secondary"}>
+                          {exercise.weight}kg
+                        </Badge>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <Badge variant={exercise.completed ? "default" : "secondary"}>
-                        {exercise.weight}kg
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">Não há detalhes disponíveis para este treino.</p>
+                )}
               </div>
               
               {history.notes && (

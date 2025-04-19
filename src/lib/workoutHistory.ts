@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { WorkoutHistory } from "@/types";
+import { WorkoutHistory, WorkoutExerciseHistory } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 import { Database } from "@/types/database.types";
@@ -27,7 +27,16 @@ export const useWorkoutHistory = () => {
           return;
         }
         
-        // Fetch workout sessions from Supabase
+        // First, try to get workout history from localStorage
+        const localHistoryStr = localStorage.getItem('workoutHistory');
+        if (localHistoryStr) {
+          const localHistory = JSON.parse(localHistoryStr);
+          setWorkoutHistory(localHistory);
+          setIsLoading(false);
+          return;
+        }
+        
+        // If no local history, fetch workout sessions from Supabase
         const { data: sessionData, error: sessionError } = await supabase
           .from('workout_sessions')
           .select(`
@@ -45,11 +54,15 @@ export const useWorkoutHistory = () => {
         
         // Transform the data to match our WorkoutHistory type
         const formattedHistory: WorkoutHistory[] = (sessionData as WorkoutSessionWithWorkout[]).map(session => ({
+          id: session.id,
           date: session.date,
           workoutId: session.workout_id,
           workoutName: session.workouts?.name || "Treino sem nome",
           completed: session.completed,
           xpEarned: session.xp_earned || 25, // Use the database value or default to 25
+          // Since we don't have detailed exercise data from this API call,
+          // we'll provide empty arrays for now
+          exercises: []
         }));
         
         setWorkoutHistory(formattedHistory);
