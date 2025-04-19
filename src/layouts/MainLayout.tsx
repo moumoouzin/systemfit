@@ -1,7 +1,8 @@
+
 import { PropsWithChildren } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
+import { LogOut, Menu } from "lucide-react";
 import { 
   SidebarProvider, 
   Sidebar, 
@@ -9,8 +10,9 @@ import {
   SidebarContent,
   SidebarMenu,
   SidebarMenuItem,
-  SidebarMenuButton, 
+  SidebarMenuButton,
   SidebarInset,
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Link, useLocation } from "react-router-dom";
 import { LayoutDashboard, Dumbbell, History, LineChart, Settings } from "lucide-react";
@@ -107,9 +109,14 @@ const MainLayout = ({ children }: PropsWithChildren) => {
         </Sidebar>
         
         <SidebarInset className="pt-6 pb-16 md:pb-6">
-          <main className="px-4 md:px-6 max-w-4xl mx-auto">
+          <div className="px-4 md:px-6 max-w-4xl mx-auto">
+            <div className="mb-6 flex items-center gap-4">
+              <SidebarTrigger>
+                <Menu className="h-6 w-6" />
+              </SidebarTrigger>
+            </div>
             {children}
-          </main>
+          </div>
         </SidebarInset>
       </div>
     </SidebarProvider>
