@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
@@ -8,14 +7,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/use-toast";
-import { Workout, Exercise, ExerciseStatus } from "@/types";
-
-interface ExerciseStatus {
-  id: string;
-  completed: boolean;
-  weight: number;
-  previousWeight?: number;
-}
+import { Workout, Exercise, ExerciseStatus, WorkoutHistory } from "@/types";
 
 const WorkoutDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -145,16 +137,16 @@ const WorkoutDetail = () => {
       localStorage.setItem('exerciseWeights', JSON.stringify(updatedWeights));
       
       // Registrar este treino no histórico
-      const historyItem = {
+      const historyItem: WorkoutHistory = {
         date: today.toISOString(),
-        workoutId: id,
+        workoutId: id || '',
         workoutName: workout?.name || "Treino sem nome",
         completed: true,
         xpEarned: 25 // XP padrão por completar o treino
       };
       
       const historyStr = localStorage.getItem('workoutHistory');
-      const history = historyStr ? JSON.parse(historyStr) : [];
+      const history: WorkoutHistory[] = historyStr ? JSON.parse(historyStr) : [];
       localStorage.setItem('workoutHistory', JSON.stringify([historyItem, ...history]));
       
       toast({
