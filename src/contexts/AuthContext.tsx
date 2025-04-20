@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/components/ui/use-toast";
@@ -68,7 +69,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .eq("id", id)
         .single();
 
-      if (profileError) {
+      if (profileError && profileError.code !== 'PGRST116') {
+        // PGRST116 means no rows returned, which is expected if profile isn't created yet
         console.error("Error fetching profile data:", profileError);
         // We can still continue with just the username data
       }
@@ -169,45 +171,48 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           variant: "destructive",
         });
       } else if (data.user) {
-        // Wait for session to exist before inserting into profiles
-        let maxWait = 6000;
-        const pollForSession = async (): Promise<boolean> => {
-          const sessionResult = await supabase.auth.getSession();
-          if (sessionResult.data.session?.user) return true;
-          if (maxWait <= 0) return false;
-          await new Promise(res => setTimeout(res, 200));
-          maxWait -= 200;
-          return pollForSession();
-        };
-        await pollForSession();
+        // Login após registro para obter uma sessão autenticada
+        const { error: loginError } = await supabase.auth.signInWithPassword({
+          email: fakeEmail,
+          password
+        });
+        
+        if (loginError) {
+          console.error("Erro ao fazer login após registro:", loginError);
+          result.error = "Registro realizado, mas ocorreu um erro ao fazer login automático.";
+        } else {
+          // Criar perfil com a sessão autenticada
+          try {
+            const { error: profileError } = await supabase
+              .from("profiles")
+              .insert({
+                id: data.user.id,
+                name: username,
+                level: 1,
+                xp: 0,
+                strength: 1,
+                vitality: 1,
+                focus: 1,
+                days_trained_this_week: 0,
+                streak_days: 0
+              });
 
-        // Now safe to insert into profiles table since session exists
-        try {
-          const { error: profileError } = await supabase
-            .from("profiles")
-            .insert({
-              id: data.user.id,
-              name: username,
-              level: 1,
-              xp: 0,
-              strength: 1,
-              vitality: 1,
-              focus: 1,
-              days_trained_this_week: 0,
-              streak_days: 0
-            });
-
-          if (profileError) {
-            console.error("Error creating profile:", profileError);
+            if (profileError) {
+              console.error("Erro ao criar perfil:", profileError);
+              // Não definimos result.error aqui para não impedir o fluxo de registro
+            }
+          } catch (err) {
+            console.error("Erro ao criar perfil:", err);
           }
-        } catch (err) {
-          console.error("Error creating profile:", err);
         }
 
         toast({
           title: "Conta criada!",
           description: "Sua conta foi criada com sucesso.",
         });
+        
+        // Desconectar após o registro para que o usuário faça login manual
+        await supabase.auth.signOut();
         navigate("/login");
       }
     } catch (err: any) {
