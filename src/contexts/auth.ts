@@ -91,31 +91,61 @@ export const register = async (
         variant: "destructive",
       });
     } else if (data.user) {
+      // O gatilho automático handle_new_user no Supabase criará a entrada em user_profiles
+      // Agora precisamos criar o perfil manualmente já que estamos com erro de RLS
       try {
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .insert({
-            id: data.user.id,
-            name: username,
-            level: 1,
-            xp: 0,
-            strength: 1,
-            vitality: 1,
-            focus: 1,
-            days_trained_this_week: 0,
-            streak_days: 0,
-          });
-        if (profileError) {
-          console.error("Erro ao criar perfil:", profileError);
-        }
-        toast({
-          title: "Conta criada!",
-          description: "Sua conta foi criada com sucesso. Você pode fazer login agora.",
+        // Importante: O usuário acabou de se registrar mas não está autenticado ainda
+        // então a inserção direta no banco não vai funcionar devido ao RLS
+        // Vamos fazer login automático para garantir que o token de autenticação está presente
+        const { error: loginError } = await supabase.auth.signInWithPassword({
+          email: fakeEmail,
+          password,
         });
-        navigate("/login");
-      } catch (err) {
+        
+        if (loginError) {
+          console.error("Erro ao fazer login após registro:", loginError);
+          result.error = "Conta criada, mas ocorreu erro ao fazer login automático";
+        } else {
+          // Agora que o usuário está autenticado, podemos inserir o perfil
+          const { error: profileError } = await supabase
+            .from("profiles")
+            .insert({
+              id: data.user.id,
+              name: username,
+              level: 1,
+              xp: 0,
+              strength: 1,
+              vitality: 1,
+              focus: 1,
+              days_trained_this_week: 0,
+              streak_days: 0,
+            });
+            
+          if (profileError) {
+            console.error("Erro ao criar perfil:", profileError);
+            result.error = "Erro ao criar perfil: " + profileError.message;
+          } else {
+            toast({
+              title: "Conta criada!",
+              description: "Sua conta foi criada com sucesso. Você já está logado.",
+            });
+            
+            // Já estamos logados, então podemos navegar direto para o dashboard
+            navigate("/dashboard");
+            return result;
+          }
+        }
+      } catch (err: any) {
         console.error("Erro ao criar perfil:", err);
+        result.error = "Erro ao criar perfil: " + err.message;
       }
+      
+      // Se chegou aqui é porque houve algum erro no login automático ou criação do perfil
+      toast({
+        title: "Conta criada parcialmente",
+        description: "Sua conta foi criada mas ocorreram problemas com seu perfil. Por favor, faça login manualmente.",
+      });
+      navigate("/login");
     }
   } catch (err: any) {
     result.error = err.message || "Erro ao criar conta";

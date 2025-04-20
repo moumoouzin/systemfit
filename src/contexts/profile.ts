@@ -66,6 +66,14 @@ export const updateProfile = async (
     if (!user?.id) {
       return { success: false, error: "Usuário não está autenticado" };
     }
+    
+    // Verifica se o usuário está autenticado no Supabase
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !sessionData.session) {
+      console.error("Erro de autenticação:", sessionError);
+      return { success: false, error: "Erro de autenticação. Faça login novamente." };
+    }
+    
     const updateData: any = {};
     if (data.name !== undefined) updateData.name = data.name;
     if (data.avatarUrl !== undefined) updateData.avatar_url = data.avatarUrl;
