@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -31,25 +32,30 @@ const Register = () => {
   });
   const [attributePoints, setAttributePoints] = useState(3);
   const [useEmail, setUseEmail] = useState(false);
+  const [registering, setRegistering] = useState(false);
   const { register, isLoading } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setRegistering(true);
 
     if (!name || !password || !confirmPassword) {
       setError("Preencha todos os campos obrigatórios");
+      setRegistering(false);
       return;
     }
 
     if (password !== confirmPassword) {
       setError("As senhas não coincidem");
+      setRegistering(false);
       return;
     }
 
     if (password.length < 6) {
       setError("A senha deve ter pelo menos 6 caracteres");
+      setRegistering(false);
       return;
     }
 
@@ -57,6 +63,7 @@ const Register = () => {
       const { error } = await register(name, password);
       if (error) {
         setError(error);
+        setRegistering(false);
       } else {
         toast({
           title: "Conta criada com sucesso!",
@@ -66,6 +73,7 @@ const Register = () => {
       }
     } catch (e: any) {
       setError(e.message || "Erro ao criar conta");
+      setRegistering(false);
     }
   };
 
@@ -100,6 +108,7 @@ const Register = () => {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="pl-10"
+                    disabled={registering || isLoading}
                   />
                 </div>
               </div>
@@ -114,11 +123,13 @@ const Register = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10 pr-10"
+                    disabled={registering || isLoading}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
+                    disabled={registering || isLoading}
                   >
                     {showPassword ? (
                       <EyeOff className="h-4 w-4" />
@@ -139,11 +150,13 @@ const Register = () => {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className="pl-10 pr-10"
+                    disabled={registering || isLoading}
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
+                    disabled={registering || isLoading}
                   >
                     {showConfirmPassword ? (
                       <EyeOff className="h-4 w-4" />
@@ -161,10 +174,10 @@ const Register = () => {
               <Button
                 type="submit"
                 className="w-full"
-                disabled={isLoading}
+                disabled={registering || isLoading}
               >
-                {isLoading ? "Registrando..." : "Registrar"}
-                <LogIn className="ml-2 h-4 w-4" />
+                {registering || isLoading ? "Registrando..." : "Registrar"}
+                {!registering && !isLoading && <LogIn className="ml-2 h-4 w-4" />}
               </Button>
               <p className="text-center text-sm text-muted-foreground">
                 Já tem uma conta?{" "}

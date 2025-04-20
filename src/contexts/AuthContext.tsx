@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/components/ui/use-toast";
@@ -42,8 +41,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const fetchProfile = async (id: string) => {
     try {
-      // Fetch username from user_profiles table using a raw query
-      // This is necessary because the table isn't properly typed in the database types
       const { data: userProfileData, error: userProfileError } = await supabase
         .from('user_profiles')
         .select('id, username')
@@ -62,7 +59,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
 
-      // Now fetch additional profile data from profiles
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select("*")
@@ -70,12 +66,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .single();
 
       if (profileError && profileError.code !== 'PGRST116') {
-        // PGRST116 means no rows returned, which is expected if profile isn't created yet
         console.error("Error fetching profile data:", profileError);
-        // We can still continue with just the username data
       }
 
-      // Create a complete user object combining both sources
       const completeUser: User = {
         id: userProfileData.id,
         username: userProfileData.username,
@@ -150,6 +143,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     let result = { error: undefined as string | undefined };
     try {
       const fakeEmail = `${username}@fake.com`;
+      
       const { data, error } = await supabase.auth.signUp({
         email: fakeEmail,
         password,
@@ -157,8 +151,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           data: {
             username,
           },
+          emailRedirectTo: window.location.origin,
         },
       });
+
       if (error) {
         if (error.message?.includes("User already registered")) {
           result.error = "Nome de usuário já está em uso";
@@ -171,49 +167,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           variant: "destructive",
         });
       } else if (data.user) {
-        // Login após registro para obter uma sessão autenticada
-        const { error: loginError } = await supabase.auth.signInWithPassword({
-          email: fakeEmail,
-          password
-        });
-        
-        if (loginError) {
-          console.error("Erro ao fazer login após registro:", loginError);
-          result.error = "Registro realizado, mas ocorreu um erro ao fazer login automático.";
-        } else {
-          // Criar perfil com a sessão autenticada
-          try {
-            const { error: profileError } = await supabase
-              .from("profiles")
-              .insert({
-                id: data.user.id,
-                name: username,
-                level: 1,
-                xp: 0,
-                strength: 1,
-                vitality: 1,
-                focus: 1,
-                days_trained_this_week: 0,
-                streak_days: 0
-              });
+        try {
+          const { error: profileError } = await supabase
+            .from("profiles")
+            .insert({
+              id: data.user.id,
+              name: username,
+              level: 1,
+              xp: 0,
+              strength: 1,
+              vitality: 1,
+              focus: 1,
+              days_trained_this_week: 0,
+              streak_days: 0
+            });
 
-            if (profileError) {
-              console.error("Erro ao criar perfil:", profileError);
-              // Não definimos result.error aqui para não impedir o fluxo de registro
-            }
-          } catch (err) {
-            console.error("Erro ao criar perfil:", err);
+          if (profileError) {
+            console.error("Erro ao criar perfil:", profileError);
           }
-        }
 
-        toast({
-          title: "Conta criada!",
-          description: "Sua conta foi criada com sucesso.",
-        });
-        
-        // Desconectar após o registro para que o usuário faça login manual
-        await supabase.auth.signOut();
-        navigate("/login");
+          toast({
+            title: "Conta criada!",
+            description: "Sua conta foi criada com sucesso. Você pode fazer login agora.",
+          });
+          
+          navigate("/login");
+        } catch (err) {
+          console.error("Erro ao criar perfil:", err);
+        }
       }
     } catch (err: any) {
       result.error = err.message || "Erro ao criar conta";
@@ -234,7 +215,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { success: false, error: "Usuário não está autenticado" };
       }
 
-      // Update the profiles table for compatibility with existing app
       const updateData: any = {};
       if (data.name !== undefined) updateData.name = data.name;
       if (data.avatarUrl !== undefined) updateData.avatar_url = data.avatarUrl;
@@ -258,7 +238,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       }
       
-      // Update local user state
       setUser(prev => prev ? { ...prev, ...data } : null);
       return { success: true };
     } catch (error: any) {
