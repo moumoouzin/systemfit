@@ -46,7 +46,7 @@ interface PreviousWeight {
 
 const NewWorkout = () => {
   const navigate = useNavigate();
-  const { profile } = useAuth();
+  const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [previousWeights, setPreviousWeights] = useState<PreviousWeight[]>([]);
   const [isLoadingWeights, setIsLoadingWeights] = useState(false);

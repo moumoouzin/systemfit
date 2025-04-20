@@ -1,88 +1,78 @@
+
 import MainLayout from "@/layouts/MainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { DumbbellIcon, TrendingUp, Calendar, Trophy } from "lucide-react";
+import { DumbbellIcon, TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import WeeklyProgress from "@/components/WeeklyProgress";
-import UserAvatar from "@/components/UserAvatar";
-import HistoryItem from "@/components/HistoryItem";
-import ExerciseProgressCard from "@/components/ExerciseProgressCard";
 import { useAuth } from "@/contexts/AuthContext";
-import { useWorkoutHistory } from "@/lib/workoutHistory";
-import { useExerciseProgress } from "@/lib/exerciseProgress";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { workoutHistory, isLoading: isLoadingHistory } = useWorkoutHistory();
-  const { exerciseProgress, isLoading: isLoadingProgress } = useExerciseProgress();
-
-  const recentWorkouts = workoutHistory
-    .filter(w => w.completed)
-    .slice(0, 3);
-
-  const improvedExercises = exerciseProgress
-    .filter(ex => ex.progress === 'increased')
-    .slice(0, 3);
-
-  const isLoading = isLoadingHistory || isLoadingProgress;
 
   if (!user) return null;
 
   return (
     <MainLayout>
       <div className="space-y-6">
-        <UserAvatar user={user} />
-
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card className="bg-rpg-strength/10 border-rpg-strength/20">
-            <CardHeader className="pb-2">
-              <CardDescription>Força</CardDescription>
-              <CardTitle>{user.attributes.strength}</CardTitle>
-            </CardHeader>
-          </Card>
-          <Card className="bg-rpg-vitality/10 border-rpg-vitality/20">
-            <CardHeader className="pb-2">
-              <CardDescription>Vigor</CardDescription>
-              <CardTitle>{user.attributes.vitality}</CardTitle>
-            </CardHeader>
-          </Card>
-          <Card className="bg-rpg-focus/10 border-rpg-focus/20">
-            <CardHeader className="pb-2">
-              <CardDescription>Foco</CardDescription>
-              <CardTitle>{user.attributes.focus}</CardTitle>
-            </CardHeader>
-          </Card>
-          <Card className="bg-rpg-xp/10 border-rpg-xp/20">
-            <CardHeader className="pb-2">
-              <CardDescription>XP Total</CardDescription>
-              <CardTitle>{user.xp}</CardTitle>
-            </CardHeader>
-          </Card>
+        <div className="p-6 border rounded-lg bg-card">
+          <div className="flex flex-col md:flex-row items-center gap-4">
+            <div className="relative">
+              <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-primary">
+                {user.avatarUrl ? (
+                  <img 
+                    src={user.avatarUrl} 
+                    alt={user.name} 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-primary/10 flex items-center justify-center">
+                    <span className="text-2xl font-bold">
+                      {user.username.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <div className="absolute -bottom-2 -right-2 bg-yellow-500 text-white font-bold rounded-full w-10 h-10 flex items-center justify-center border-2 border-white">
+                {user.level || 1}
+              </div>
+            </div>
+            
+            <div className="flex-1 text-center md:text-left">
+              <h2 className="text-xl font-bold">{user.name || user.username}</h2>
+              <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-2 text-sm text-muted-foreground">
+                <span className="font-medium">XP: {user.xp || 0}</span>
+                <span className="hidden md:block">•</span>
+                <span>Nível: {user.level || 1}</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <Card className="md:col-span-2">
             <CardHeader className="flex flex-row items-center justify-between space-y-0">
               <div>
-                <CardTitle>Seu progresso semanal</CardTitle>
+                <CardTitle>Bem-vindo ao SystemFit</CardTitle>
                 <CardDescription>
-                  Esta semana você treinou {user.daysTrainedThisWeek} de 7 dias
+                  Sistema de treino com elementos de RPG
                 </CardDescription>
               </div>
-              <div>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => navigate('/stats')}
-                >
+            </CardHeader>
+            <CardContent>
+              <p className="mb-4">
+                Bem-vindo ao SystemFit! Este é o seu dashboard personalizado onde você pode acompanhar seu progresso de treino.
+                Comece criando seu primeiro treino ou explorando as estatísticas.
+              </p>
+              <div className="flex gap-2">
+                <Button onClick={() => navigate('/workouts')}>
+                  Ver treinos
+                </Button>
+                <Button variant="outline" onClick={() => navigate('/stats')}>
                   <TrendingUp className="mr-2 h-4 w-4" />
                   Estatísticas
                 </Button>
               </div>
-            </CardHeader>
-            <CardContent>
-              <WeeklyProgress daysTrainedThisWeek={user.daysTrainedThisWeek} />
             </CardContent>
           </Card>
 
@@ -101,87 +91,6 @@ const Dashboard = () => {
               >
                 Criar Treino
               </Button>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
-              <div>
-                <CardTitle>Histórico Recente</CardTitle>
-                <CardDescription>
-                  Seus últimos treinos concluídos
-                </CardDescription>
-              </div>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => navigate('/history')}
-              >
-                <Calendar className="mr-2 h-4 w-4" />
-                Ver tudo
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div className="flex items-center justify-center py-6">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                </div>
-              ) : recentWorkouts.length > 0 ? (
-                <div className="divide-y">
-                  {recentWorkouts.map((history) => (
-                    <HistoryItem key={`${history.workoutId}-${history.date}`} history={history} />
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-6 text-muted-foreground">
-                  <Trophy className="h-8 w-8 mx-auto mb-2 opacity-70" />
-                  <p>Complete seu primeiro treino</p>
-                  <p className="text-sm">Vamos começar a jornada!</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
-              <div>
-                <CardTitle>Progresso nos Exercícios</CardTitle>
-                <CardDescription>
-                  Exercícios com melhoria de carga
-                </CardDescription>
-              </div>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => navigate('/stats')}
-              >
-                <TrendingUp className="mr-2 h-4 w-4" />
-                Ver tudo
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div className="flex items-center justify-center py-6">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                </div>
-              ) : improvedExercises.length > 0 ? (
-                <div className="space-y-4">
-                  {improvedExercises.map((progress) => (
-                    <ExerciseProgressCard 
-                      key={progress.exercise} 
-                      progress={progress} 
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-6 text-muted-foreground">
-                  <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-70" />
-                  <p>Ainda sem progressos registrados</p>
-                  <p className="text-sm">Aumente as cargas para ver seu progresso!</p>
-                </div>
-              )}
             </CardContent>
           </Card>
         </div>

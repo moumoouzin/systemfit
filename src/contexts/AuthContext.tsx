@@ -1,21 +1,23 @@
 
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { User } from "@/types";
 
 type AuthContextType = {
-  user: { id: string, username: string } | null;
+  user: User | null;
   isLoading: boolean;
   login: (username: string, password: string) => Promise<{ error?: string }>;
   logout: () => void;
   register: (username: string, password: string) => Promise<{ error?: string }>;
+  updateProfile: (data: Partial<User>) => Promise<{ success: boolean, error?: string }>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<{ id: string, username: string } | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -39,13 +41,47 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const fetchProfile = async (id: string) => {
-    const { data, error } = await supabase
-      .from("user_profiles")
-      .select("id, username")
-      .eq("id", id)
-      .single();
-    if (data && !error) {
-      setUser(data);
+    try {
+      // First try to fetch from user_profiles table (new auth system)
+      const { data: userProfile, error: userProfileError } = await supabase
+        .from("user_profiles")
+        .select("id, username")
+        .eq("id", id)
+        .single();
+      
+      if (userProfile && !userProfileError) {
+        // Now fetch additional profile data from profiles if it exists
+        const { data: profileData, error: profileError } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", id)
+          .single();
+        
+        // Create a complete user object combining both sources
+        const completeUser: User = {
+          id: userProfile.id,
+          username: userProfile.username,
+          name: profileData?.name || userProfile.username,
+          avatarUrl: profileData?.avatar_url || null,
+          level: profileData?.level || 1,
+          xp: profileData?.xp || 0,
+          attributes: {
+            strength: profileData?.strength || 1,
+            vitality: profileData?.vitality || 1, 
+            focus: profileData?.focus || 1
+          },
+          daysTrainedThisWeek: profileData?.days_trained_this_week || 0,
+          streakDays: profileData?.streak_days || 0
+        };
+        
+        setUser(completeUser);
+      } else {
+        console.error("Error fetching user profile:", userProfileError);
+        setUser(null);
+      }
+    } catch (error) {
+      console.error("Error in fetchProfile:", error);
+      setUser(null);
     }
   };
 
@@ -122,7 +158,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           variant: "destructive",
         });
       } else if (data.user) {
-        // Cria profile automaticamente pelo trigger no banco.
+        // Try to create a matching entry in the profiles table for backward compatibility
+        try {
+          const { error: profileError } = await supabase
+            .from("profiles")
+            .insert({
+              id: data.user.id,
+              name: username,
+              level: 1,
+              xp: 0,
+              strength: 1,
+              vitality: 1,
+              focus: 1,
+              days_trained_this_week: 0,
+              streak_days: 0
+            });
+            
+          if (profileError) {
+            console.error("Error creating profile:", profileError);
+          }
+        } catch (err) {
+          console.error("Error creating profile:", err);
+        }
+          
         toast({
           title: "Conta criada!",
           description: "Sua conta foi criada com sucesso.",
@@ -142,8 +200,47 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return result;
   };
 
+  const updateProfile = async (data: Partial<User>): Promise<{ success: boolean, error?: string }> => {
+    try {
+      if (!user?.id) {
+        return { success: false, error: "Usuário não está autenticado" };
+      }
+
+      // Update the profiles table for compatibility with existing app
+      const updateData: any = {};
+      if (data.name !== undefined) updateData.name = data.name;
+      if (data.avatarUrl !== undefined) updateData.avatar_url = data.avatarUrl;
+      if (data.level !== undefined) updateData.level = data.level;
+      if (data.xp !== undefined) updateData.xp = data.xp;
+      if (data.daysTrainedThisWeek !== undefined) updateData.days_trained_this_week = data.daysTrainedThisWeek;
+      if (data.streakDays !== undefined) updateData.streak_days = data.streakDays;
+      if (data.attributes?.strength !== undefined) updateData.strength = data.attributes.strength;
+      if (data.attributes?.vitality !== undefined) updateData.vitality = data.attributes.vitality;
+      if (data.attributes?.focus !== undefined) updateData.focus = data.attributes.focus;
+      
+      if (Object.keys(updateData).length > 0) {
+        const { error } = await supabase
+          .from("profiles")
+          .update(updateData)
+          .eq("id", user.id);
+          
+        if (error) {
+          console.error("Error updating profile:", error);
+          return { success: false, error: error.message };
+        }
+      }
+      
+      // Update local user state
+      setUser(prev => prev ? { ...prev, ...data } : null);
+      return { success: true };
+    } catch (error: any) {
+      console.error("Error in updateProfile:", error);
+      return { success: false, error: error.message || "Erro desconhecido" };
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, register }}>
+    <AuthContext.Provider value={{ user, isLoading, login, logout, register, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );

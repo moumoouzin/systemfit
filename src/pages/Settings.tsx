@@ -29,6 +29,7 @@ import { Shield, Bell, User } from "lucide-react";
 import ProfilePhotoUpload from "@/components/ProfilePhotoUpload";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useTheme } from "@/contexts/ThemeContext";
+import MainLayout from "@/layouts/MainLayout";
 
 const profileFormSchema = z.object({
   name: z
@@ -44,7 +45,7 @@ const profileFormSchema = z.object({
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
 const Settings = () => {
-  const { profile, updateProfile, logout } = useAuth();
+  const { user, updateProfile, logout } = useAuth();
   const { toast } = useToast();
   const { isDarkMode } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
@@ -52,10 +53,10 @@ const Settings = () => {
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      name: profile?.name || "",
+      name: user?.name || "",
     },
     values: {
-      name: profile?.name || "",
+      name: user?.name || "",
     },
   });
 
@@ -103,179 +104,181 @@ const Settings = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Configurações</h1>
-          <p className="text-muted-foreground">
-            Gerencie suas preferências de conta e perfil.
-          </p>
+    <MainLayout>
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Configurações</h1>
+            <p className="text-muted-foreground">
+              Gerencie suas preferências de conta e perfil.
+            </p>
+          </div>
+          <ThemeToggle />
         </div>
-        <ThemeToggle />
-      </div>
 
-      <Tabs defaultValue="profile" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="profile" className="flex items-center gap-2">
-            <User className="h-4 w-4" />
-            <span>Perfil</span>
-          </TabsTrigger>
-          <TabsTrigger value="notifications" className="flex items-center gap-2">
-            <Bell className="h-4 w-4" />
-            <span>Notificações</span>
-          </TabsTrigger>
-          <TabsTrigger value="security" className="flex items-center gap-2">
-            <Shield className="h-4 w-4" />
-            <span>Segurança</span>
-          </TabsTrigger>
-        </TabsList>
+        <Tabs defaultValue="profile" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="profile" className="flex items-center gap-2">
+              <User className="h-4 w-4" />
+              <span>Perfil</span>
+            </TabsTrigger>
+            <TabsTrigger value="notifications" className="flex items-center gap-2">
+              <Bell className="h-4 w-4" />
+              <span>Notificações</span>
+            </TabsTrigger>
+            <TabsTrigger value="security" className="flex items-center gap-2">
+              <Shield className="h-4 w-4" />
+              <span>Segurança</span>
+            </TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="profile" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Perfil</CardTitle>
-              <CardDescription>
-                Gerencie as informações do seu perfil.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col gap-8">
-                <ProfilePhotoUpload />
+          <TabsContent value="profile" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Perfil</CardTitle>
+                <CardDescription>
+                  Gerencie as informações do seu perfil.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col gap-8">
+                  <ProfilePhotoUpload />
 
-                <Separator />
+                  <Separator />
 
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    <FormField
-                      control={form.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Nome</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Seu nome" {...field} />
-                          </FormControl>
-                          <FormDescription>
-                            Este é seu nome de exibição no aplicativo.
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button type="submit" disabled={isLoading}>
-                      {isLoading ? "Salvando..." : "Salvar alterações"}
+                  <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                      <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Nome</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Seu nome" {...field} />
+                            </FormControl>
+                            <FormDescription>
+                              Este é seu nome de exibição no aplicativo.
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <Button type="submit" disabled={isLoading}>
+                        {isLoading ? "Salvando..." : "Salvar alterações"}
+                      </Button>
+                    </form>
+                  </Form>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Estatísticas RPG</CardTitle>
+                <CardDescription>
+                  Informações sobre seu progresso no sistema de RPG.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    <div className="bg-muted rounded-lg p-3">
+                      <div className="text-sm text-muted-foreground">Nível</div>
+                      <div className="text-2xl font-bold">{user?.level || 1}</div>
+                    </div>
+                    <div className="bg-muted rounded-lg p-3">
+                      <div className="text-sm text-muted-foreground">XP</div>
+                      <div className="text-2xl font-bold">{user?.xp || 0}</div>
+                    </div>
+                    <div className="bg-muted rounded-lg p-3">
+                      <div className="text-sm text-muted-foreground">Treinos</div>
+                      <div className="text-2xl font-bold">{user?.daysTrainedThisWeek || 0}</div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-medium mb-2">Atributos</h3>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="bg-muted rounded-lg p-3">
+                        <div className="text-sm text-muted-foreground">Força</div>
+                        <div className="text-2xl font-bold text-rpg-strength">{user?.attributes?.strength || 1}</div>
+                      </div>
+                      <div className="bg-muted rounded-lg p-3">
+                        <div className="text-sm text-muted-foreground">Vitalidade</div>
+                        <div className="text-2xl font-bold text-rpg-vitality">{user?.attributes?.vitality || 1}</div>
+                      </div>
+                      <div className="bg-muted rounded-lg p-3">
+                        <div className="text-sm text-muted-foreground">Foco</div>
+                        <div className="text-2xl font-bold text-rpg-focus">{user?.attributes?.focus || 1}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="notifications" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Notificações</CardTitle>
+                <CardDescription>
+                  Configure como você deseja receber notificações.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-center p-8">
+                  <p className="text-muted-foreground">
+                    As configurações de notificação estarão disponíveis em breve.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="security" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Segurança</CardTitle>
+                <CardDescription>
+                  Gerencie suas configurações de segurança.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-medium mb-2">Sessão</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Gerencie suas sessões ativas e encerre sua conta quando necessário.
+                    </p>
+                    <Button 
+                      variant="destructive" 
+                      onClick={handleLogout}
+                      disabled={isLoading}
+                    >
+                      {isLoading ? "Saindo..." : "Sair da conta"}
                     </Button>
-                  </form>
-                </Form>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Estatísticas RPG</CardTitle>
-              <CardDescription>
-                Informações sobre seu progresso no sistema de RPG.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  <div className="bg-muted rounded-lg p-3">
-                    <div className="text-sm text-muted-foreground">Nível</div>
-                    <div className="text-2xl font-bold">{profile?.level || 1}</div>
                   </div>
-                  <div className="bg-muted rounded-lg p-3">
-                    <div className="text-sm text-muted-foreground">XP</div>
-                    <div className="text-2xl font-bold">{profile?.xp || 0}</div>
-                  </div>
-                  <div className="bg-muted rounded-lg p-3">
-                    <div className="text-sm text-muted-foreground">Treinos</div>
-                    <div className="text-2xl font-bold">{profile?.daysTrainedThisWeek || 0}</div>
+                  
+                  <Separator />
+                  
+                  <div>
+                    <h3 className="text-lg font-medium mb-2">Senha</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Altere sua senha para manter sua conta segura.
+                    </p>
+                    <Button variant="outline" disabled>
+                      Alterar senha
+                    </Button>
                   </div>
                 </div>
-
-                <div>
-                  <h3 className="text-lg font-medium mb-2">Atributos</h3>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="bg-muted rounded-lg p-3">
-                      <div className="text-sm text-muted-foreground">Força</div>
-                      <div className="text-2xl font-bold text-rpg-strength">{profile?.attributes?.strength || 1}</div>
-                    </div>
-                    <div className="bg-muted rounded-lg p-3">
-                      <div className="text-sm text-muted-foreground">Vitalidade</div>
-                      <div className="text-2xl font-bold text-rpg-vitality">{profile?.attributes?.vitality || 1}</div>
-                    </div>
-                    <div className="bg-muted rounded-lg p-3">
-                      <div className="text-sm text-muted-foreground">Foco</div>
-                      <div className="text-2xl font-bold text-rpg-focus">{profile?.attributes?.focus || 1}</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="notifications" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Notificações</CardTitle>
-              <CardDescription>
-                Configure como você deseja receber notificações.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-center p-8">
-                <p className="text-muted-foreground">
-                  As configurações de notificação estarão disponíveis em breve.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="security" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Segurança</CardTitle>
-              <CardDescription>
-                Gerencie suas configurações de segurança.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-medium mb-2">Sessão</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Gerencie suas sessões ativas e encerre sua conta quando necessário.
-                  </p>
-                  <Button 
-                    variant="destructive" 
-                    onClick={handleLogout}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? "Saindo..." : "Sair da conta"}
-                  </Button>
-                </div>
-                
-                <Separator />
-                
-                <div>
-                  <h3 className="text-lg font-medium mb-2">Senha</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Altere sua senha para manter sua conta segura.
-                  </p>
-                  <Button variant="outline" disabled>
-                    Alterar senha
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </MainLayout>
   );
 };
 

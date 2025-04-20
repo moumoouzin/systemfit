@@ -166,12 +166,13 @@ const WorkoutDetail = () => {
       const updatedHistory = [historyItem, ...history];
       localStorage.setItem('workoutHistory', JSON.stringify(updatedHistory));
       
-      const totalXp = updatedHistory.reduce((total, session) => total + (session.xpEarned || 0), 0);
-      const daysTrainedThisWeek = user.daysTrainedThisWeek + 1;
+      const totalXp = (user.xp || 0) + xpEarned;
+      const daysTrainedThisWeek = (user.daysTrainedThisWeek || 0) + 1;
       
       const newLevel = Math.floor(totalXp / 100) + 1;
+      const currentLevel = user.level || 1;
       
-      if (newLevel > user.level) {
+      if (newLevel > currentLevel) {
         toast({
           title: "🎉 Nível Aumentado!",
           description: `Parabéns! Você subiu para o nível ${newLevel}!`,

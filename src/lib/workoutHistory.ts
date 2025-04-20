@@ -13,7 +13,7 @@ type WorkoutSessionWithWorkout = Database['public']['Tables']['workout_sessions'
 };
 
 export const useWorkoutHistory = () => {
-  const { profile } = useAuth();
+  const { user } = useAuth();
   const [workoutHistory, setWorkoutHistory] = useState<WorkoutHistory[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +22,7 @@ export const useWorkoutHistory = () => {
     const fetchWorkoutHistory = async () => {
       setIsLoading(true);
       try {
-        if (!profile?.id) {
+        if (!user?.id) {
           setWorkoutHistory([]);
           return;
         }
@@ -45,7 +45,7 @@ export const useWorkoutHistory = () => {
               name
             )
           `)
-          .eq('user_id', profile.id)
+          .eq('user_id', user.id)
           .order('date', { ascending: false });
         
         if (sessionError) {
@@ -76,7 +76,7 @@ export const useWorkoutHistory = () => {
     };
     
     fetchWorkoutHistory();
-  }, [profile]);
+  }, [user]);
   
   return { workoutHistory, isLoading, error };
 };

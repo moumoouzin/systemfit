@@ -15,7 +15,7 @@ type ExerciseWithWeights = Database['public']['Tables']['exercises']['Row'] & {
 }
 
 export const useExerciseProgress = () => {
-  const { profile } = useAuth();
+  const { user } = useAuth();
   const [exerciseProgress, setExerciseProgress] = useState<ExerciseProgress[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -24,7 +24,7 @@ export const useExerciseProgress = () => {
     const fetchExerciseProgress = async () => {
       setIsLoading(true);
       try {
-        if (!profile?.id) {
+        if (!user?.id) {
           setExerciseProgress([]);
           return;
         }
@@ -103,7 +103,7 @@ export const useExerciseProgress = () => {
     };
     
     fetchExerciseProgress();
-  }, [profile]);
+  }, [user]);
   
   return { exerciseProgress, isLoading, error };
 };

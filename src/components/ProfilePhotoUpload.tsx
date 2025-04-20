@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -7,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Camera, Loader2 } from "lucide-react";
 
 const ProfilePhotoUpload = () => {
-  const { profile, updateProfile } = useAuth();
+  const { user, updateProfile } = useAuth();
   const [uploading, setUploading] = useState(false);
   
   const uploadAvatar = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -18,13 +19,13 @@ const ProfilePhotoUpload = () => {
         throw new Error('You must select an image to upload.');
       }
       
-      if (!profile?.id) {
-        throw new Error('User profile not found.');
+      if (!user?.id) {
+        throw new Error('User not found.');
       }
       
       const file = event.target.files[0];
       const fileExt = file.name.split('.').pop();
-      const fileName = `${profile.id}.${fileExt}`;
+      const fileName = `${user.id}.${fileExt}`;
       const filePath = `${fileName}`;
       
       console.log('Uploading avatar:', { fileName, filePath, fileSize: file.size });
@@ -95,8 +96,8 @@ const ProfilePhotoUpload = () => {
   return (
     <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
       <Avatar className="h-20 w-20 relative">
-        <AvatarImage src={profile?.avatarUrl} alt={profile?.name} />
-        <AvatarFallback>{profile?.name?.charAt(0)}</AvatarFallback>
+        <AvatarImage src={user?.avatarUrl || undefined} alt={user?.name} />
+        <AvatarFallback>{user?.name?.charAt(0) || user?.username?.charAt(0)}</AvatarFallback>
       </Avatar>
       
       <div>
