@@ -70,17 +70,12 @@ const MainLayout = ({ children }: PropsWithChildren) => {
           {user && (
             <div className="px-4 mb-6 flex items-center gap-2">
               <div className="flex-shrink-0 h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
-                {user.avatarUrl ? (
-                  <img src={user.avatarUrl} alt={user.name} className="h-full w-full object-cover" />
-                ) : (
-                  <span className="text-primary font-medium">
-                    {user.name.charAt(0).toUpperCase()}
-                  </span>
-                )}
+                <span className="text-primary font-medium">
+                  {user.username.charAt(0).toUpperCase()}
+                </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{user.name}</p>
-                <p className="text-xs text-muted-foreground truncate">Nível {user.level}</p>
+                <p className="text-sm font-medium truncate">{user.username}</p>
               </div>
               <Button variant="ghost" size="icon" onClick={logout} title="Sair">
                 <LogOut className="h-5 w-5" />

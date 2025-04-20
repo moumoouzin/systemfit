@@ -14,6 +14,7 @@ import History from "./pages/History";
 import Stats from "./pages/Stats";
 import Settings from "./pages/Settings";
 import Login from "./pages/Login";
+import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
 import { ThemeProvider } from "./contexts/ThemeContext";
 
@@ -33,8 +34,9 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <Routes>
-              {/* Login route */}
+              {/* Login and Register routes */}
               <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
               
               {/* Redirect root to login */}
               <Route path="/" element={<Navigate to="/login" replace />} />
