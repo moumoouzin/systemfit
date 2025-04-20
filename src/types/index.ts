@@ -1,5 +1,7 @@
+
 export interface User {
   id: string;
+  username: string;  // Added username property
   name: string;
   avatarUrl: string;
   level: number;

@@ -28,7 +28,7 @@ const Dashboard = () => {
                 ) : (
                   <div className="w-full h-full bg-primary/10 flex items-center justify-center">
                     <span className="text-2xl font-bold">
-                      {user.username.charAt(0).toUpperCase()}
+                      {user.name?.charAt(0).toUpperCase() || user.username.charAt(0).toUpperCase()}
                     </span>
                   </div>
                 )}

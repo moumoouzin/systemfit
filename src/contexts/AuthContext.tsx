@@ -42,43 +42,49 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const fetchProfile = async (id: string) => {
     try {
-      // First try to fetch from user_profiles table (new auth system)
-      const { data: userProfile, error: userProfileError } = await supabase
+      // First try to fetch from user_profiles table (for username)
+      const { data: userProfileData, error: userProfileError } = await supabase
         .from("user_profiles")
         .select("id, username")
         .eq("id", id)
         .single();
       
-      if (userProfile && !userProfileError) {
-        // Now fetch additional profile data from profiles if it exists
-        const { data: profileData, error: profileError } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", id)
-          .single();
-        
-        // Create a complete user object combining both sources
-        const completeUser: User = {
-          id: userProfile.id,
-          username: userProfile.username,
-          name: profileData?.name || userProfile.username,
-          avatarUrl: profileData?.avatar_url || null,
-          level: profileData?.level || 1,
-          xp: profileData?.xp || 0,
-          attributes: {
-            strength: profileData?.strength || 1,
-            vitality: profileData?.vitality || 1, 
-            focus: profileData?.focus || 1
-          },
-          daysTrainedThisWeek: profileData?.days_trained_this_week || 0,
-          streakDays: profileData?.streak_days || 0
-        };
-        
-        setUser(completeUser);
-      } else {
+      if (userProfileError) {
         console.error("Error fetching user profile:", userProfileError);
         setUser(null);
+        return;
       }
+      
+      // Now fetch additional profile data from profiles
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", id)
+        .single();
+      
+      if (profileError) {
+        console.error("Error fetching profile data:", profileError);
+        // We can still continue with just the username data
+      }
+      
+      // Create a complete user object combining both sources
+      const completeUser: User = {
+        id: userProfileData.id,
+        username: userProfileData.username,
+        name: profileData?.name || userProfileData.username,
+        avatarUrl: profileData?.avatar_url || null,
+        level: profileData?.level || 1,
+        xp: profileData?.xp || 0,
+        attributes: {
+          strength: profileData?.strength || 1,
+          vitality: profileData?.vitality || 1, 
+          focus: profileData?.focus || 1
+        },
+        daysTrainedThisWeek: profileData?.days_trained_this_week || 0,
+        streakDays: profileData?.streak_days || 0
+      };
+      
+      setUser(completeUser);
     } catch (error) {
       console.error("Error in fetchProfile:", error);
       setUser(null);
