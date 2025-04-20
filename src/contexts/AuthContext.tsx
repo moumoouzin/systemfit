@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { User } from "@/types";
 import * as authFns from "./auth";
 import * as profileFns from "./profile";
+import { supabase } from "@/integrations/supabase/client";
 
 type AuthContextType = {
   user: User | null;
@@ -35,8 +36,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         fetchProfile(session.user.id);
       }
     });
-    const { data: { subscription } } = require("@/integrations/supabase/client").supabase.auth.onAuthStateChange(
-      (event: any, session: any) => {
+    
+    // Here's the fix - using the imported supabase client instead of require
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
         if (session?.user) {
           fetchProfile(session.user.id);
         } else {
@@ -44,6 +47,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       }
     );
+    
     return () => {
       subscription?.unsubscribe();
     };
