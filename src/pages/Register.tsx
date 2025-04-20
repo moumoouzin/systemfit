@@ -6,32 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dumbbell, LogIn, Eye, EyeOff, Lock, User, Upload, Shield, Zap, Brain } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Progress } from "@/components/ui/progress";
-import { Slider } from "@/components/ui/slider";
-import { toast } from "@/components/ui/use-toast";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Dumbbell, LogIn, Eye, EyeOff, Lock, AtSign, User } from "lucide-react";
 
 const Register = () => {
-  const [name, setName] = useState("");
+  const [name, setName] = useState(""); // opcional agora, como nome público
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
-  const [step, setStep] = useState(1);
-  const [avatar, setAvatar] = useState<File | null>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [attributes, setAttributes] = useState({
-    strength: 1,
-    vitality: 1,
-    focus: 1,
-  });
-  const [attributePoints, setAttributePoints] = useState(3);
-  const [useEmail, setUseEmail] = useState(false);
   const [registering, setRegistering] = useState(false);
   const { register, isLoading } = useAuth();
   const navigate = useNavigate();
@@ -41,7 +25,7 @@ const Register = () => {
     setError("");
     setRegistering(true);
 
-    if (!name || !password || !confirmPassword) {
+    if (!email || !password || !confirmPassword) {
       setError("Preencha todos os campos obrigatórios");
       setRegistering(false);
       return;
@@ -60,15 +44,11 @@ const Register = () => {
     }
 
     try {
-      const { error } = await register(name, password);
+      const { error } = await register(email, password, name || null);
       if (error) {
         setError(error);
         setRegistering(false);
       } else {
-        toast({
-          title: "Conta criada com sucesso!",
-          description: "Você já pode fazer login.",
-        });
         navigate("/login");
       }
     } catch (e: any) {
@@ -92,21 +72,21 @@ const Register = () => {
           <CardHeader>
             <CardTitle>Criar nova conta</CardTitle>
             <CardDescription>
-              Preencha os dados abaixo para se registrar
+              Preencha os dados abaixo para se registrar com email
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Nome de usuário</Label>
+                <Label htmlFor="email">Email</Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    id="name"
-                    type="text"
-                    placeholder="Seu nome de usuário"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    id="email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     className="pl-10"
                     disabled={registering || isLoading}
                   />
@@ -164,6 +144,21 @@ const Register = () => {
                       <Eye className="h-4 w-4" />
                     )}
                   </button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="name">Nome público (opcional)</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="name"
+                    type="text"
+                    placeholder="Como quer ser chamado?"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="pl-10"
+                    disabled={registering || isLoading}
+                  />
                 </div>
               </div>
               {error && (

@@ -1,15 +1,15 @@
+
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dumbbell, LogIn, Eye, EyeOff, Lock, User } from "lucide-react";
-import { toast } from "@/components/ui/use-toast";
+import { Dumbbell, LogIn, Eye, EyeOff, Lock, AtSign } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
 const Login = () => {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const { login, isLoading } = useAuth();
@@ -19,12 +19,12 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (!username || !password) {
+    if (!email || !password) {
       setError("Por favor, preencha todos os campos");
       return;
     }
     try {
-      const { error } = await login(username, password);
+      const { error } = await login(email, password);
       if (error) {
         setError(error);
         return;
@@ -49,21 +49,21 @@ const Login = () => {
           <CardHeader>
             <CardTitle>Entrar na sua conta</CardTitle>
             <CardDescription>
-              Digite seu nome de usuário para acessar o sistema
+              Entre com seu email e senha para acessar o sistema
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="username">Nome de usuário</Label>
+                <Label htmlFor="email">Email</Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    id="username"
-                    type="text"
-                    placeholder="Digite seu nome de usuário"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
+                    id="email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     className="pl-10"
                     disabled={isLoading}
                   />

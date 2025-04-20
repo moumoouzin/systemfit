@@ -9,9 +9,9 @@ import { supabase } from "@/integrations/supabase/client";
 type AuthContextType = {
   user: User | null;
   isLoading: boolean;
-  login: (username: string, password: string) => Promise<{ error?: string }>;
+  login: (email: string, password: string) => Promise<{ error?: string }>;
   logout: () => void;
-  register: (username: string, password: string) => Promise<{ error?: string }>;
+  register: (email: string, password: string, name: string | null) => Promise<{ error?: string }>;
   updateProfile: (data: Partial<User>) => Promise<{ success: boolean; error?: string }>;
 };
 
@@ -36,8 +36,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         fetchProfile(session.user.id);
       }
     });
-    
-    // Here's the fix - using the imported supabase client instead of require
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (session?.user) {
@@ -47,22 +46,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       }
     );
-    
+
     return () => {
       subscription?.unsubscribe();
     };
   }, []);
 
-  const login = (username: string, password: string) => {
-    return authFns.login(username, password, fetchProfile, navigate, setIsLoading);
+  const login = (email: string, password: string) => {
+    return authFns.login(email, password, fetchProfile, navigate, setIsLoading);
   };
 
   const logout = () => {
     return authFns.logout(navigate, setUser);
   };
 
-  const register = (username: string, password: string) => {
-    return authFns.register(username, password, navigate, setIsLoading);
+  const register = (email: string, password: string, name: string | null) => {
+    return authFns.register(email, password, name, navigate, setIsLoading);
   };
 
   const updateProfile = (data: Partial<User>) => {
