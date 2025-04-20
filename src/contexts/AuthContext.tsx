@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/components/ui/use-toast";
@@ -22,8 +21,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
 
   React.useEffect(() => {
-    const session = supabase.auth.getSession();
-    session.then(({ data: { session } }) => {
+    const sessionPromise = supabase.auth.getSession();
+    sessionPromise.then(({ data: { session } }) => {
       if (session?.user) {
         fetchProfile(session.user.id);
       }
@@ -49,7 +48,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .select('id, username')
         .eq('id', id)
         .single();
-      
+
       if (userProfileError) {
         console.error("Error fetching user profile:", userProfileError);
         setUser(null);
@@ -61,19 +60,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(null);
         return;
       }
-      
+
       // Now fetch additional profile data from profiles
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", id)
         .single();
-      
+
       if (profileError) {
         console.error("Error fetching profile data:", profileError);
         // We can still continue with just the username data
       }
-      
+
       // Create a complete user object combining both sources
       const completeUser: User = {
         id: userProfileData.id,
@@ -84,13 +83,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         xp: profileData?.xp || 0,
         attributes: {
           strength: profileData?.strength || 1,
-          vitality: profileData?.vitality || 1, 
+          vitality: profileData?.vitality || 1,
           focus: profileData?.focus || 1
         },
         daysTrainedThisWeek: profileData?.days_trained_this_week || 0,
         streakDays: profileData?.streak_days || 0
       };
-      
+
       setUser(completeUser);
     } catch (error) {
       console.error("Error in fetchProfile:", error);
@@ -148,7 +147,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setIsLoading(true);
     let result = { error: undefined as string | undefined };
     try {
-      // O email é fictício para garantir unicidade (não usamos email real)
       const fakeEmail = `${username}@fake.com`;
       const { data, error } = await supabase.auth.signUp({
         email: fakeEmail,
@@ -171,7 +169,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           variant: "destructive",
         });
       } else if (data.user) {
-        // Try to create a matching entry in the profiles table for backward compatibility
+        // Wait for session to exist before inserting into profiles
+        let maxWait = 6000;
+        const pollForSession = async (): Promise<boolean> => {
+          const sessionResult = await supabase.auth.getSession();
+          if (sessionResult.data.session?.user) return true;
+          if (maxWait <= 0) return false;
+          await new Promise(res => setTimeout(res, 200));
+          maxWait -= 200;
+          return pollForSession();
+        };
+        await pollForSession();
+
+        // Now safe to insert into profiles table since session exists
         try {
           const { error: profileError } = await supabase
             .from("profiles")
@@ -186,14 +196,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               days_trained_this_week: 0,
               streak_days: 0
             });
-            
+
           if (profileError) {
             console.error("Error creating profile:", profileError);
           }
         } catch (err) {
           console.error("Error creating profile:", err);
         }
-          
+
         toast({
           title: "Conta criada!",
           description: "Sua conta foi criada com sucesso.",
