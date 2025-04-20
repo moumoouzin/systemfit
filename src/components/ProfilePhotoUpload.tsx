@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Camera, Loader2 } from "lucide-react";
 
@@ -31,26 +31,16 @@ const ProfilePhotoUpload = () => {
       console.log('Uploading avatar:', { fileName, filePath, fileSize: file.size });
       
       // First check if the avatars bucket exists
-      const { data: buckets } = await supabase.storage.listBuckets();
-      let bucketExists = false;
-      
-      if (buckets) {
-        bucketExists = buckets.some(bucket => bucket.name === 'avatars');
-      }
+      const { data: bucketData, error: bucketError } = await supabase.storage.getBucket('avatars');
       
       // If bucket doesn't exist, create it
-      if (!bucketExists) {
+      if (bucketError && bucketError.message.includes('not found')) {
         console.log('Creating avatars bucket...');
-        const { data, error } = await supabase.storage.createBucket('avatars', {
+        await supabase.storage.createBucket('avatars', {
           public: true,
           allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
-          fileSizeLimit: 1024 * 1024 * 5, // 5MB
+          fileSizeLimit: 1024 * 1024 * 2, // 2MB
         });
-        
-        if (error) {
-          console.error('Error creating bucket:', error);
-          throw new Error('Failed to create storage bucket');
-        }
         console.log('Avatars bucket created successfully');
       }
       
