@@ -65,6 +65,35 @@ export interface Database extends Omit<SupabaseDatabase, 'public'> {
           }
         ]
       }
+      user_profiles: {
+        Row: {
+          id: string
+          username: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          username: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          username?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_profiles_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       workouts: {
         Row: {
           id: string

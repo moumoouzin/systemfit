@@ -42,15 +42,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const fetchProfile = async (id: string) => {
     try {
-      // First try to fetch from user_profiles table (for username)
+      // Fetch username from user_profiles table using a raw query
+      // This is necessary because the table isn't properly typed in the database types
       const { data: userProfileData, error: userProfileError } = await supabase
-        .from("user_profiles")
-        .select("id, username")
-        .eq("id", id)
+        .from('user_profiles')
+        .select('id, username')
+        .eq('id', id)
         .single();
       
       if (userProfileError) {
         console.error("Error fetching user profile:", userProfileError);
+        setUser(null);
+        return;
+      }
+
+      if (!userProfileData) {
+        console.error("No user profile found");
         setUser(null);
         return;
       }
