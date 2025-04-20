@@ -1,134 +1,93 @@
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/components/ui/use-toast";
-import { v4 as uuidv4 } from "uuid";
 import { supabase } from "@/integrations/supabase/client";
-import { WorkoutHistory } from "@/types";
 
-// Define user type
-type User = {
-  id: string;
-  name: string;
-  level: number;
-  xp: number;
-  avatarUrl: string;
-  attributes: {
-    strength: number;
-    vitality: number;
-    focus: number;
-  };
-  streakDays: number;
-  daysTrainedThisWeek: number;
-};
-
-interface AuthContextType {
-  user: User | null;
-  profile: User | null; // Alias for user to maintain compatibility
+type AuthContextType = {
+  user: { id: string, username: string } | null;
   isLoading: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<{ error?: string }>;
   logout: () => void;
-  updateProfile: (data: Partial<User>) => Promise<{ success: boolean, error?: string }>;
-  register: (username: string, password: string, displayName?: string, additionalData?: Partial<User>) => Promise<void>;
-}
+  register: (username: string, password: string) => Promise<{ error?: string }>;
+};
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<{ id: string, username: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Função para calcular o XP total com base no histórico de treinos
-  const calculateTotalXp = () => {
-    const historyStr = localStorage.getItem('workoutHistory');
-    if (!historyStr) return 0;
-    
-    try {
-      const history: WorkoutHistory[] = JSON.parse(historyStr);
-      return history.reduce((total, session) => total + (session.xpEarned || 0), 0);
-    } catch (error) {
-      console.error('Erro ao calcular XP total:', error);
-      return 0;
-    }
-  };
-
-  // Função para calcular o nível com base no XP total
-  const calculateLevel = (xp: number) => {
-    return Math.floor(xp / 100) + 1;
-  };
-
-  // Check if there's a user in localStorage on mount and calculate XP from history
-  useEffect(() => {
-    const storedUser = localStorage.getItem("systemFitUser");
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        
-        // Calcular o XP total do histórico
-        const totalXp = calculateTotalXp();
-        const calculatedLevel = calculateLevel(totalXp);
-        
-        // Atualizar o usuário com o XP e nível calculados
-        const updatedUser = {
-          ...parsedUser,
-          xp: totalXp,
-          level: calculatedLevel
-        };
-        
-        setUser(updatedUser);
-        localStorage.setItem("systemFitUser", JSON.stringify(updatedUser));
-      } catch (error) {
-        console.error("Erro ao processar usuário:", error);
+  React.useEffect(() => {
+    const session = supabase.auth.getSession();
+    session.then(({ data: { session } }) => {
+      if (session?.user) {
+        fetchProfile(session.user.id);
+      }
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        fetchProfile(session.user.id);
+      } else {
         setUser(null);
       }
-    }
+    });
+    return () => {
+      subscription?.unsubscribe();
+    };
   }, []);
+
+  const fetchProfile = async (id: string) => {
+    const { data, error } = await supabase
+      .from("user_profiles")
+      .select("id, username")
+      .eq("id", id)
+      .single();
+    if (data && !error) {
+      setUser(data);
+    }
+  };
 
   const login = async (username: string, password: string) => {
     setIsLoading(true);
-    
+    let result = { error: undefined };
     try {
-      // Aceitar qualquer combinação de usuário/senha para facilitar testes
-      const newUser: User = {
-        id: uuidv4(),
-        name: username,
-        level: 1,
-        xp: calculateTotalXp(), // Usar o XP do histórico
-        avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`,
-        attributes: {
-          strength: 1,
-          vitality: 1,
-          focus: 1
-        },
-        streakDays: 0,
-        daysTrainedThisWeek: 0
-      };
-
-      setUser(newUser);
-      localStorage.setItem("systemFitUser", JSON.stringify(newUser));
-      
-      toast({
-        title: "Login bem-sucedido",
-        description: `Bem-vindo, ${username}!`,
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: `${username}@fake.com`,
+        password,
       });
-      
-      navigate("/dashboard");
-    } catch (error) {
-      console.error("Erro ao fazer login:", error);
+      if (error) {
+        result.error = "Usuário ou senha inválidos";
+        toast({
+          title: "Erro de login",
+          description: "Usuário ou senha inválidos.",
+          variant: "destructive",
+        });
+      } else if (data.session?.user) {
+        fetchProfile(data.session.user.id);
+        toast({
+          title: "Login realizado",
+          description: `Bem-vindo, ${username}`,
+        });
+        navigate("/dashboard");
+      }
+    } catch (err: any) {
+      result.error = err.message;
       toast({
         title: "Erro de login",
-        description: "Ocorreu um erro ao tentar fazer login.",
+        description: result.error,
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
+    return result;
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem("systemFitUser");
     navigate("/login");
     toast({
       title: "Logout realizado",
@@ -136,82 +95,55 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
   };
 
-  const updateProfile = async (data: Partial<User>): Promise<{ success: boolean, error?: string }> => {
-    try {
-      if (!user) {
-        return { success: false, error: "Usuário não autenticado" };
-      }
-
-      const updatedUser = { ...user, ...data };
-      
-      localStorage.setItem("systemFitUser", JSON.stringify(updatedUser));
-      
-      setUser(updatedUser);
-      
-      return { success: true };
-    } catch (error) {
-      console.error("Erro ao atualizar perfil:", error);
-      return { success: false, error: "Falha ao atualizar perfil" };
-    }
-  };
-
-  const register = async (
-    username: string, 
-    password: string, 
-    displayName?: string, 
-    additionalData?: Partial<User>
-  ) => {
+  const register = async (username: string, password: string) => {
     setIsLoading(true);
-    
+    let result = { error: undefined as string | undefined };
     try {
-      const newUser: User = {
-        id: uuidv4(),
-        name: displayName || username,
-        level: 1,
-        xp: 0,
-        avatarUrl: additionalData?.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`,
-        attributes: additionalData?.attributes || {
-          strength: 1,
-          vitality: 1,
-          focus: 1
+      // O email é fictício para garantir unicidade (não usamos email real)
+      const fakeEmail = `${username}@fake.com`;
+      const { data, error } = await supabase.auth.signUp({
+        email: fakeEmail,
+        password,
+        options: {
+          data: {
+            username,
+          },
         },
-        streakDays: 0,
-        daysTrainedThisWeek: 0
-      };
-        
-      setUser(newUser);
-      localStorage.setItem("systemFitUser", JSON.stringify(newUser));
-      
-      toast({
-        title: "Conta criada com sucesso",
-        description: "Bem-vindo ao SystemFit!",
       });
-      
-      navigate("/dashboard");
-    } catch (error) {
-      console.error("Erro ao registrar:", error);
+      if (error) {
+        if (error.message?.includes("User already registered")) {
+          result.error = "Nome de usuário já está em uso";
+        } else {
+          result.error = error.message;
+        }
+        toast({
+          title: "Erro ao registrar",
+          description: result.error,
+          variant: "destructive",
+        });
+      } else if (data.user) {
+        // Cria profile automaticamente pelo trigger no banco.
+        toast({
+          title: "Conta criada!",
+          description: "Sua conta foi criada com sucesso.",
+        });
+        navigate("/login");
+      }
+    } catch (err: any) {
+      result.error = err.message || "Erro ao criar conta";
       toast({
-        title: "Erro ao criar conta",
-        description: "Ocorreu um erro ao tentar criar sua conta.",
+        title: "Erro ao registrar",
+        description: result.error,
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
+    return result;
   };
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        profile: user,
-        isLoading,
-        login,
-        logout,
-        updateProfile,
-        register
-      }}
-    >
+    <AuthContext.Provider value={{ user, isLoading, login, logout, register }}>
       {children}
     </AuthContext.Provider>
   );
@@ -219,7 +151,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error("useAuth deve ser usado dentro de um AuthProvider");
   }
   return context;

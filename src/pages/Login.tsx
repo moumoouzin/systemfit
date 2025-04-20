@@ -6,29 +6,32 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dumbbell, LogIn, Eye, EyeOff, Lock, User } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
+import { Link, useNavigate } from "react-router-dom";
 
 const Login = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const { login, isLoading } = useAuth();
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    setError("");
     if (!username || !password) {
-      toast({
-        title: "Campos obrigatórios",
-        description: "Por favor, preencha todos os campos",
-        variant: "destructive"
-      });
+      setError("Por favor, preencha todos os campos");
       return;
     }
-    
     try {
-      await login(username, password);
-    } catch (error) {
-      console.error("Login error:", error);
+      const { error } = await login(username, password);
+      if (error) {
+        setError(error);
+        return;
+      }
+      navigate("/dashboard");
+    } catch (err: any) {
+      setError(err.message || "Erro de login");
     }
   };
 
@@ -42,7 +45,6 @@ const Login = () => {
           <h1 className="text-3xl font-bold tracking-tight">SystemFit</h1>
           <p className="text-muted-foreground">Seu aplicativo de treino com RPG</p>
         </div>
-
         <Card>
           <CardHeader>
             <CardTitle>Entrar na sua conta</CardTitle>
@@ -95,6 +97,9 @@ const Login = () => {
                   </button>
                 </div>
               </div>
+              {error && (
+                <div className="text-destructive text-sm">{error}</div>
+              )}
             </CardContent>
             <CardFooter>
               <Button
@@ -111,6 +116,17 @@ const Login = () => {
                   </>
                 )}
               </Button>
+            </CardFooter>
+            <CardFooter>
+              <p className="text-center text-sm text-muted-foreground mx-auto">
+                Não tem conta?{" "}
+                <Link
+                  to="/register"
+                  className="underline text-primary hover:text-primary/80"
+                >
+                  Criar conta
+                </Link>
+              </p>
             </CardFooter>
           </form>
         </Card>
