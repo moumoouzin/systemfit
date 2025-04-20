@@ -19,7 +19,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Start as true to prevent flashing
   const navigate = useNavigate();
 
   // fetch profile helper for login
@@ -27,13 +27,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       await profileFns.fetchProfile(id, setUser);
     } catch (error) {
-      console.error("Erro ao buscar perfil:", error);
+      console.error("Error fetching profile:", error);
       setUser(null);
     }
   };
 
   useEffect(() => {
-    // Verificar se há uma sessão existente
+    // Set up auth state listener first
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log("Auth state changed:", event);
+        setIsLoading(true);
+        
+        if (event === 'SIGNED_IN' && session?.user) {
+          await fetchProfile(session.user.id);
+        } else if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+          setUser(null);
+        }
+        
+        setIsLoading(false);
+      }
+    );
+
+    // Check for an existing session
     const checkSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -41,29 +57,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           await fetchProfile(session.user.id);
         }
       } catch (error) {
-        console.error("Erro ao verificar sessão:", error);
+        console.error("Error checking session:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
     
     checkSession();
-
-    // Configurar o listener para mudanças de autenticação
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (session?.user) {
-          fetchProfile(session.user.id);
-        } else {
-          setUser(null);
-        }
-      }
-    );
 
     return () => {
       subscription?.unsubscribe();
     };
   }, []);
 
-  const login = (email: string, password: string) => {
+  const login = async (email: string, password: string) => {
     return authFns.login(email, password, fetchProfile, navigate, setIsLoading);
   };
 

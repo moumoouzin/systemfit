@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -7,53 +7,65 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dumbbell, LogIn, Eye, EyeOff, Lock, AtSign, User } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Register = () => {
-  const [name, setName] = useState(""); // opcional agora, como nome público
+  const [name, setName] = useState(""); // optional public name
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
-  const [registering, setRegistering] = useState(false);
-  const { register, isLoading } = useAuth();
+  const { register, isLoading, user } = useAuth();
   const navigate = useNavigate();
+
+  // If user is already logged in, redirect to dashboard
+  useEffect(() => {
+    if (user) {
+      navigate("/dashboard");
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setRegistering(true);
 
+    // Basic form validation
     if (!email || !password || !confirmPassword) {
       setError("Preencha todos os campos obrigatórios");
-      setRegistering(false);
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError("Por favor, insira um email válido");
       return;
     }
 
     if (password !== confirmPassword) {
       setError("As senhas não coincidem");
-      setRegistering(false);
       return;
     }
 
     if (password.length < 6) {
       setError("A senha deve ter pelo menos 6 caracteres");
-      setRegistering(false);
       return;
     }
 
     try {
-      const { error } = await register(email, password, name || null);
-      if (error) {
-        setError(error);
-        setRegistering(false);
+      console.log("Submitting registration with email:", email);
+      const { error: registerError } = await register(email, password, name || null);
+      
+      if (registerError) {
+        setError(registerError);
       } else {
         navigate("/login");
       }
     } catch (e: any) {
+      console.error("Error during registration:", e);
       setError(e.message || "Erro ao criar conta");
-      setRegistering(false);
     }
   };
 
@@ -88,7 +100,7 @@ const Register = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10"
-                    disabled={registering || isLoading}
+                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -103,13 +115,13 @@ const Register = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10 pr-10"
-                    disabled={registering || isLoading}
+                    disabled={isLoading}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
-                    disabled={registering || isLoading}
+                    disabled={isLoading}
                   >
                     {showPassword ? (
                       <EyeOff className="h-4 w-4" />
@@ -130,13 +142,13 @@ const Register = () => {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className="pl-10 pr-10"
-                    disabled={registering || isLoading}
+                    disabled={isLoading}
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
-                    disabled={registering || isLoading}
+                    disabled={isLoading}
                   >
                     {showConfirmPassword ? (
                       <EyeOff className="h-4 w-4" />
@@ -157,22 +169,24 @@ const Register = () => {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="pl-10"
-                    disabled={registering || isLoading}
+                    disabled={isLoading}
                   />
                 </div>
               </div>
               {error && (
-                <div className="text-destructive text-sm">{error}</div>
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
               )}
             </CardContent>
             <CardFooter className="flex-col space-y-4">
               <Button
                 type="submit"
                 className="w-full"
-                disabled={registering || isLoading}
+                disabled={isLoading}
               >
-                {registering || isLoading ? "Registrando..." : "Registrar"}
-                {!registering && !isLoading && <LogIn className="ml-2 h-4 w-4" />}
+                {isLoading ? "Registrando..." : "Registrar"}
+                {!isLoading && <LogIn className="ml-2 h-4 w-4" />}
               </Button>
               <p className="text-center text-sm text-muted-foreground">
                 Já tem uma conta?{" "}

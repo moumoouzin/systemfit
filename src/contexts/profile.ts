@@ -8,14 +8,16 @@ export const fetchProfile = async (
   setUser: (user: User | null) => void
 ) => {
   try {
-    // Verifica se há uma sessão ativa primeiro
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData.session) {
-      console.error("Sem sessão ativa ao buscar perfil");
+    // Verificar a sessão atual primeiro
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      console.log("No active session found during fetchProfile");
       setUser(null);
       return;
     }
 
+    // Check if we have a user profile
+    console.log("Fetching user profile for ID:", id);
     const { data: userProfileData, error: userProfileError } = await supabase
       .from("user_profiles")
       .select("id, username")
@@ -23,17 +25,55 @@ export const fetchProfile = async (
       .single();
 
     if (userProfileError) {
-      console.error("Erro ao buscar perfil do usuário:", userProfileError);
-      setUser(null);
-      return;
+      console.error("Error fetching user profile:", userProfileError);
+      if (userProfileError.code === "PGRST116") {
+        // No profile found - this is a new user
+        console.log("No user profile found, user might be new");
+        
+        // Use the session user's email as a fallback username
+        const email = session.user.email;
+        const username = email ? email.split('@')[0] : `user_${id.substring(0, 8)}`;
+        
+        try {
+          // Create user_profile for new user
+          const { error: insertError } = await supabase
+            .from("user_profiles")
+            .insert({
+              id: id,
+              username: username
+            });
+            
+          if (insertError) throw insertError;
+          
+          // Now we created the profile, set basic user data
+          setUser({
+            id: id,
+            username: username,
+            name: username,
+            avatarUrl: null,
+            level: 1,
+            xp: 0,
+            attributes: {
+              strength: 1,
+              vitality: 1,
+              focus: 1,
+            },
+            daysTrainedThisWeek: 0,
+            streakDays: 0,
+          });
+          return;
+        } catch (err) {
+          console.error("Failed to create user profile:", err);
+          setUser(null);
+          return;
+        }
+      } else {
+        setUser(null);
+        return;
+      }
     }
 
-    if (!userProfileData) {
-      console.error("Nenhum perfil de usuário encontrado");
-      setUser(null);
-      return;
-    }
-
+    // Found user profile, now get profile data
     const { data: profileData, error: profileError } = await supabase
       .from("profiles")
       .select("*")
@@ -41,9 +81,29 @@ export const fetchProfile = async (
       .single();
 
     if (profileError && profileError.code !== "PGRST116") {
-      console.error("Erro ao buscar dados de perfil:", profileError);
+      console.error("Error fetching profile data:", profileError);
     }
 
+    if (profileError && profileError.code === "PGRST116") {
+      // Profile data not found, create it
+      console.log("Creating new profile data for user");
+      try {
+        const { error: insertProfileError } = await supabase
+          .from("profiles")
+          .insert({
+            id: id,
+            name: userProfileData.username,
+          });
+          
+        if (insertProfileError) {
+          console.error("Error creating profile:", insertProfileError);
+        }
+      } catch (e) {
+        console.error("Failed to create profile:", e);
+      }
+    }
+
+    // Construct the user object with available data
     const completeUser: User = {
       id: userProfileData.id,
       username: userProfileData.username,
@@ -61,7 +121,7 @@ export const fetchProfile = async (
     };
     setUser(completeUser);
   } catch (error) {
-    console.error("Erro em fetchProfile:", error);
+    console.error("Error in fetchProfile:", error);
     setUser(null);
   }
 };
@@ -76,10 +136,10 @@ export const updateProfile = async (
       return { success: false, error: "Usuário não está autenticado" };
     }
     
-    // Verifica se o usuário está autenticado no Supabase
+    // Verify current session
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     if (sessionError || !sessionData.session) {
-      console.error("Erro de autenticação:", sessionError);
+      console.error("Authentication error:", sessionError);
       toast({
         title: "Erro de autenticação",
         description: "Sua sessão expirou. Por favor, faça login novamente.",
@@ -106,7 +166,7 @@ export const updateProfile = async (
         .eq("id", user.id);
 
       if (error) {
-        console.error("Erro ao atualizar perfil:", error);
+        console.error("Error updating profile:", error);
         toast({
           title: "Erro ao atualizar perfil",
           description: error.message || "Ocorreu um erro ao atualizar seu perfil",
@@ -119,7 +179,7 @@ export const updateProfile = async (
     setUser((prev) => (prev ? { ...prev, ...data } : null));
     return { success: true };
   } catch (error: any) {
-    console.error("Erro em updateProfile:", error);
+    console.error("Error in updateProfile:", error);
     toast({
       title: "Erro ao atualizar perfil",
       description: error.message || "Ocorreu um erro desconhecido",

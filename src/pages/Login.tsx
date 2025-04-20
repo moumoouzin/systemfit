@@ -1,40 +1,55 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dumbbell, LogIn, Eye, EyeOff, Lock, AtSign } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const { login, isLoading } = useAuth();
+  const { login, isLoading, user } = useAuth();
   const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  // If user is already logged in, redirect to dashboard
+  useEffect(() => {
+    if (user) {
+      navigate("/dashboard");
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Limpando qualquer erro anterior
+    // Clear any previous errors
     setError("");
     
-    // Validação básica do formulário
-    if (!email || !password) {
-      setError("Por favor, preencha todos os campos");
+    // Basic form validation
+    if (!email) {
+      setError("Por favor, insira seu email");
+      return;
+    }
+    
+    if (!password) {
+      setError("Por favor, insira sua senha");
       return;
     }
     
     try {
+      console.log("Submitting login form with email:", email);
       const { error: loginError } = await login(email, password);
       
       if (loginError) {
         setError(loginError);
       }
     } catch (err: any) {
-      console.error("Erro no login:", err);
+      console.error("Error during login submission:", err);
       setError(err.message || "Erro ao fazer login. Por favor, tente novamente.");
     }
   };
@@ -102,7 +117,9 @@ const Login = () => {
                 </div>
               </div>
               {error && (
-                <div className="text-destructive text-sm">{error}</div>
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
               )}
             </CardContent>
             <CardFooter className="flex flex-col space-y-4">

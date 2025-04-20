@@ -27,20 +27,28 @@ export const login = async (
       return result;
     }
 
+    console.log("Attempting login with:", email.trim());
     const { data, error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
+      email: email.trim().toLowerCase(), // Normalize email
       password,
     });
 
     if (error) {
       console.error("Erro de autenticação:", error);
-      result.error = "Email ou senha inválidos";
+      
+      if (error.message === "Invalid login credentials") {
+        result.error = "Email ou senha incorretos";
+      } else {
+        result.error = error.message || "Email ou senha inválidos";
+      }
+      
       toast({
         title: "Erro de login",
-        description: "Email ou senha inválidos.",
+        description: result.error,
         variant: "destructive",
       });
     } else if (data.session?.user) {
+      console.log("Login successful, fetching profile for:", data.session.user.id);
       await fetchProfile(data.session.user.id);
       toast({
         title: "Login realizado",
@@ -113,7 +121,7 @@ export const register = async (
     }
 
     const { data, error } = await supabase.auth.signUp({
-      email: email.trim(),
+      email: email.trim().toLowerCase(), // Normalize email
       password,
       options: {
         data: {
