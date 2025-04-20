@@ -24,19 +24,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // fetch profile helper for login
   const fetchProfile = async (id: string) => {
-    await profileFns.fetchProfile(id, setUser);
+    try {
+      await profileFns.fetchProfile(id, setUser);
+    } catch (error) {
+      console.error("Erro ao buscar perfil:", error);
+      setUser(null);
+    }
   };
 
   useEffect(() => {
-    const sessionPromise = import("@/integrations/supabase/client").then((m) =>
-      m.supabase.auth.getSession()
-    );
-    sessionPromise.then(({ data: { session } }) => {
-      if (session?.user) {
-        fetchProfile(session.user.id);
+    // Verificar se há uma sessão existente
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          await fetchProfile(session.user.id);
+        }
+      } catch (error) {
+        console.error("Erro ao verificar sessão:", error);
       }
-    });
+    };
+    
+    checkSession();
 
+    // Configurar o listener para mudanças de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (session?.user) {

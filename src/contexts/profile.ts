@@ -1,12 +1,21 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@/types";
+import { toast } from "@/components/ui/use-toast";
 
 export const fetchProfile = async (
   id: string, 
   setUser: (user: User | null) => void
 ) => {
   try {
+    // Verifica se há uma sessão ativa primeiro
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session) {
+      console.error("Sem sessão ativa ao buscar perfil");
+      setUser(null);
+      return;
+    }
+
     const { data: userProfileData, error: userProfileError } = await supabase
       .from("user_profiles")
       .select("id, username")
@@ -14,13 +23,13 @@ export const fetchProfile = async (
       .single();
 
     if (userProfileError) {
-      console.error("Error fetching user profile:", userProfileError);
+      console.error("Erro ao buscar perfil do usuário:", userProfileError);
       setUser(null);
       return;
     }
 
     if (!userProfileData) {
-      console.error("No user profile found");
+      console.error("Nenhum perfil de usuário encontrado");
       setUser(null);
       return;
     }
@@ -32,7 +41,7 @@ export const fetchProfile = async (
       .single();
 
     if (profileError && profileError.code !== "PGRST116") {
-      console.error("Error fetching profile data:", profileError);
+      console.error("Erro ao buscar dados de perfil:", profileError);
     }
 
     const completeUser: User = {
@@ -52,7 +61,7 @@ export const fetchProfile = async (
     };
     setUser(completeUser);
   } catch (error) {
-    console.error("Error in fetchProfile:", error);
+    console.error("Erro em fetchProfile:", error);
     setUser(null);
   }
 };
@@ -71,6 +80,11 @@ export const updateProfile = async (
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     if (sessionError || !sessionData.session) {
       console.error("Erro de autenticação:", sessionError);
+      toast({
+        title: "Erro de autenticação",
+        description: "Sua sessão expirou. Por favor, faça login novamente.",
+        variant: "destructive",
+      });
       return { success: false, error: "Erro de autenticação. Faça login novamente." };
     }
     
@@ -92,7 +106,12 @@ export const updateProfile = async (
         .eq("id", user.id);
 
       if (error) {
-        console.error("Error updating profile:", error);
+        console.error("Erro ao atualizar perfil:", error);
+        toast({
+          title: "Erro ao atualizar perfil",
+          description: error.message || "Ocorreu um erro ao atualizar seu perfil",
+          variant: "destructive",
+        });
         return { success: false, error: error.message };
       }
     }
@@ -100,7 +119,12 @@ export const updateProfile = async (
     setUser((prev) => (prev ? { ...prev, ...data } : null));
     return { success: true };
   } catch (error: any) {
-    console.error("Error in updateProfile:", error);
+    console.error("Erro em updateProfile:", error);
+    toast({
+      title: "Erro ao atualizar perfil",
+      description: error.message || "Ocorreu um erro desconhecido",
+      variant: "destructive",
+    });
     return { success: false, error: error.message || "Erro desconhecido" };
   }
 };

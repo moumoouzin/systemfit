@@ -16,11 +16,24 @@ export const login = async (
   setIsLoading(true);
   let result = { error: undefined as string | undefined };
   try {
+    // Verifica se o email e senha foram preenchidos
+    if (!email || !password) {
+      result.error = "Email e senha são obrigatórios";
+      toast({
+        title: "Erro de login",
+        description: "Email e senha são obrigatórios.",
+        variant: "destructive",
+      });
+      return result;
+    }
+
     const { data, error } = await supabase.auth.signInWithPassword({
-      email,
+      email: email.trim(),
       password,
     });
+
     if (error) {
+      console.error("Erro de autenticação:", error);
       result.error = "Email ou senha inválidos";
       toast({
         title: "Erro de login",
@@ -28,18 +41,19 @@ export const login = async (
         variant: "destructive",
       });
     } else if (data.session?.user) {
-      fetchProfile(data.session.user.id);
+      await fetchProfile(data.session.user.id);
       toast({
         title: "Login realizado",
-        description: `Bem-vindo, ${email}`,
+        description: `Bem-vindo de volta!`,
       });
       navigate("/dashboard");
     }
   } catch (err: any) {
+    console.error("Erro durante o login:", err);
     result.error = err.message;
     toast({
       title: "Erro de login",
-      description: result.error,
+      description: result.error || "Ocorreu um erro ao fazer login",
       variant: "destructive",
     });
   } finally {
@@ -55,13 +69,22 @@ export const logout = async (
   navigate: (route: string) => void,
   setUser: (user: User | null) => void
 ) => {
-  await supabase.auth.signOut();
-  setUser(null);
-  navigate("/login");
-  toast({
-    title: "Logout realizado",
-    description: "Você saiu da sua conta com sucesso.",
-  });
+  try {
+    await supabase.auth.signOut();
+    setUser(null);
+    navigate("/login");
+    toast({
+      title: "Logout realizado",
+      description: "Você saiu da sua conta com sucesso.",
+    });
+  } catch (error: any) {
+    console.error("Erro ao fazer logout:", error);
+    toast({
+      title: "Erro ao sair",
+      description: "Ocorreu um problema ao fazer logout.",
+      variant: "destructive",
+    });
+  }
 };
 
 /**
@@ -78,8 +101,19 @@ export const register = async (
   setIsLoading(true);
   let result = { error: undefined as string | undefined };
   try {
+    // Validações básicas
+    if (!email || !password) {
+      result.error = "Email e senha são obrigatórios";
+      toast({
+        title: "Erro ao registrar",
+        description: result.error,
+        variant: "destructive",
+      });
+      return result;
+    }
+
     const { data, error } = await supabase.auth.signUp({
-      email,
+      email: email.trim(),
       password,
       options: {
         data: {
@@ -90,11 +124,14 @@ export const register = async (
     });
 
     if (error) {
+      console.error("Erro no registro:", error);
+      
       if (error.message?.includes("User already registered")) {
         result.error = "Email já está em uso";
       } else {
         result.error = error.message;
       }
+      
       toast({
         title: "Erro ao registrar",
         description: result.error,
@@ -103,14 +140,13 @@ export const register = async (
     } else if (data.user) {
       toast({
         title: "Conta criada!",
-        description: "Sua conta foi criada. Verifique seu e-mail para ativação.",
+        description: "Sua conta foi criada com sucesso. Você já pode fazer login.",
       });
 
-      // O perfil agora é criado automaticamente pelo trigger do supabase.
       navigate("/login");
-      return result;
     }
   } catch (err: any) {
+    console.error("Erro ao criar conta:", err);
     result.error = err.message || "Erro ao criar conta";
     toast({
       title: "Erro ao registrar",
@@ -122,4 +158,3 @@ export const register = async (
   }
   return result;
 };
-

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dumbbell, LogIn, Eye, EyeOff, Lock, AtSign } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -14,24 +14,28 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const { login, isLoading } = useAuth();
   const [error, setError] = useState("");
-  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Limpando qualquer erro anterior
     setError("");
+    
+    // Validação básica do formulário
     if (!email || !password) {
       setError("Por favor, preencha todos os campos");
       return;
     }
+    
     try {
-      const { error } = await login(email, password);
-      if (error) {
-        setError(error);
-        return;
+      const { error: loginError } = await login(email, password);
+      
+      if (loginError) {
+        setError(loginError);
       }
-      navigate("/dashboard");
     } catch (err: any) {
-      setError(err.message || "Erro de login");
+      console.error("Erro no login:", err);
+      setError(err.message || "Erro ao fazer login. Por favor, tente novamente.");
     }
   };
 
@@ -101,7 +105,7 @@ const Login = () => {
                 <div className="text-destructive text-sm">{error}</div>
               )}
             </CardContent>
-            <CardFooter>
+            <CardFooter className="flex flex-col space-y-4">
               <Button
                 type="submit"
                 className="w-full"
@@ -116,9 +120,7 @@ const Login = () => {
                   </>
                 )}
               </Button>
-            </CardFooter>
-            <CardFooter>
-              <p className="text-center text-sm text-muted-foreground mx-auto">
+              <p className="text-center text-sm text-muted-foreground">
                 Não tem conta?{" "}
                 <Link
                   to="/register"
