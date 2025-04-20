@@ -120,12 +120,16 @@ export const register = async (
       return result;
     }
 
+    // Criar um nome de usuário a partir do e-mail para garantir que não seja nulo
+    const username = name || email.split('@')[0];
+
     const { data, error } = await supabase.auth.signUp({
       email: email.trim().toLowerCase(), // Normalize email
       password,
       options: {
         data: {
-          name, // store this into user_profiles if desired
+          name: name || username,
+          username: username, // Adicionar username explicitamente para garantir que não seja nulo
         },
         emailRedirectTo: window.location.origin,
       },
