@@ -1,22 +1,63 @@
+
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { WorkoutHistory } from "@/types";
-import { Calendar, CheckCircle2 } from "lucide-react";
+import { Calendar, CheckCircle2, Trash2 } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/components/ui/accordion"
+} from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 interface HistoryItemProps {
   history: WorkoutHistory;
+  onDelete?: (id: string) => void;
 }
 
-const HistoryItem = ({ history }: HistoryItemProps) => {
+const HistoryItem = ({ history, onDelete }: HistoryItemProps) => {
   const formattedDate = format(new Date(history.date), "dd 'de' MMMM, yyyy", { locale: ptBR });
   const formattedTime = format(new Date(history.date), "HH:mm");
+
+  const handleDelete = async () => {
+    try {
+      const { error } = await supabase
+        .from('workout_sessions')
+        .delete()
+        .eq('id', history.id);
+
+      if (error) throw error;
+
+      onDelete?.(history.id);
+      
+      toast({
+        title: "Treino excluído",
+        description: "O treino foi excluído com sucesso.",
+      });
+    } catch (error) {
+      console.error('Error deleting workout:', error);
+      toast({
+        title: "Erro ao excluir",
+        description: "Não foi possível excluir o treino.",
+        variant: "destructive",
+      });
+    }
+  };
   
   return (
     <div className="p-4 border-b last:border-0">
@@ -34,7 +75,7 @@ const HistoryItem = ({ history }: HistoryItemProps) => {
                 <p className="text-sm text-muted-foreground">{formattedDate}</p>
               </div>
               
-              <div className="flex items-center">
+              <div className="flex items-center gap-4">
                 {history.completed ? (
                   <div className="flex items-center text-rpg-xp">
                     <span className="font-bold mr-1">+{history.xpEarned} XP</span>
@@ -43,6 +84,28 @@ const HistoryItem = ({ history }: HistoryItemProps) => {
                 ) : (
                   <span className="text-muted-foreground text-sm">Incompleto</span>
                 )}
+
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Excluir treino</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Tem certeza que deseja excluir este treino? Esta ação não pode ser desfeita.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                        Excluir
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </div>
           </AccordionTrigger>

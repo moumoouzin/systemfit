@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,9 +9,18 @@ import { useWorkoutHistory } from "@/lib/workoutHistory";
 const History = () => {
   const [activeTab, setActiveTab] = useState<string>("all");
   const { workoutHistory, isLoading, error } = useWorkoutHistory();
+  const [localHistory, setLocalHistory] = useState(workoutHistory);
   
+  useEffect(() => {
+    setLocalHistory(workoutHistory);
+  }, [workoutHistory]);
+
+  const handleDelete = (deletedId: string) => {
+    setLocalHistory(prev => prev.filter(item => item.id !== deletedId));
+  };
+
   // Filter history based on active tab
-  const filteredHistory = workoutHistory.filter(item => {
+  const filteredHistory = localHistory.filter(item => {
     if (activeTab === "all") return true;
     if (activeTab === "completed") return item.completed;
     if (activeTab === "incomplete") return !item.completed;
@@ -75,7 +83,11 @@ const History = () => {
                   <CardContent className="p-0">
                     <div className="divide-y">
                       {items.map(item => (
-                        <HistoryItem key={`${item.workoutId}-${item.date}`} history={item} />
+                        <HistoryItem 
+                          key={`${item.workoutId}-${item.date}`} 
+                          history={item} 
+                          onDelete={handleDelete}
+                        />
                       ))}
                     </div>
                   </CardContent>
