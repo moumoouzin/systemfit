@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
@@ -22,6 +23,7 @@ import * as z from "zod";
 import { Workout, Exercise } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { supabase } from "@/integrations/supabase/client";
 
 const workoutFormSchema = z.object({
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres").max(50, "Nome deve ter no máximo 50 caracteres"),
@@ -109,9 +111,61 @@ const NewWorkout = () => {
     setIsSubmitting(true);
     
     try {
+      if (!user?.id) {
+        toast({
+          title: "Erro",
+          description: "Você precisa estar logado para criar um treino.",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+      
       const currentDate = new Date().toISOString();
-      const newWorkout: Workout = {
+      const workoutId = uuidv4();
+      
+      // Primeiro, criamos o treino no Supabase
+      const { data: workoutData, error: workoutError } = await supabase
+        .from('workouts')
+        .insert({
+          id: workoutId,
+          user_id: user.id,
+          name: data.name,
+          created_at: currentDate,
+          updated_at: currentDate
+        })
+        .select()
+        .single();
+      
+      if (workoutError) {
+        console.error("Error creating workout in Supabase:", workoutError);
+        throw new Error("Não foi possível criar o treino no banco de dados.");
+      }
+      
+      // Depois, criamos os exercícios associados ao treino
+      const exercisesToInsert = data.exercises.map(ex => ({
         id: uuidv4(),
+        name: ex.name,
+        sets: ex.sets,
+        reps: ex.reps,
+        workout_id: workoutId
+      }));
+      
+      if (exercisesToInsert.length > 0) {
+        const { error: exercisesError } = await supabase
+          .from('exercises')
+          .insert(exercisesToInsert);
+        
+        if (exercisesError) {
+          console.error("Error creating exercises in Supabase:", exercisesError);
+          // Continuamos apesar do erro nos exercícios
+          console.log("Continuing despite exercise insert error");
+        }
+      }
+      
+      // Criamos o treino no localStorage também para compatibilidade
+      const newWorkout: Workout = {
+        id: workoutId,
         name: data.name,
         exercises: data.exercises.map(ex => ({
           id: ex.id,
@@ -123,8 +177,9 @@ const NewWorkout = () => {
         updatedAt: currentDate
       };
       
-      const existingWorkouts = JSON.parse(localStorage.getItem('workouts') || '[]');
-      localStorage.setItem('workouts', JSON.stringify([...existingWorkouts, newWorkout]));
+      // Atualizar o localStorage específico do usuário
+      const existingWorkouts = JSON.parse(localStorage.getItem(`workouts_${user.id}`) || '[]');
+      localStorage.setItem(`workouts_${user.id}`, JSON.stringify([newWorkout, ...existingWorkouts]));
       
       toast({
         title: "Treino criado",
@@ -136,7 +191,7 @@ const NewWorkout = () => {
       console.error("Error creating workout:", error);
       toast({
         title: "Erro ao criar treino",
-        description: "Não foi possível criar o treino. Tente novamente.",
+        description: error instanceof Error ? error.message : "Não foi possível criar o treino. Tente novamente.",
         variant: "destructive",
       });
     } finally {
