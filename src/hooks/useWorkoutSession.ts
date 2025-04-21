@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -49,14 +48,14 @@ export const useWorkoutSession = (workout: Workout | null, user: User | null) =>
     );
   };
 
-  const handleFinishWorkout = async (updateProfile: (data: Partial<User>) => Promise<void>) => {
+  const handleFinishWorkout = async (updateProfileFn: (data: Partial<User>) => Promise<void>) => {
     if (!workout || !user) {
       toast({
         title: "Erro",
         description: "Você precisa estar logado para salvar este treino.",
         variant: "destructive",
       });
-      return;
+      return { success: false };
     }
 
     setIsSubmitting(true);
@@ -203,7 +202,7 @@ export const useWorkoutSession = (workout: Workout | null, user: User | null) =>
         });
       }
       
-      await updateProfile({
+      await updateProfileFn({
         xp: totalXp,
         level: newLevel,
         daysTrainedThisWeek: Math.min(daysTrainedThisWeek, 7)

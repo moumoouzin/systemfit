@@ -129,7 +129,13 @@ const WorkoutDetail = () => {
   }, [id, user]);
 
   const onFinishWorkout = async () => {
-    const result = await handleFinishWorkout(updateProfile);
+    // This is where the error was occurring - we need to await the result
+    // and extract needed values rather than passing updateProfile directly
+    const result = await handleFinishWorkout(async (data) => {
+      const updateResult = await updateProfile(data);
+      // No need to return anything as updateProfile is expected to return void
+    });
+    
     if (result?.success) {
       navigate("/history");
     }

@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { User } from "@/types";
@@ -12,7 +11,7 @@ type AuthContextType = {
   login: (email: string, password: string) => Promise<{ error?: string }>;
   logout: () => void;
   register: (email: string, password: string, name: string | null) => Promise<{ error?: string }>;
-  updateProfile: (data: Partial<User>) => Promise<{ success: boolean; error?: string }>;
+  updateProfile: (data: Partial<User>) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -115,8 +114,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const updateProfile = (data: Partial<User>) => {
-    return profileFns.updateProfile(user, setUser, data);
+  const updateProfile = async (data: Partial<User>): Promise<void> => {
+    const result = await profileFns.updateProfile(user, setUser, data);
+    if (!result.success) {
+      throw new Error(result.error || "Failed to update profile");
+    }
   };
 
   return (
