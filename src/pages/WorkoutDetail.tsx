@@ -1,5 +1,4 @@
-
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { Clock, ArrowUp, ArrowDown, CheckCircle, XCircle } from "lucide-react";
@@ -31,7 +30,6 @@ const WorkoutDetail = () => {
     const fetchWorkout = async () => {
       setIsLoading(true);
       try {
-        // First try to load from Supabase
         const { data: workoutsData, error } = await supabase
           .from('workouts')
           .select(`
@@ -43,7 +41,6 @@ const WorkoutDetail = () => {
           .single();
         
         if (workoutsData && !error) {
-          // Found workout in Supabase
           const formattedWorkout: Workout = {
             id: workoutsData.id,
             name: workoutsData.name,
@@ -58,7 +55,6 @@ const WorkoutDetail = () => {
           return;
         }
         
-        // Try to load from local storage if not found in Supabase
         const savedWorkoutsStr = localStorage.getItem(`workouts_${user.id}`);
         if (savedWorkoutsStr) {
           const savedWorkouts = JSON.parse(savedWorkoutsStr);
@@ -153,20 +149,56 @@ const WorkoutDetail = () => {
       const completedExercises = exerciseStatus.filter(status => status.completed);
       const xpEarned = completedExercises.length * 5;
       
-      // Save weights for completed exercises
       const weightsToSave: Record<string, number> = {};
       exerciseStatus.forEach(status => {
         if (status.completed && status.weight > 0) {
           weightsToSave[status.id] = status.weight;
         }
       });
+
+      for (const [exerciseId, weight] of Object.entries(weightsToSave)) {
+        const { error: weightError } = await supabase
+          .from('exercise_weights')
+          .insert({
+            exercise_id: exerciseId,
+            user_id: user.id,
+            weight: weight,
+            is_latest: true
+          });
+
+        if (weightError) {
+          console.error("Error saving exercise weight:", weightError);
+          throw new Error("Erro ao salvar peso do exercício");
+        }
+      }
       
+      const workoutSessionId = uuidv4();
+      const sessionData = {
+        id: workoutSessionId,
+        user_id: user.id,
+        workout_id: workout.id,
+        date: today.toISOString(),
+        completed: true,
+        xp_earned: xpEarned
+      };
+
+      console.log("Saving workout session:", sessionData);
+      
+      const { error: sessionError } = await supabase
+        .from('workout_sessions')
+        .insert(sessionData);
+        
+      if (sessionError) {
+        console.error("Error saving workout session:", sessionError);
+        throw new Error("Erro ao salvar sessão de treino");
+      }
+
       const savedWeightsStr = localStorage.getItem(`exerciseWeights_${user.id}`);
       const savedWeights = savedWeightsStr ? JSON.parse(savedWeightsStr) : {};
       const updatedWeights = { ...savedWeights, ...weightsToSave };
       localStorage.setItem(`exerciseWeights_${user.id}`, JSON.stringify(updatedWeights));
-      
-      const exerciseHistory: WorkoutExerciseHistory[] = workout.exercises.map(exercise => {
+
+      const exerciseHistory = workout.exercises.map(exercise => {
         const status = exerciseStatus.find(s => s.id === exercise.id);
         return {
           id: exercise.id,
@@ -178,58 +210,23 @@ const WorkoutDetail = () => {
         };
       });
 
-      const workoutSessionId = uuidv4();
-      
-      // Log data for debugging
-      console.log("Saving workout session with data:", {
-        id: workoutSessionId,
-        user_id: user.id,
-        workout_id: workout.id,
-        date: today.toISOString(),
-        completed: true,
-        xp_earned: xpEarned
-      });
-      
-      // Save to Supabase with proper data types
-      const { error: sessionError } = await supabase
-        .from('workout_sessions')
-        .insert({
-          id: workoutSessionId,
-          user_id: user.id,
-          workout_id: workout.id,
-          date: today.toISOString(),
-          completed: true,
-          xp_earned: xpEarned
-        });
-        
-      if (sessionError) {
-        console.error("Error saving workout session:", sessionError);
-        throw new Error("Erro ao salvar sessão de treino");
-      }
-
-      // Create history entry
-      const historyItem: WorkoutHistory = {
+      const historyItem = {
         id: workoutSessionId,
         date: today.toISOString(),
         workoutId: workout.id,
         workoutName: workout.name,
         completed: true,
-        xpEarned: xpEarned,
+        xpEarned,
         exercises: exerciseHistory,
         notes: notes.trim() || undefined
       };
       
-      // Update local storage history
       const historyStr = localStorage.getItem(`workoutHistory_${user.id}`);
-      const history: WorkoutHistory[] = historyStr ? JSON.parse(historyStr) : [];
+      const history = historyStr ? JSON.parse(historyStr) : [];
+      localStorage.setItem(`workoutHistory_${user.id}`, JSON.stringify([historyItem, ...history]));
       
-      const updatedHistory = [historyItem, ...history];
-      localStorage.setItem(`workoutHistory_${user.id}`, JSON.stringify(updatedHistory));
-      
-      // Update user profile (XP, level, etc.)
       const totalXp = (user.xp || 0) + xpEarned;
       const daysTrainedThisWeek = (user.daysTrainedThisWeek || 0) + 1;
-      
       const newLevel = Math.floor(totalXp / 100) + 1;
       const currentLevel = user.level || 1;
       
@@ -256,7 +253,7 @@ const WorkoutDetail = () => {
       console.error("Error finishing workout:", error);
       toast({
         title: "Erro ao finalizar treino",
-        description: "Tente novamente mais tarde.",
+        description: error instanceof Error ? error.message : "Tente novamente mais tarde.",
         variant: "destructive",
       });
     } finally {
