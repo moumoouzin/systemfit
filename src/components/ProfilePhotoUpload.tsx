@@ -29,33 +29,8 @@ const ProfilePhotoUpload = () => {
       const filePath = `${fileName}`;
       
       console.log('Uploading avatar:', { fileName, filePath, fileSize: file.size });
-      
-      // First check if the avatars bucket exists
-      const { data: buckets } = await supabase.storage.listBuckets();
-      let bucketExists = false;
-      
-      if (buckets) {
-        bucketExists = buckets.some(bucket => bucket.name === 'avatars');
-      }
-      
-      // If bucket doesn't exist, create it
-      if (!bucketExists) {
-        console.log('Creating avatars bucket...');
-        const { data, error } = await supabase.storage.createBucket('avatars', {
-          public: true,
-          allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
-          fileSizeLimit: 1024 * 1024 * 5, // 5MB
-        });
-        
-        if (error) {
-          console.error('Error creating bucket:', error);
-          throw new Error('Failed to create storage bucket');
-        }
-        console.log('Avatars bucket created successfully');
-      }
-      
-      // Upload file to Supabase storage
-      console.log('Uploading file to storage...');
+
+      // Directly upload to existing 'avatars' bucket (do not try to create it)
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, file, { upsert: true });
