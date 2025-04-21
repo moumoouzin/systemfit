@@ -8,8 +8,18 @@ import { Database } from "@/types/database.types";
 type WorkoutSessionWithWorkout = Database['public']['Tables']['workout_sessions']['Row'] & {
   workouts: {
     name: string;
+    exercises: {
+      id: string;
+      name: string;
+      sets: number;
+      reps: number;
+      exercise_weights: {
+        weight: number;
+        created_at: string;
+      }[];
+    }[];
   } | null;
-  notes?: string; // Add the notes property with optional type
+  notes?: string;
 };
 
 export const useWorkoutHistory = () => {
@@ -28,13 +38,23 @@ export const useWorkoutHistory = () => {
           return;
         }
         
-        // Fetch workout sessions for the current logged in user only
+        // Fetch workout sessions with exercises and weights
         const { data: sessionData, error: sessionError } = await supabase
           .from('workout_sessions')
           .select(`
             *,
             workouts (
-              name
+              name,
+              exercises (
+                id,
+                name,
+                sets,
+                reps,
+                exercise_weights (
+                  weight,
+                  created_at
+                )
+              )
             )
           `)
           .eq('user_id', user.id)
@@ -45,16 +65,31 @@ export const useWorkoutHistory = () => {
         }
         
         // Transform the data to match our WorkoutHistory type
-        const formattedHistory: WorkoutHistory[] = (sessionData as WorkoutSessionWithWorkout[]).map(session => ({
-          id: session.id,
-          date: session.date,
-          workoutId: session.workout_id,
-          workoutName: session.workouts?.name || "Treino sem nome",
-          completed: session.completed,
-          xpEarned: session.xp_earned || 25,
-          exercises: [],
-          notes: session.notes || ""
-        }));
+        const formattedHistory: WorkoutHistory[] = (sessionData as WorkoutSessionWithWorkout[]).map(session => {
+          let exercises: WorkoutExerciseHistory[] = [];
+          
+          if (session.workouts?.exercises) {
+            exercises = session.workouts.exercises.map(exercise => ({
+              id: exercise.id,
+              name: exercise.name,
+              sets: exercise.sets,
+              reps: exercise.reps,
+              weight: exercise.exercise_weights?.[0]?.weight || 0,
+              completed: true // Assumimos que se o exercício está registrado, ele foi completado
+            }));
+          }
+
+          return {
+            id: session.id,
+            date: session.date,
+            workoutId: session.workout_id,
+            workoutName: session.workouts?.name || "Treino sem nome",
+            completed: session.completed,
+            xpEarned: session.xp_earned || 25,
+            exercises: exercises,
+            notes: session.notes || ""
+          };
+        });
         
         setWorkoutHistory(formattedHistory);
         localStorage.setItem(`workoutHistory_${user.id}`, JSON.stringify(formattedHistory));
@@ -68,7 +103,7 @@ export const useWorkoutHistory = () => {
       }
     };
     
-    // Try to load data from localStorage first (for faster initial render)
+    // Try to load data from localStorage first
     const loadFromLocalStorage = () => {
       if (user?.id) {
         const localHistoryStr = localStorage.getItem(`workoutHistory_${user.id}`);
