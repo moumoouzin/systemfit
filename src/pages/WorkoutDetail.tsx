@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
@@ -27,24 +28,41 @@ const WorkoutDetail = () => {
   useEffect(() => {
     if (!id || !user?.id) return;
     
-    const fetchWorkout = () => {
+    const fetchWorkout = async () => {
       setIsLoading(true);
       try {
-        const currentWorkoutStr = localStorage.getItem('currentWorkout');
-        if (currentWorkoutStr) {
-          const currentWorkout = JSON.parse(currentWorkoutStr);
-          if (currentWorkout.id === id) {
-            setWorkout(currentWorkout);
-            initializeExerciseStatus(currentWorkout.exercises);
-            setIsLoading(false);
-            return;
-          }
+        // First try to load from Supabase
+        const { data: workoutsData, error } = await supabase
+          .from('workouts')
+          .select(`
+            *,
+            exercises (*)
+          `)
+          .eq('id', id)
+          .eq('user_id', user.id)
+          .single();
+        
+        if (workoutsData && !error) {
+          // Found workout in Supabase
+          const formattedWorkout: Workout = {
+            id: workoutsData.id,
+            name: workoutsData.name,
+            exercises: workoutsData.exercises || [],
+            createdAt: workoutsData.created_at,
+            updatedAt: workoutsData.updated_at
+          };
+          
+          setWorkout(formattedWorkout);
+          initializeExerciseStatus(formattedWorkout.exercises);
+          setIsLoading(false);
+          return;
         }
         
-        const allWorkoutsStr = localStorage.getItem('workouts');
-        if (allWorkoutsStr) {
-          const allWorkouts = JSON.parse(allWorkoutsStr);
-          const foundWorkout = allWorkouts.find((w: Workout) => w.id === id);
+        // Try to load from local storage if not found in Supabase
+        const savedWorkoutsStr = localStorage.getItem(`workouts_${user.id}`);
+        if (savedWorkoutsStr) {
+          const savedWorkouts = JSON.parse(savedWorkoutsStr);
+          const foundWorkout = savedWorkouts.find((w: Workout) => w.id === id);
           
           if (foundWorkout) {
             setWorkout(foundWorkout);
@@ -135,6 +153,7 @@ const WorkoutDetail = () => {
       const completedExercises = exerciseStatus.filter(status => status.completed);
       const xpEarned = completedExercises.length * 5;
       
+      // Save weights for completed exercises
       const weightsToSave: Record<string, number> = {};
       exerciseStatus.forEach(status => {
         if (status.completed && status.weight > 0) {
@@ -161,6 +180,7 @@ const WorkoutDetail = () => {
 
       const workoutSessionId = uuidv4();
       
+      // Save to Supabase
       const { error: sessionError } = await supabase
         .from('workout_sessions')
         .insert({
@@ -177,6 +197,7 @@ const WorkoutDetail = () => {
         throw new Error("Erro ao salvar sessão de treino");
       }
 
+      // Create history entry
       const historyItem: WorkoutHistory = {
         id: workoutSessionId,
         date: today.toISOString(),
@@ -188,12 +209,14 @@ const WorkoutDetail = () => {
         notes: notes.trim() || undefined
       };
       
+      // Update local storage history
       const historyStr = localStorage.getItem(`workoutHistory_${user.id}`);
       const history: WorkoutHistory[] = historyStr ? JSON.parse(historyStr) : [];
       
       const updatedHistory = [historyItem, ...history];
       localStorage.setItem(`workoutHistory_${user.id}`, JSON.stringify(updatedHistory));
       
+      // Update user profile (XP, level, etc.)
       const totalXp = (user.xp || 0) + xpEarned;
       const daysTrainedThisWeek = (user.daysTrainedThisWeek || 0) + 1;
       

@@ -107,7 +107,7 @@ const Workouts = () => {
     loadWorkouts();
   }, [user]);
 
-  const handleDelete = (workoutId: string) => {
+  const handleDelete = async (workoutId: string) => {
     try {
       if (!user?.id) {
         toast({
@@ -123,16 +123,15 @@ const Workouts = () => {
       localStorage.setItem(`workouts_${user.id}`, JSON.stringify(updatedWorkouts));
       
       // Also delete from Supabase if it exists there
-      supabase
+      const { error } = await supabase
         .from('workouts')
         .delete()
         .eq('id', workoutId)
-        .eq('user_id', user.id)
-        .then(({ error }) => {
-          if (error) {
-            console.error("Error deleting workout from Supabase:", error);
-          }
-        });
+        .eq('user_id', user.id);
+      
+      if (error) {
+        console.error("Error deleting workout from Supabase:", error);
+      }
       
       toast({
         title: "Treino excluído",

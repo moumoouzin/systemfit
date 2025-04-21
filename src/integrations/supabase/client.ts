@@ -10,9 +10,18 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 
 // Clear any old non-user-specific data from localStorage
 const clearOldLocalStorage = () => {
+  // Clear any old non-user-specific data
   localStorage.removeItem('workoutHistory');
   localStorage.removeItem('workouts');
   localStorage.removeItem('exerciseWeights');
+  
+  // We'll also clear any user-specific data that isn't prefixed properly
+  // This helps reset all workout histories
+  Object.keys(localStorage).forEach(key => {
+    if (key.includes('workout') || key.includes('exercise')) {
+      localStorage.removeItem(key);
+    }
+  });
 };
 
 // Run cleanup on initialization
