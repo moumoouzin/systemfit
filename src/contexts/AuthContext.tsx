@@ -71,15 +71,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const login = async (email: string, password: string) => {
-    return authFns.login(email, password, fetchProfile, navigate, setIsLoading);
+    setIsLoading(true);
+    try {
+      return await authFns.login(email, password, fetchProfile, navigate, setIsLoading);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const logout = () => {
-    return authFns.logout(navigate, setUser);
+  const logout = async () => {
+    setIsLoading(true);
+    try {
+      return await authFns.logout(navigate, setUser);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const register = (email: string, password: string, name: string | null) => {
-    return authFns.register(email, password, name, navigate, setIsLoading);
+  const register = async (email: string, password: string, name: string | null) => {
+    setIsLoading(true);
+    try {
+      return await authFns.register(email, password, name, navigate, setIsLoading);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const updateProfile = (data: Partial<User>) => {

@@ -13,7 +13,6 @@ export const login = async (
   navigate: (route: string) => void, 
   setIsLoading: (loading: boolean) => void
 ) => {
-  setIsLoading(true);
   let result = { error: undefined as string | undefined };
   try {
     // Verifica se o email e senha foram preenchidos
@@ -24,7 +23,6 @@ export const login = async (
         description: "Email e senha são obrigatórios.",
         variant: "destructive",
       });
-      setIsLoading(false);
       return result;
     }
 
@@ -65,8 +63,6 @@ export const login = async (
       description: result.error || "Ocorreu um erro ao fazer login",
       variant: "destructive",
     });
-  } finally {
-    setIsLoading(false);
   }
   return result;
 };
@@ -107,7 +103,6 @@ export const register = async (
   navigate: (route: string) => void,
   setIsLoading: (loading: boolean) => void
 ) => {
-  setIsLoading(true);
   let result = { error: undefined as string | undefined };
   try {
     // Validações básicas
@@ -118,7 +113,6 @@ export const register = async (
         description: result.error,
         variant: "destructive",
       });
-      setIsLoading(false);
       return result;
     }
 
@@ -167,8 +161,6 @@ export const register = async (
       description: result.error,
       variant: "destructive",
     });
-  } finally {
-    setIsLoading(false);
   }
   return result;
 };

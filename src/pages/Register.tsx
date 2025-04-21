@@ -60,8 +60,6 @@ const Register = () => {
       
       if (registerError) {
         setError(registerError);
-      } else {
-        navigate("/login");
       }
     } catch (e: any) {
       console.error("Error during registration:", e);
