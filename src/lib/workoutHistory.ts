@@ -10,6 +10,7 @@ type WorkoutSessionWithWorkout = Database['public']['Tables']['workout_sessions'
   workouts: {
     name: string;
   } | null;
+  notes?: string;
 };
 
 export const useWorkoutHistory = () => {
@@ -35,7 +36,8 @@ export const useWorkoutHistory = () => {
             *,
             workouts (
               name
-            )
+            ),
+            notes
           `)
           .eq('user_id', user.id)
           .order('date', { ascending: false });
@@ -52,7 +54,8 @@ export const useWorkoutHistory = () => {
           workoutName: session.workouts?.name || "Treino sem nome",
           completed: session.completed,
           xpEarned: session.xp_earned || 25, // Use the database value or default to 25
-          exercises: [] // We'll need to fetch exercise details separately if needed
+          exercises: [], // We'll need to fetch exercise details separately if needed
+          notes: session.notes || ""
         }));
         
         setWorkoutHistory(formattedHistory);

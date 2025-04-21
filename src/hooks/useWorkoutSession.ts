@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -143,7 +144,8 @@ export const useWorkoutSession = (workout: Workout | null, user: User | null) =>
         workout_id: workoutId,
         date: new Date().toISOString(),
         completed: true,
-        xp_earned: xpEarned
+        xp_earned: xpEarned,
+        notes: notes.trim() || null // Adicionando notes ao session data
       };
 
       console.log("Saving workout session:", sessionData);
@@ -182,7 +184,7 @@ export const useWorkoutSession = (workout: Workout | null, user: User | null) =>
         completed: true,
         xpEarned,
         exercises: exerciseHistory,
-        notes: notes.trim() || undefined
+        notes: notes.trim() || ""
       };
       
       const historyStr = localStorage.getItem(`workoutHistory_${user.id}`);
