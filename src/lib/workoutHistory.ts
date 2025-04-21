@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { WorkoutHistory, WorkoutExerciseHistory } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
