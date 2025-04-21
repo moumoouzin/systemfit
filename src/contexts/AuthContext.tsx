@@ -19,7 +19,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Start with loading true
   const navigate = useNavigate();
 
   // fetch profile helper for login
@@ -33,40 +33,58 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    // Set up auth state listener first
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log("Auth state changed:", event);
-        
-        if (event === 'SIGNED_IN' && session?.user) {
-          setIsLoading(true);
-          await fetchProfile(session.user.id);
-          setIsLoading(false);
-        } else if (event === 'SIGNED_OUT') {
-          setUser(null);
-        }
-      }
-    );
-
-    // Check for an existing session
+    let subscription: { unsubscribe: () => void } | null = null;
+    
+    // Check for an existing session first
     const checkSession = async () => {
       try {
         setIsLoading(true);
         const { data: { session } } = await supabase.auth.getSession();
+        
         if (session?.user) {
+          console.log("Found existing session, fetching profile");
           await fetchProfile(session.user.id);
+        } else {
+          console.log("No valid session found");
+          setUser(null);
+          // Make sure we clear any invalid session data
+          await supabase.auth.signOut();
         }
       } catch (error) {
         console.error("Error checking session:", error);
+        setUser(null);
       } finally {
         setIsLoading(false);
       }
     };
+
+    // Set up auth state listener
+    const setupAuthListener = () => {
+      const { data } = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          console.log("Auth state changed:", event);
+          
+          if (event === 'SIGNED_IN' && session?.user) {
+            setIsLoading(true);
+            await fetchProfile(session.user.id);
+            setIsLoading(false);
+          } else if (event === 'SIGNED_OUT') {
+            setUser(null);
+          }
+        }
+      );
+      
+      return data.subscription;
+    };
     
-    checkSession();
+    checkSession().then(() => {
+      subscription = setupAuthListener();
+    });
 
     return () => {
-      subscription?.unsubscribe();
+      if (subscription) {
+        subscription.unsubscribe();
+      }
     };
   }, []);
 
