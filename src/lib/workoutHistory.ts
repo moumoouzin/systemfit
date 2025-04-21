@@ -24,19 +24,11 @@ export const useWorkoutHistory = () => {
       try {
         if (!user?.id) {
           setWorkoutHistory([]);
-          return;
-        }
-        
-        // First, try to get workout history from localStorage
-        const localHistoryStr = localStorage.getItem('workoutHistory');
-        if (localHistoryStr) {
-          const localHistory = JSON.parse(localHistoryStr);
-          setWorkoutHistory(localHistory);
           setIsLoading(false);
           return;
         }
         
-        // If no local history, fetch workout sessions from Supabase
+        // Fetch workout sessions for the current logged in user only
         const { data: sessionData, error: sessionError } = await supabase
           .from('workout_sessions')
           .select(`
@@ -60,12 +52,14 @@ export const useWorkoutHistory = () => {
           workoutName: session.workouts?.name || "Treino sem nome",
           completed: session.completed,
           xpEarned: session.xp_earned || 25, // Use the database value or default to 25
-          // Since we don't have detailed exercise data from this API call,
-          // we'll provide empty arrays for now
-          exercises: []
+          exercises: [] // We'll need to fetch exercise details separately if needed
         }));
         
         setWorkoutHistory(formattedHistory);
+        
+        // Save to localStorage with user-specific key to ensure each user has their own history
+        localStorage.setItem(`workoutHistory_${user.id}`, JSON.stringify(formattedHistory));
+        
       } catch (error) {
         console.error("Error fetching workout history:", error);
         setError(error instanceof Error ? error.message : "Unknown error");
@@ -75,7 +69,32 @@ export const useWorkoutHistory = () => {
       }
     };
     
-    fetchWorkoutHistory();
+    // Try to load data from localStorage first (for faster initial render)
+    const loadFromLocalStorage = () => {
+      if (user?.id) {
+        const localHistoryStr = localStorage.getItem(`workoutHistory_${user.id}`);
+        if (localHistoryStr) {
+          try {
+            const localHistory = JSON.parse(localHistoryStr);
+            setWorkoutHistory(localHistory);
+            return true;
+          } catch (e) {
+            console.error("Failed to parse localStorage history:", e);
+          }
+        }
+      }
+      return false;
+    };
+    
+    // First try loading from localStorage, then fetch from API
+    const loadedFromStorage = loadFromLocalStorage();
+    // If we couldn't load from storage or there was no data, fetch from API
+    if (!loadedFromStorage) {
+      fetchWorkoutHistory();
+    } else {
+      // Even if we loaded from storage, still fetch latest data in the background
+      fetchWorkoutHistory();
+    }
   }, [user]);
   
   return { workoutHistory, isLoading, error };
