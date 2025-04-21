@@ -53,13 +53,11 @@ const ProfilePhotoUpload = () => {
       console.log('Avatar URL:', avatarUrl);
       
       // Update profile with new avatar URL
-      const result = await updateProfile({
+      // Since updateProfile now returns void and throws an error on failure,
+      // we just await it and don't check for success property
+      await updateProfile({
         avatarUrl: avatarUrl,
       });
-      
-      if (!result.success) {
-        throw new Error('Failed to update profile with new avatar URL');
-      }
       
       toast({
         title: "Sucesso",
