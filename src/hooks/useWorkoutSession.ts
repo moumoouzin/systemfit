@@ -145,7 +145,7 @@ export const useWorkoutSession = (workout: Workout | null, user: User | null) =>
         date: new Date().toISOString(),
         completed: true,
         xp_earned: xpEarned,
-        notes: notes.trim() || null // Adicionando notes ao session data
+        notes: notes.trim() || null
       };
 
       console.log("Saving workout session:", sessionData);

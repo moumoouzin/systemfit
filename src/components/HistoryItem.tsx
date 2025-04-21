@@ -1,4 +1,3 @@
-
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { WorkoutHistory } from "@/types";
@@ -75,14 +74,14 @@ const HistoryItem = ({ history }: HistoryItemProps) => {
                 )}
               </div>
               
-              {history.notes && history.notes.trim() !== "" ? (
+              {history.notes && history.notes.trim() !== "" && (
                 <div className="border-t pt-4">
                   <h4 className="text-sm font-medium mb-2">Anotações:</h4>
                   <p className="text-sm text-muted-foreground whitespace-pre-line">
                     {history.notes}
                   </p>
                 </div>
-              ) : null}
+              )}
             </div>
           </AccordionContent>
         </AccordionItem>

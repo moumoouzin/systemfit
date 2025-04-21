@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { WorkoutHistory, WorkoutExerciseHistory } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,7 +9,6 @@ type WorkoutSessionWithWorkout = Database['public']['Tables']['workout_sessions'
   workouts: {
     name: string;
   } | null;
-  notes?: string;
 };
 
 export const useWorkoutHistory = () => {
@@ -36,8 +34,7 @@ export const useWorkoutHistory = () => {
             *,
             workouts (
               name
-            ),
-            notes
+            )
           `)
           .eq('user_id', user.id)
           .order('date', { ascending: false });
@@ -53,14 +50,12 @@ export const useWorkoutHistory = () => {
           workoutId: session.workout_id,
           workoutName: session.workouts?.name || "Treino sem nome",
           completed: session.completed,
-          xpEarned: session.xp_earned || 25, // Use the database value or default to 25
-          exercises: [], // We'll need to fetch exercise details separately if needed
+          xpEarned: session.xp_earned || 25,
+          exercises: [],
           notes: session.notes || ""
         }));
         
         setWorkoutHistory(formattedHistory);
-        
-        // Save to localStorage with user-specific key to ensure each user has their own history
         localStorage.setItem(`workoutHistory_${user.id}`, JSON.stringify(formattedHistory));
         
       } catch (error) {

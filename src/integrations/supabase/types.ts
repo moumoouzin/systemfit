@@ -153,6 +153,7 @@ export type Database = {
           completed: boolean
           date: string
           id: string
+          notes: string | null
           user_id: string
           workout_id: string
           xp_earned: number | null
@@ -161,6 +162,7 @@ export type Database = {
           completed?: boolean
           date?: string
           id?: string
+          notes?: string | null
           user_id: string
           workout_id: string
           xp_earned?: number | null
@@ -169,6 +171,7 @@ export type Database = {
           completed?: boolean
           date?: string
           id?: string
+          notes?: string | null
           user_id?: string
           workout_id?: string
           xp_earned?: number | null
