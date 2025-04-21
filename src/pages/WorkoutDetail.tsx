@@ -182,6 +182,50 @@ const WorkoutDetail = () => {
         }
       });
 
+      let workoutId = workout.id;
+      const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(workout.id);
+      
+      if (!isValidUUID) {
+        workoutId = uuidv4();
+        
+        const { data: workoutData, error: workoutError } = await supabase
+          .from('workouts')
+          .insert({
+            id: workoutId,
+            name: workout.name,
+            user_id: user.id
+          })
+          .select()
+          .single();
+        
+        if (workoutError) {
+          console.error("Error creating workout in Supabase:", workoutError);
+          throw new Error("Erro ao criar treino no banco de dados");
+        }
+        
+        const exercisesToInsert = workout.exercises.map(exercise => ({
+          id: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(exercise.id) 
+            ? exercise.id 
+            : uuidv4(),
+          name: exercise.name,
+          sets: exercise.sets,
+          reps: exercise.reps,
+          workout_id: workoutId,
+          user_id: user.id
+        }));
+        
+        if (exercisesToInsert.length > 0) {
+          const { error: exercisesError } = await supabase
+            .from('exercises')
+            .insert(exercisesToInsert);
+          
+          if (exercisesError) {
+            console.error("Error creating exercises in Supabase:", exercisesError);
+            console.log("Continuing despite exercise insert error");
+          }
+        }
+      }
+
       for (const [exerciseId, weight] of Object.entries(weightsToSave)) {
         if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(exerciseId)) {
           console.log("Skipping invalid exercise ID:", exerciseId);
@@ -204,10 +248,6 @@ const WorkoutDetail = () => {
       }
       
       const workoutSessionId = uuidv4();
-      
-      const workoutId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(workout.id) 
-        ? workout.id 
-        : uuidv4();
       
       const sessionData = {
         id: workoutSessionId,
