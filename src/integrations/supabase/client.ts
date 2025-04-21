@@ -35,6 +35,12 @@ export const supabase = createClient<Database>(
     auth: {
       persistSession: false, // Sessions never restored or remembered
       autoRefreshToken: true,
-    }
+    },
+    db: {
+      schema: 'public',
+    },
+    global: {
+      headers: { 'x-app-version': '1.0.0' },
+    },
   }
 );

@@ -180,7 +180,17 @@ const WorkoutDetail = () => {
 
       const workoutSessionId = uuidv4();
       
-      // Save to Supabase
+      // Log data for debugging
+      console.log("Saving workout session with data:", {
+        id: workoutSessionId,
+        user_id: user.id,
+        workout_id: workout.id,
+        date: today.toISOString(),
+        completed: true,
+        xp_earned: xpEarned
+      });
+      
+      // Save to Supabase with proper data types
       const { error: sessionError } = await supabase
         .from('workout_sessions')
         .insert({
