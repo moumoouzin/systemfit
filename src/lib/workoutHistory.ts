@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { WorkoutHistory, WorkoutExerciseHistory } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,6 +9,7 @@ type WorkoutSessionWithWorkout = Database['public']['Tables']['workout_sessions'
   workouts: {
     name: string;
   } | null;
+  notes?: string; // Add the notes property with optional type
 };
 
 export const useWorkoutHistory = () => {
