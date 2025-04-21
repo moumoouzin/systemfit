@@ -30,29 +30,54 @@ const WorkoutDetail = () => {
     const fetchWorkout = async () => {
       setIsLoading(true);
       try {
-        const { data: workoutsData, error } = await supabase
-          .from('workouts')
-          .select(`
-            *,
-            exercises (*)
-          `)
-          .eq('id', id)
-          .eq('user_id', user.id)
-          .single();
+        const currentWorkoutStr = localStorage.getItem('currentWorkout');
+        if (currentWorkoutStr) {
+          try {
+            const currentWorkout = JSON.parse(currentWorkoutStr);
+            if (currentWorkout.id === id) {
+              console.log("Found workout in localStorage:", currentWorkout);
+              setWorkout(currentWorkout);
+              initializeExerciseStatus(currentWorkout.exercises);
+              setIsLoading(false);
+              return;
+            }
+          } catch (error) {
+            console.error("Error parsing currentWorkout from localStorage:", error);
+          }
+        }
+
+        const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
         
-        if (workoutsData && !error) {
-          const formattedWorkout: Workout = {
-            id: workoutsData.id,
-            name: workoutsData.name,
-            exercises: workoutsData.exercises || [],
-            createdAt: workoutsData.created_at,
-            updatedAt: workoutsData.updated_at
-          };
+        if (isValidUUID) {
+          console.log("Fetching workout with UUID:", id);
+          const { data: workoutsData, error } = await supabase
+            .from('workouts')
+            .select(`
+              *,
+              exercises (*)
+            `)
+            .eq('id', id)
+            .eq('user_id', user.id)
+            .single();
           
-          setWorkout(formattedWorkout);
-          initializeExerciseStatus(formattedWorkout.exercises);
-          setIsLoading(false);
-          return;
+          if (workoutsData && !error) {
+            const formattedWorkout: Workout = {
+              id: workoutsData.id,
+              name: workoutsData.name,
+              exercises: workoutsData.exercises || [],
+              createdAt: workoutsData.created_at,
+              updatedAt: workoutsData.updated_at
+            };
+            
+            setWorkout(formattedWorkout);
+            initializeExerciseStatus(formattedWorkout.exercises);
+            setIsLoading(false);
+            return;
+          } else if (error) {
+            console.error("Error fetching workout from supabase:", error);
+          }
+        } else {
+          console.log("ID is not a valid UUID:", id);
         }
         
         const savedWorkoutsStr = localStorage.getItem(`workouts_${user.id}`);
@@ -61,6 +86,7 @@ const WorkoutDetail = () => {
           const foundWorkout = savedWorkouts.find((w: Workout) => w.id === id);
           
           if (foundWorkout) {
+            console.log("Found workout in localStorage workouts:", foundWorkout);
             setWorkout(foundWorkout);
             initializeExerciseStatus(foundWorkout.exercises);
           } else {
@@ -157,6 +183,11 @@ const WorkoutDetail = () => {
       });
 
       for (const [exerciseId, weight] of Object.entries(weightsToSave)) {
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(exerciseId)) {
+          console.log("Skipping invalid exercise ID:", exerciseId);
+          continue;
+        }
+        
         const { error: weightError } = await supabase
           .from('exercise_weights')
           .insert({
@@ -173,10 +204,15 @@ const WorkoutDetail = () => {
       }
       
       const workoutSessionId = uuidv4();
+      
+      const workoutId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(workout.id) 
+        ? workout.id 
+        : uuidv4();
+      
       const sessionData = {
         id: workoutSessionId,
         user_id: user.id,
-        workout_id: workout.id,
+        workout_id: workoutId,
         date: today.toISOString(),
         completed: true,
         xp_earned: xpEarned
