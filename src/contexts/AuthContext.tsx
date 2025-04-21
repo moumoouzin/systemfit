@@ -19,7 +19,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true); // Start as true to prevent flashing
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   // fetch profile helper for login
@@ -37,21 +37,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log("Auth state changed:", event);
-        setIsLoading(true);
         
         if (event === 'SIGNED_IN' && session?.user) {
+          setIsLoading(true);
           await fetchProfile(session.user.id);
+          setIsLoading(false);
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
         }
-        
-        setIsLoading(false);
       }
     );
 
     // Check for an existing session
     const checkSession = async () => {
       try {
+        setIsLoading(true);
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
           await fetchProfile(session.user.id);

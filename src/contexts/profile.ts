@@ -1,7 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@/types";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 
 export const fetchProfile = async (
   id: string, 
@@ -148,6 +148,8 @@ export const updateProfile = async (
       return { success: false, error: "Erro de autenticação. Faça login novamente." };
     }
     
+    console.log("Updating profile with data:", data);
+    
     const updateData: any = {};
     if (data.name !== undefined) updateData.name = data.name;
     if (data.avatarUrl !== undefined) updateData.avatar_url = data.avatarUrl;
@@ -159,6 +161,8 @@ export const updateProfile = async (
     if (data.attributes?.vitality !== undefined) updateData.vitality = data.attributes.vitality;
     if (data.attributes?.focus !== undefined) updateData.focus = data.attributes.focus;
 
+    console.log("Translated update data:", updateData);
+    
     if (Object.keys(updateData).length > 0) {
       const { error } = await supabase
         .from("profiles")
@@ -175,8 +179,17 @@ export const updateProfile = async (
         return { success: false, error: error.message };
       }
     }
-
-    setUser((prev) => (prev ? { ...prev, ...data } : null));
+    
+    console.log("Profile updated successfully, updating state");
+    
+    setUser((prev) => {
+      if (!prev) return null;
+      
+      const updated = { ...prev, ...data };
+      console.log("New user state:", updated);
+      return updated;
+    });
+    
     return { success: true };
   } catch (error: any) {
     console.error("Error in updateProfile:", error);
