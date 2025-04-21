@@ -99,8 +99,7 @@ export const useWorkoutSession = (workout: Workout | null, user: User | null) =>
           name: exercise.name,
           sets: exercise.sets,
           reps: exercise.reps,
-          workout_id: workoutId,
-          user_id: user.id
+          workout_id: workoutId
         }));
         
         if (exercisesToInsert.length > 0) {
