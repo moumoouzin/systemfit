@@ -1,22 +1,24 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Workout, Exercise } from "@/types";
+import { Workout, Exercise, ExerciseStatus } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
-import { updateProfile } from "@/contexts/profile";
 
 interface UseWorkoutSessionProps {
   workoutId?: string;
 }
 
 export const useWorkoutSession = ({ workoutId }: UseWorkoutSessionProps = {}) => {
-  const { user, setUser } = useAuth();
+  const { user, updateProfile } = useAuth();
   const [workout, setWorkout] = useState<Workout | null>(null);
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notes, setNotes] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [exerciseStatus, setExerciseStatus] = useState<ExerciseStatus[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -60,6 +62,7 @@ export const useWorkoutSession = ({ workoutId }: UseWorkoutSessionProps = {}) =>
 
           setWorkout(formattedWorkout);
           setExercises(formattedWorkout.exercises);
+          initializeExerciseStatus(formattedWorkout.exercises);
         } else {
           setWorkout(null);
           setExercises([]);
@@ -80,6 +83,31 @@ export const useWorkoutSession = ({ workoutId }: UseWorkoutSessionProps = {}) =>
     loadWorkout();
   }, [workoutId, user]);
 
+  const initializeExerciseStatus = (exercisesList: Exercise[]) => {
+    const initialStatus: ExerciseStatus[] = exercisesList.map(exercise => ({
+      id: exercise.id,
+      completed: false,
+      weight: 0,
+    }));
+    setExerciseStatus(initialStatus);
+  };
+
+  const toggleExerciseCompletion = (id: string) => {
+    setExerciseStatus(prev => 
+      prev.map(status => 
+        status.id === id ? { ...status, completed: !status.completed } : status
+      )
+    );
+  };
+
+  const updateWeight = (id: string, weight: number) => {
+    setExerciseStatus(prev => 
+      prev.map(status => 
+        status.id === id ? { ...status, weight } : status
+      )
+    );
+  };
+
   const updateExercise = (id: string, updates: Partial<Exercise>) => {
     setExercises(prevExercises =>
       prevExercises.map(ex => (ex.id === id ? { ...ex, ...updates } : ex))
@@ -91,7 +119,7 @@ export const useWorkoutSession = ({ workoutId }: UseWorkoutSessionProps = {}) =>
     
     try {
       // Calculate XP: 25 XP per completed exercise
-      const completedExercises = exercises.filter(ex => ex.completed).length;
+      const completedExercises = exerciseStatus.filter(ex => ex.completed).length;
       const xpEarned = completedExercises * 25;
       
       // Create workout session
@@ -108,7 +136,7 @@ export const useWorkoutSession = ({ workoutId }: UseWorkoutSessionProps = {}) =>
       if (sessionError) throw sessionError;
 
       // Update user's XP
-      await updateProfile(user, setUser, {
+      await updateProfile({
         xp: (user.xp || 0) + xpEarned
       });
 
@@ -128,6 +156,19 @@ export const useWorkoutSession = ({ workoutId }: UseWorkoutSessionProps = {}) =>
     }
   };
 
+  const handleFinishWorkout = async () => {
+    setIsSubmitting(true);
+    try {
+      await completeWorkout();
+      return { success: true };
+    } catch (error) {
+      console.error('Error finishing workout:', error);
+      return { success: false, error };
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return {
     workout,
     exercises,
@@ -136,6 +177,12 @@ export const useWorkoutSession = ({ workoutId }: UseWorkoutSessionProps = {}) =>
     updateExercise,
     completeWorkout,
     notes,
-    setNotes
+    setNotes,
+    exerciseStatus,
+    isSubmitting,
+    initializeExerciseStatus,
+    toggleExerciseCompletion,
+    updateWeight,
+    handleFinishWorkout
   };
 };

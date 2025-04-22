@@ -1,14 +1,11 @@
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { Clock, CheckCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CardFooter } from "@/components/ui/card";
 import { toast } from "@/components/ui/use-toast";
-import { Workout } from "@/types";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { WorkoutNotes } from "@/components/WorkoutNotes";
 import { useWorkoutSession } from "@/hooks/useWorkoutSession";
@@ -16,12 +13,12 @@ import { useWorkoutSession } from "@/hooks/useWorkoutSession";
 const WorkoutDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [workout, setWorkout] = useState<Workout | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const { user, updateProfile } = useAuth();
   const today = new Date();
 
   const {
+    workout,
+    exercises,
+    isLoading,
     exerciseStatus,
     notes,
     isSubmitting,
@@ -30,111 +27,10 @@ const WorkoutDetail = () => {
     toggleExerciseCompletion,
     updateWeight,
     handleFinishWorkout
-  } = useWorkoutSession(workout, user);
-
-  useEffect(() => {
-    if (!id || !user?.id) return;
-    
-    const fetchWorkout = async () => {
-      setIsLoading(true);
-      try {
-        const currentWorkoutStr = localStorage.getItem('currentWorkout');
-        if (currentWorkoutStr) {
-          try {
-            const currentWorkout = JSON.parse(currentWorkoutStr);
-            if (currentWorkout.id === id) {
-              console.log("Found workout in localStorage:", currentWorkout);
-              setWorkout(currentWorkout);
-              initializeExerciseStatus(currentWorkout.exercises);
-              setIsLoading(false);
-              return;
-            }
-          } catch (error) {
-            console.error("Error parsing currentWorkout from localStorage:", error);
-          }
-        }
-
-        const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-        
-        if (isValidUUID) {
-          console.log("Fetching workout with UUID:", id);
-          const { data: workoutsData, error } = await supabase
-            .from('workouts')
-            .select(`
-              *,
-              exercises (*)
-            `)
-            .eq('id', id)
-            .eq('user_id', user.id)
-            .single();
-          
-          if (workoutsData && !error) {
-            const formattedWorkout: Workout = {
-              id: workoutsData.id,
-              name: workoutsData.name,
-              exercises: workoutsData.exercises || [],
-              createdAt: workoutsData.created_at,
-              updatedAt: workoutsData.updated_at
-            };
-            
-            setWorkout(formattedWorkout);
-            initializeExerciseStatus(formattedWorkout.exercises);
-            setIsLoading(false);
-            return;
-          } else if (error) {
-            console.error("Error fetching workout from supabase:", error);
-          }
-        } else {
-          console.log("ID is not a valid UUID:", id);
-        }
-        
-        const savedWorkoutsStr = localStorage.getItem(`workouts_${user.id}`);
-        if (savedWorkoutsStr) {
-          const savedWorkouts = JSON.parse(savedWorkoutsStr);
-          const foundWorkout = savedWorkouts.find((w: Workout) => w.id === id);
-          
-          if (foundWorkout) {
-            console.log("Found workout in localStorage workouts:", foundWorkout);
-            setWorkout(foundWorkout);
-            initializeExerciseStatus(foundWorkout.exercises);
-          } else {
-            console.error("Workout not found:", id);
-            toast({
-              title: "Treino não encontrado",
-              description: "O treino solicitado não foi encontrado.",
-              variant: "destructive",
-            });
-          }
-        } else {
-          console.error("No workouts available");
-          toast({
-            title: "Dados não disponíveis",
-            description: "Não há dados de treino disponíveis.",
-            variant: "destructive",
-          });
-        }
-      } catch (error) {
-        console.error("Error fetching workout:", error);
-        toast({
-          title: "Erro ao carregar treino",
-          description: "Não foi possível carregar os detalhes do treino.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchWorkout();
-  }, [id, user]);
+  } = useWorkoutSession({ workoutId: id });
 
   const onFinishWorkout = async () => {
-    // This is where the error was occurring - we need to await the result
-    // and extract needed values rather than passing updateProfile directly
-    const result = await handleFinishWorkout(async (data) => {
-      const updateResult = await updateProfile(data);
-      // No need to return anything as updateProfile is expected to return void
-    });
+    const result = await handleFinishWorkout();
     
     if (result?.success) {
       navigate("/history");

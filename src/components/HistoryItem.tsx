@@ -1,4 +1,3 @@
-
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { WorkoutHistory } from "@/types";
@@ -25,7 +24,6 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { updateProfile } from "@/contexts/profile";
 
 interface HistoryItemProps {
   history: WorkoutHistory;
@@ -33,7 +31,7 @@ interface HistoryItemProps {
 }
 
 const HistoryItem = ({ history, onDelete }: HistoryItemProps) => {
-  const { user, setUser } = useAuth();
+  const { user, updateProfile } = useAuth();
   const formattedDate = format(new Date(history.date), "dd 'de' MMMM, yyyy", { locale: ptBR });
   const formattedTime = format(new Date(history.date), "HH:mm");
 
@@ -52,8 +50,8 @@ const HistoryItem = ({ history, onDelete }: HistoryItemProps) => {
 
       // Update user's XP
       if (user) {
-        await updateProfile(user, setUser, {
-          xp: (user.xp || 0) - xpToRemove
+        await updateProfile({
+          xp: Math.max(0, (user.xp || 0) - xpToRemove) // Ensure XP doesn't go below 0
         });
       }
 
