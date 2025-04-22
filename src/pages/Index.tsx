@@ -1,4 +1,3 @@
-
 import MainLayout from "@/layouts/MainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,10 +30,7 @@ const Dashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <WeeklyProgress 
-                daysTrainedThisWeek={user.daysTrainedThisWeek} 
-                totalDaysGoal={4}
-              />
+              <WeeklyProgress totalDaysGoal={4} />
             </CardContent>
           </Card>
 
@@ -90,4 +86,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-
