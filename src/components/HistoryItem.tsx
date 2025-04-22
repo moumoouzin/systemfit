@@ -24,6 +24,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { updateProfile } from "@/contexts/profile";
 
 interface HistoryItemProps {
   history: WorkoutHistory;
@@ -31,17 +33,29 @@ interface HistoryItemProps {
 }
 
 const HistoryItem = ({ history, onDelete }: HistoryItemProps) => {
+  const { user, setUser } = useAuth();
   const formattedDate = format(new Date(history.date), "dd 'de' MMMM, yyyy", { locale: ptBR });
   const formattedTime = format(new Date(history.date), "HH:mm");
 
   const handleDelete = async () => {
     try {
+      // Calculate XP to remove: 25 XP per exercise that was completed
+      const xpToRemove = history.exercises.filter(ex => ex.completed).length * 25;
+
+      // Delete the workout session
       const { error } = await supabase
         .from('workout_sessions')
         .delete()
         .eq('id', history.id);
 
       if (error) throw error;
+
+      // Update user's XP
+      if (user) {
+        await updateProfile(user, setUser, {
+          xp: (user.xp || 0) - xpToRemove
+        });
+      }
 
       onDelete?.(history.id);
       
@@ -58,6 +72,9 @@ const HistoryItem = ({ history, onDelete }: HistoryItemProps) => {
       });
     }
   };
+  
+  // Calculate XP for this workout: 25 XP per completed exercise
+  const workoutXP = history.exercises.filter(ex => ex.completed).length * 25;
   
   return (
     <div className="p-4 border-b last:border-0">
@@ -78,7 +95,7 @@ const HistoryItem = ({ history, onDelete }: HistoryItemProps) => {
               <div className="flex items-center gap-4">
                 {history.completed ? (
                   <div className="flex items-center text-rpg-xp">
-                    <span className="font-bold mr-1">+{history.xpEarned} XP</span>
+                    <span className="font-bold mr-1">+{workoutXP} XP</span>
                     <CheckCircle2 className="h-4 w-4" />
                   </div>
                 ) : (
