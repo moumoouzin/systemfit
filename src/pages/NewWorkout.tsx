@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
@@ -33,7 +32,7 @@ const workoutFormSchema = z.object({
       id: z.string(),
       name: z.string().min(2, "Nome do exercício é obrigatório"),
       sets: z.number().min(1, "Mínimo 1 série").max(20, "Máximo 20 séries"),
-      reps: z.number().min(1, "Mínimo 1 repetição").max(100, "Máximo 100 repetições"),
+      reps: z.string().min(1, "Informe as repetições"),
       lastWeight: z.number().optional(),
     })
   ).min(1, "Adicione pelo menos 1 exercício"),
@@ -59,7 +58,7 @@ const NewWorkout = () => {
       name: "",
       description: "",
       exercises: [
-        { id: uuidv4(), name: "", sets: 3, reps: 10, lastWeight: undefined }
+        { id: uuidv4(), name: "", sets: 3, reps: "", lastWeight: undefined }
       ],
     },
   });
@@ -87,9 +86,9 @@ const NewWorkout = () => {
   const addExercise = () => {
     const exercises = form.getValues().exercises || [];
     form.setValue("exercises", [
-      ...exercises, 
-      { id: uuidv4(), name: "", sets: 3, reps: 10, lastWeight: undefined }
-    ]);
+      ...exercises,
+      { id: uuidv4(), name: "", sets: 3, reps: "", lastWeight: undefined }
+    ], { shouldDirty: true, shouldTouch: true, shouldValidate: true });
   };
 
   const removeExercise = (index: number) => {
@@ -124,7 +123,6 @@ const NewWorkout = () => {
       const currentDate = new Date().toISOString();
       const workoutId = uuidv4();
       
-      // Primeiro, criamos o treino no Supabase
       const { data: workoutData, error: workoutError } = await supabase
         .from('workouts')
         .insert({
@@ -142,7 +140,6 @@ const NewWorkout = () => {
         throw new Error("Não foi possível criar o treino no banco de dados.");
       }
       
-      // Depois, criamos os exercícios associados ao treino
       const exercisesToInsert = data.exercises.map(ex => ({
         id: uuidv4(),
         name: ex.name,
@@ -158,12 +155,10 @@ const NewWorkout = () => {
         
         if (exercisesError) {
           console.error("Error creating exercises in Supabase:", exercisesError);
-          // Continuamos apesar do erro nos exercícios
           console.log("Continuing despite exercise insert error");
         }
       }
       
-      // Criamos o treino no localStorage também para compatibilidade
       const newWorkout: Workout = {
         id: workoutId,
         name: data.name,
@@ -177,7 +172,6 @@ const NewWorkout = () => {
         updatedAt: currentDate
       };
       
-      // Atualizar o localStorage específico do usuário
       const existingWorkouts = JSON.parse(localStorage.getItem(`workouts_${user.id}`) || '[]');
       localStorage.setItem(`workouts_${user.id}`, JSON.stringify([newWorkout, ...existingWorkouts]));
       
@@ -295,7 +289,7 @@ const NewWorkout = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {form.getValues().exercises.map((exercise, index) => (
+                {form.watch('exercises').map((exercise, index) => (
                   <div key={exercise.id} className="border rounded-md p-4 relative">
                     <Button
                       type="button"
@@ -360,10 +354,9 @@ const NewWorkout = () => {
                             render={({ field }) => (
                               <Input
                                 id={`exercises.${index}.reps`}
-                                type="number"
-                                min={1}
+                                type="text"
+                                placeholder="ex: 10, até a falha..."
                                 {...field}
-                                onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
                               />
                             )}
                           />

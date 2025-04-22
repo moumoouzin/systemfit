@@ -1,7 +1,6 @@
-
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dumbbell, Clock, Trash } from "lucide-react";
+import { Dumbbell, Clock, Trash, Pencil } from "lucide-react";
 import { Workout } from "@/types";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/components/ui/use-toast";
@@ -44,6 +43,11 @@ const WorkoutCard = ({ workout, onDelete }: WorkoutCardProps) => {
     }
   };
   
+  const handleEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate(`/workouts/edit/${workout.id}`);
+  };
+  
   // Calculate estimated time (3 minutes per exercise)
   const estimatedTime = workout.exercises.length * 3;
   
@@ -61,16 +65,27 @@ const WorkoutCard = ({ workout, onDelete }: WorkoutCardProps) => {
               <span>{estimatedTime} min • {workout.exercises.length} exercícios</span>
             </CardDescription>
           </div>
-          {onDelete && (
+          <div className="flex gap-1">
             <Button 
               variant="ghost" 
               size="icon" 
-              onClick={handleDelete} 
-              className="h-8 w-8 flex-shrink-0 text-destructive"
+              onClick={handleEdit}
+              className="h-8 w-8 flex-shrink-0"
+              title="Editar treino"
             >
-              <Trash className="h-4 w-4" />
+              <Pencil className="h-4 w-4" />
             </Button>
-          )}
+            {onDelete && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={handleDelete} 
+                className="h-8 w-8 flex-shrink-0 text-destructive"
+              >
+                <Trash className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="flex-1">
