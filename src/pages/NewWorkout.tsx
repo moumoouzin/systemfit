@@ -85,10 +85,18 @@ const NewWorkout = () => {
 
   const addExercise = () => {
     const exercises = form.getValues().exercises || [];
-    form.setValue("exercises", [
+    const newExercises = [
       ...exercises,
       { id: uuidv4(), name: "", sets: 3, reps: "", lastWeight: undefined }
-    ], { shouldDirty: true, shouldTouch: true, shouldValidate: true });
+    ];
+    
+    form.setValue("exercises", newExercises, { 
+      shouldDirty: true, 
+      shouldTouch: true, 
+      shouldValidate: true 
+    });
+    
+    form.trigger("exercises");
   };
 
   const removeExercise = (index: number) => {
@@ -142,10 +150,10 @@ const NewWorkout = () => {
       
       const exercisesToInsert = data.exercises.map(ex => ({
         id: uuidv4(),
+        workout_id: workoutId,
         name: ex.name,
         sets: ex.sets,
-        reps: ex.reps,
-        workout_id: workoutId
+        reps: isNaN(Number(ex.reps)) ? 0 : Number(ex.reps)
       }));
       
       if (exercisesToInsert.length > 0) {

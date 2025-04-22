@@ -52,17 +52,26 @@ export const useWorkoutSession = ({ workoutId }: UseWorkoutSessionProps = {}) =>
         }
 
         if (workoutData) {
+          // Transform the workout data from Supabase format to our app format
+          const formattedExercises: Exercise[] = workoutData.exercises.map((ex: any) => ({
+            id: ex.id,
+            name: ex.name,
+            sets: ex.sets,
+            // Handle reps as either string or number
+            reps: typeof ex.reps === 'string' ? ex.reps : ex.reps.toString()
+          }));
+
           const formattedWorkout: Workout = {
             id: workoutData.id,
             name: workoutData.name,
-            exercises: workoutData.exercises || [],
+            exercises: formattedExercises,
             createdAt: workoutData.created_at,
             updatedAt: workoutData.updated_at
           };
 
           setWorkout(formattedWorkout);
-          setExercises(formattedWorkout.exercises);
-          initializeExerciseStatus(formattedWorkout.exercises);
+          setExercises(formattedExercises);
+          initializeExerciseStatus(formattedExercises);
         } else {
           setWorkout(null);
           setExercises([]);
