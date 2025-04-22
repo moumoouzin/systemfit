@@ -66,7 +66,7 @@ const Settings = () => {
       await updateProfile({
         name: data.name,
       });
-      
+
       toast({
         title: "Perfil atualizado",
         description: "Suas informações de perfil foram atualizadas com sucesso.",
@@ -185,35 +185,20 @@ const Settings = () => {
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                     <div className="bg-muted rounded-lg p-3">
                       <div className="text-sm text-muted-foreground">Nível</div>
-                      <div className="text-2xl font-bold">{user?.level || 1}</div>
+                      <div className="text-2xl font-bold">{user?.level ?? 1}</div>
                     </div>
                     <div className="bg-muted rounded-lg p-3">
                       <div className="text-sm text-muted-foreground">XP</div>
-                      <div className="text-2xl font-bold">{user?.xp || 0}</div>
+                      <div className="text-2xl font-bold">{user?.xp ?? 0}</div>
                     </div>
                     <div className="bg-muted rounded-lg p-3">
                       <div className="text-sm text-muted-foreground">Treinos</div>
-                      <div className="text-2xl font-bold">{user?.daysTrainedThisWeek || 0}</div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-lg font-medium mb-2">Atributos</h3>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="bg-muted rounded-lg p-3">
-                        <div className="text-sm text-muted-foreground">Força</div>
-                        <div className="text-2xl font-bold text-rpg-strength">{user?.attributes?.strength || 1}</div>
-                      </div>
-                      <div className="bg-muted rounded-lg p-3">
-                        <div className="text-sm text-muted-foreground">Vitalidade</div>
-                        <div className="text-2xl font-bold text-rpg-vitality">{user?.attributes?.vitality || 1}</div>
-                      </div>
-                      <div className="bg-muted rounded-lg p-3">
-                        <div className="text-sm text-muted-foreground">Foco</div>
-                        <div className="text-2xl font-bold text-rpg-focus">{user?.attributes?.focus || 1}</div>
+                      <div className="text-2xl font-bold">
+                        {user?.daysTrainedThisWeek ?? 0}
                       </div>
                     </div>
                   </div>
+                  {/* Removida a seção de atributos */}
                 </div>
               </CardContent>
             </Card>
@@ -260,9 +245,9 @@ const Settings = () => {
                       {isLoading ? "Saindo..." : "Sair da conta"}
                     </Button>
                   </div>
-                  
+
                   <Separator />
-                  
+
                   <div>
                     <h3 className="text-lg font-medium mb-2">Senha</h3>
                     <p className="text-sm text-muted-foreground mb-4">
