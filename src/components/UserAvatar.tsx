@@ -3,15 +3,46 @@ import { User } from "@/types";
 import { Progress } from "@/components/ui/progress";
 import { Shield, Zap, Brain } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface UserAvatarProps {
   user: User;
 }
 
 const UserAvatar = ({ user }: UserAvatarProps) => {
-  // Calculate XP progress percentage for current level
+  const { updateProfile } = useAuth();
   const xpForNextLevel = 200;
-  const xpProgress = (user.xp / xpForNextLevel) * 100;
+  const [displayedLevel, setDisplayedLevel] = useState(user.level);
+  const [displayedXP, setDisplayedXP] = useState(user.xp);
+  
+  // Check if user XP exceeds the current level threshold
+  useEffect(() => {
+    const shouldLevelUp = user.xp >= xpForNextLevel * user.level;
+    
+    if (shouldLevelUp && user.level === displayedLevel) {
+      const newLevel = user.level + 1;
+      const remainingXP = user.xp - (xpForNextLevel * user.level);
+      
+      // Update the user's level in the database
+      updateProfile({ 
+        level: newLevel,
+      }).catch(error => {
+        console.error("Failed to update level:", error);
+      });
+      
+      setDisplayedLevel(newLevel);
+    } else {
+      setDisplayedLevel(user.level);
+      setDisplayedXP(user.xp);
+    }
+  }, [user.xp, user.level, xpForNextLevel]);
+
+  // Calculate XP progress percentage for current level
+  const xpProgress = Math.min(
+    ((displayedXP % xpForNextLevel) / xpForNextLevel) * 100,
+    100
+  );
 
   return (
     <div className="rpg-card mb-6">
@@ -25,16 +56,18 @@ const UserAvatar = ({ user }: UserAvatarProps) => {
             />
           </div>
           <div className="absolute -bottom-2 -right-2 bg-rpg-gold text-white font-bold rounded-full w-10 h-10 flex items-center justify-center border-2 border-white animate-level-up">
-            {user.level}
+            {displayedLevel}
           </div>
         </div>
         
         <div className="flex-1">
           <h2 className="text-xl font-bold">{user.name}</h2>
           <div className="flex items-center mt-1 text-sm text-muted-foreground">
-            <span className="font-medium">{user.xp} / {xpForNextLevel} XP</span>
+            <span className="font-medium">
+              {displayedXP % xpForNextLevel} / {xpForNextLevel} XP
+            </span>
             <span className="mx-2">•</span>
-            <span>Nível {user.level}</span>
+            <span>Nível {displayedLevel}</span>
             <span className="mx-2">•</span>
             <span>Sequência: {user.streakDays} dias</span>
           </div>
