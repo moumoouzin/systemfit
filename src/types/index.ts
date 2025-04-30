@@ -1,3 +1,4 @@
+
 export interface User {
   id: string;
   username: string;  // Added username property
@@ -51,7 +52,7 @@ export interface WorkoutExerciseHistory {
   id: string;
   name: string;
   sets: number;
-  reps: number;
+  reps: string | number;  // Updated to accept both string and number
   weight: number;
   completed: boolean;
 }

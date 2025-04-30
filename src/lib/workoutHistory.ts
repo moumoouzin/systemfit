@@ -87,9 +87,9 @@ export const useWorkoutHistory = () => {
               id: exercise.id,
               name: exercise.name,
               sets: exercise.sets,
-              reps: exercise.reps,
+              reps: exercise.reps, // No conversion needed now as our type accepts both string and number
               weight: exercise.exercise_weights?.[0]?.weight || 0,
-              completed: true // Assumimos que se o exercício está registrado, ele foi completado
+              completed: true // We assume that if the exercise is registered, it was completed
             }));
           }
 
