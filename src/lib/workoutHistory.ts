@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { WorkoutHistory, WorkoutExerciseHistory } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
@@ -12,7 +13,7 @@ type WorkoutSessionWithWorkout = Database['public']['Tables']['workout_sessions'
       id: string;
       name: string;
       sets: number;
-      reps: number;
+      reps: number | string;
       exercise_weights: {
         weight: number;
         created_at: string;
@@ -20,6 +21,7 @@ type WorkoutSessionWithWorkout = Database['public']['Tables']['workout_sessions'
     }[];
   } | null;
   notes?: string;
+  exercises?: any[]; // Add this to handle the JSON exercises data we're storing
 };
 
 export const useWorkoutHistory = () => {
@@ -68,7 +70,19 @@ export const useWorkoutHistory = () => {
         const formattedHistory: WorkoutHistory[] = (sessionData as WorkoutSessionWithWorkout[]).map(session => {
           let exercises: WorkoutExerciseHistory[] = [];
           
-          if (session.workouts?.exercises) {
+          // If we have the exercises directly in the session data (from our new format)
+          if (session.exercises && Array.isArray(session.exercises) && session.exercises.length > 0) {
+            exercises = session.exercises.map(ex => ({
+              id: ex.id,
+              name: ex.name,
+              sets: ex.sets,
+              reps: ex.reps,
+              weight: ex.weight || 0,
+              completed: ex.completed || false
+            }));
+          }
+          // Fallback to the old format if no exercises in session data
+          else if (session.workouts?.exercises) {
             exercises = session.workouts.exercises.map(exercise => ({
               id: exercise.id,
               name: exercise.name,

@@ -207,6 +207,8 @@ export interface Database extends Omit<SupabaseDatabase, 'public'> {
           date: string
           completed: boolean
           xp_earned: number | null
+          notes: string | null
+          exercises: any[] | null
         }
         Insert: {
           id?: string
@@ -215,6 +217,8 @@ export interface Database extends Omit<SupabaseDatabase, 'public'> {
           date?: string
           completed?: boolean
           xp_earned?: number | null
+          notes?: string | null
+          exercises?: any[] | null
         }
         Update: {
           id?: string
@@ -223,6 +227,8 @@ export interface Database extends Omit<SupabaseDatabase, 'public'> {
           date?: string
           completed?: boolean
           xp_earned?: number | null
+          notes?: string | null
+          exercises?: any[] | null
         }
         Relationships: [
           {

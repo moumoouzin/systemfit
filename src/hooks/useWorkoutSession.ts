@@ -131,18 +131,49 @@ export const useWorkoutSession = ({ workoutId }: UseWorkoutSessionProps = {}) =>
       const completedExercises = exerciseStatus.filter(ex => ex.completed).length;
       const xpEarned = completedExercises * 25;
       
-      // Create workout session
-      const { error: sessionError } = await supabase
+      // Create workout session with completed exercises and weights
+      const sessionData = {
+        user_id: user.id,
+        workout_id: workout.id,
+        completed: true,
+        xp_earned: xpEarned,
+        notes: notes
+      };
+      
+      // Insert the session and get the generated ID
+      const { data: sessionInsertData, error: sessionError } = await supabase
         .from('workout_sessions')
-        .insert({
-          user_id: user.id,
-          workout_id: workout.id,
-          completed: true,
-          xp_earned: xpEarned,
-          notes: notes
-        });
+        .insert(sessionData)
+        .select('id')
+        .single();
 
       if (sessionError) throw sessionError;
+      
+      // Now create records for the exercise weights
+      // Map completed exercises with their weights
+      const exerciseDetails = exercises.map(exercise => {
+        const status = exerciseStatus.find(s => s.id === exercise.id);
+        return {
+          id: exercise.id,
+          name: exercise.name,
+          sets: exercise.sets,
+          reps: exercise.reps,
+          weight: status?.weight || 0,
+          completed: status?.completed || false
+        };
+      });
+      
+      // Store exercise details in the session metadata
+      const { error: updateSessionError } = await supabase
+        .from('workout_sessions')
+        .update({
+          exercises: exerciseDetails
+        })
+        .eq('id', sessionInsertData.id);
+      
+      if (updateSessionError) {
+        console.error("Error storing exercise details:", updateSessionError);
+      }
 
       // Update user's XP
       await updateProfile({
@@ -154,7 +185,7 @@ export const useWorkoutSession = ({ workoutId }: UseWorkoutSessionProps = {}) =>
         description: `Você ganhou ${xpEarned} XP!`,
       });
 
-      navigate('/workouts');
+      navigate('/history');
     } catch (error) {
       console.error('Error completing workout:', error);
       toast({

@@ -1,3 +1,4 @@
+
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { WorkoutHistory } from "@/types";
@@ -142,7 +143,7 @@ const HistoryItem = ({ history, onDelete }: HistoryItemProps) => {
                       </div>
                       <div className="text-right">
                         <Badge variant={exercise.completed ? "default" : "secondary"}>
-                          {exercise.weight}kg
+                          {exercise.weight > 0 ? `${exercise.weight}kg` : "0kg"}
                         </Badge>
                       </div>
                     </div>
