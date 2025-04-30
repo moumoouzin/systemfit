@@ -71,7 +71,9 @@ export const useWorkoutSession = ({ workoutId }: UseWorkoutSessionProps = {}) =>
 
           setWorkout(formattedWorkout);
           setExercises(formattedExercises);
-          initializeExerciseStatus(formattedExercises);
+          
+          // Initialize exercise status and fetch previous weights
+          await initializeExerciseStatus(formattedExercises);
         } else {
           setWorkout(null);
           setExercises([]);
@@ -92,12 +94,51 @@ export const useWorkoutSession = ({ workoutId }: UseWorkoutSessionProps = {}) =>
     loadWorkout();
   }, [workoutId, user]);
 
-  const initializeExerciseStatus = (exercisesList: Exercise[]) => {
+  const fetchPreviousWeights = async (exercises: Exercise[]) => {
+    if (!user?.id) return {};
+    
+    try {
+      const exerciseIds = exercises.map(ex => ex.id);
+      
+      // Get the latest weight for each exercise
+      const { data, error } = await supabase
+        .from('exercise_weights')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('is_latest', true)
+        .in('exercise_id', exerciseIds);
+      
+      if (error) {
+        console.error("Error fetching previous weights:", error);
+        return {};
+      }
+      
+      // Create a map of exercise_id -> weight
+      const weightMap: Record<string, number> = {};
+      if (data) {
+        data.forEach(record => {
+          weightMap[record.exercise_id] = record.weight;
+        });
+      }
+      
+      return weightMap;
+    } catch (error) {
+      console.error("Error in fetchPreviousWeights:", error);
+      return {};
+    }
+  };
+
+  const initializeExerciseStatus = async (exercisesList: Exercise[]) => {
+    // Fetch previous weights for all exercises
+    const previousWeights = await fetchPreviousWeights(exercisesList);
+    
     const initialStatus: ExerciseStatus[] = exercisesList.map(exercise => ({
       id: exercise.id,
       completed: false,
       weight: 0,
+      previousWeight: previousWeights[exercise.id] || 0, // Add previous weight
     }));
+    
     setExerciseStatus(initialStatus);
   };
 

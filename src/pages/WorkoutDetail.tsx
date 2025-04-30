@@ -23,7 +23,6 @@ const WorkoutDetail = () => {
     notes,
     isSubmitting,
     setNotes,
-    initializeExerciseStatus,
     toggleExerciseCompletion,
     updateWeight,
     handleFinishWorkout
