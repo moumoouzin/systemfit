@@ -131,25 +131,6 @@ export const useWorkoutSession = ({ workoutId }: UseWorkoutSessionProps = {}) =>
       const completedExercises = exerciseStatus.filter(ex => ex.completed).length;
       const xpEarned = completedExercises * 25;
       
-      // Create workout session with completed exercises and weights
-      const sessionData = {
-        user_id: user.id,
-        workout_id: workout.id,
-        completed: true,
-        xp_earned: xpEarned,
-        notes: notes
-      };
-      
-      // Insert the session and get the generated ID
-      const { data: sessionInsertData, error: sessionError } = await supabase
-        .from('workout_sessions')
-        .insert(sessionData)
-        .select('id')
-        .single();
-
-      if (sessionError) throw sessionError;
-      
-      // Now create records for the exercise weights
       // Map completed exercises with their weights
       const exerciseDetails = exercises.map(exercise => {
         const status = exerciseStatus.find(s => s.id === exercise.id);
@@ -163,18 +144,25 @@ export const useWorkoutSession = ({ workoutId }: UseWorkoutSessionProps = {}) =>
         };
       });
       
-      // Store exercise details in the session metadata
-      const { error: updateSessionError } = await supabase
-        .from('workout_sessions')
-        .update({
-          exercises: exerciseDetails
-        })
-        .eq('id', sessionInsertData.id);
+      // Create workout session with all data including exercises in one request
+      const sessionData = {
+        user_id: user.id,
+        workout_id: workout.id,
+        completed: true,
+        xp_earned: xpEarned,
+        notes: notes,
+        exercises: exerciseDetails // Include exercises array directly in the initial insert
+      };
       
-      if (updateSessionError) {
-        console.error("Error storing exercise details:", updateSessionError);
-      }
+      // Insert the session with all data at once
+      const { data: sessionInsertData, error: sessionError } = await supabase
+        .from('workout_sessions')
+        .insert(sessionData)
+        .select('id')
+        .single();
 
+      if (sessionError) throw sessionError;
+      
       // Update user's XP
       await updateProfile({
         xp: (user.xp || 0) + xpEarned
@@ -185,7 +173,35 @@ export const useWorkoutSession = ({ workoutId }: UseWorkoutSessionProps = {}) =>
         description: `Você ganhou ${xpEarned} XP!`,
       });
 
-      navigate('/history');
+      // Also store exercise weights for historical tracking
+      const completedExerciseStatuses = exerciseStatus.filter(status => status.completed);
+      for (const status of completedExerciseStatuses) {
+        if (status.weight > 0) {
+          try {
+            // First set all existing weights for this exercise to not latest
+            await supabase
+              .from('exercise_weights')
+              .update({ is_latest: false })
+              .eq('exercise_id', status.id)
+              .eq('user_id', user.id);
+            
+            // Then insert the new weight as the latest
+            await supabase
+              .from('exercise_weights')
+              .insert({
+                exercise_id: status.id,
+                user_id: user.id,
+                weight: status.weight,
+                is_latest: true
+              });
+          } catch (weightError) {
+            console.error('Error updating exercise weight:', weightError);
+            // Continue despite weight tracking errors
+          }
+        }
+      }
+
+      return { success: true };
     } catch (error) {
       console.error('Error completing workout:', error);
       toast({
@@ -193,14 +209,15 @@ export const useWorkoutSession = ({ workoutId }: UseWorkoutSessionProps = {}) =>
         description: "Não foi possível salvar o treino.",
         variant: "destructive",
       });
+      return { success: false, error };
     }
   };
 
   const handleFinishWorkout = async () => {
     setIsSubmitting(true);
     try {
-      await completeWorkout();
-      return { success: true };
+      const result = await completeWorkout();
+      return result;
     } catch (error) {
       console.error('Error finishing workout:', error);
       return { success: false, error };

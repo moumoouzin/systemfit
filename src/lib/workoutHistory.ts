@@ -20,8 +20,6 @@ type WorkoutSessionWithWorkout = Database['public']['Tables']['workout_sessions'
       }[];
     }[];
   } | null;
-  notes?: string;
-  exercises?: any[]; // Add this to handle the JSON exercises data we're storing
 };
 
 export const useWorkoutHistory = () => {
@@ -73,10 +71,10 @@ export const useWorkoutHistory = () => {
           // If we have the exercises directly in the session data (from our new format)
           if (session.exercises && Array.isArray(session.exercises) && session.exercises.length > 0) {
             exercises = session.exercises.map(ex => ({
-              id: ex.id,
-              name: ex.name,
-              sets: ex.sets,
-              reps: ex.reps,
+              id: ex.id || '',
+              name: ex.name || '',
+              sets: ex.sets || 0,
+              reps: ex.reps || 0,
               weight: ex.weight || 0,
               completed: ex.completed || false
             }));
@@ -87,7 +85,7 @@ export const useWorkoutHistory = () => {
               id: exercise.id,
               name: exercise.name,
               sets: exercise.sets,
-              reps: exercise.reps, // No conversion needed now as our type accepts both string and number
+              reps: exercise.reps,
               weight: exercise.exercise_weights?.[0]?.weight || 0,
               completed: true // We assume that if the exercise is registered, it was completed
             }));

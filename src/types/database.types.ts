@@ -208,7 +208,7 @@ export interface Database extends Omit<SupabaseDatabase, 'public'> {
           completed: boolean
           xp_earned: number | null
           notes: string | null
-          exercises: any[] | null
+          exercises: Json[] | null  // Updated this to match the Supabase schema
         }
         Insert: {
           id?: string
@@ -218,7 +218,7 @@ export interface Database extends Omit<SupabaseDatabase, 'public'> {
           completed?: boolean
           xp_earned?: number | null
           notes?: string | null
-          exercises?: any[] | null
+          exercises?: Json[] | null  // Updated this to match the Supabase schema
         }
         Update: {
           id?: string
@@ -228,7 +228,7 @@ export interface Database extends Omit<SupabaseDatabase, 'public'> {
           completed?: boolean
           xp_earned?: number | null
           notes?: string | null
-          exercises?: any[] | null
+          exercises?: Json[] | null  // Updated this to match the Supabase schema
         }
         Relationships: [
           {
