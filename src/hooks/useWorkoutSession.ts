@@ -151,8 +151,10 @@ export const useWorkoutSession = ({ workoutId }: UseWorkoutSessionProps = {}) =>
         completed: true,
         xp_earned: xpEarned,
         notes: notes,
-        exercises: exerciseDetails // Include exercises array directly in the initial insert
+        exercises: exerciseDetails // Make sure this matches the database column
       };
+      
+      console.log("Creating workout session with data:", sessionData);
       
       // Insert the session with all data at once
       const { data: sessionInsertData, error: sessionError } = await supabase
@@ -161,7 +163,10 @@ export const useWorkoutSession = ({ workoutId }: UseWorkoutSessionProps = {}) =>
         .select('id')
         .single();
 
-      if (sessionError) throw sessionError;
+      if (sessionError) {
+        console.error('Session insert error:', sessionError);
+        throw sessionError;
+      }
       
       // Update user's XP
       await updateProfile({

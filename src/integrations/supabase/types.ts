@@ -152,6 +152,7 @@ export type Database = {
         Row: {
           completed: boolean
           date: string
+          exercises: Json[] | null
           id: string
           notes: string | null
           user_id: string
@@ -161,6 +162,7 @@ export type Database = {
         Insert: {
           completed?: boolean
           date?: string
+          exercises?: Json[] | null
           id?: string
           notes?: string | null
           user_id: string
@@ -170,6 +172,7 @@ export type Database = {
         Update: {
           completed?: boolean
           date?: string
+          exercises?: Json[] | null
           id?: string
           notes?: string | null
           user_id?: string
