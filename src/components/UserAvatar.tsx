@@ -5,6 +5,7 @@ import { Shield, Zap, Brain } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { calculateLevel } from "@/contexts/profile";
 
 interface UserAvatarProps {
   user: User;
@@ -16,27 +17,28 @@ const UserAvatar = ({ user }: UserAvatarProps) => {
   const [displayedLevel, setDisplayedLevel] = useState(user.level);
   const [displayedXP, setDisplayedXP] = useState(user.xp);
   
-  // Check if user XP exceeds the current level threshold
+  // Check if user XP matches the current level
   useEffect(() => {
-    const shouldLevelUp = user.xp >= xpForNextLevel * user.level;
+    // Calculate what the level should be based on current XP
+    const correctLevel = calculateLevel(user.xp);
     
-    if (shouldLevelUp && user.level === displayedLevel) {
-      const newLevel = user.level + 1;
-      const remainingXP = user.xp - (xpForNextLevel * user.level);
+    // If there's a mismatch between stored level and calculated level
+    if (correctLevel !== user.level) {
+      console.log(`Level mismatch detected: stored ${user.level}, calculated ${correctLevel}`);
       
-      // Update the user's level in the database
+      // Update the user's level in the database to match XP
       updateProfile({ 
-        level: newLevel,
+        level: correctLevel,
       }).catch(error => {
         console.error("Failed to update level:", error);
       });
       
-      setDisplayedLevel(newLevel);
+      setDisplayedLevel(correctLevel);
     } else {
       setDisplayedLevel(user.level);
       setDisplayedXP(user.xp);
     }
-  }, [user.xp, user.level, xpForNextLevel]);
+  }, [user.xp, user.level, updateProfile]);
 
   // Calculate XP progress percentage for current level
   const xpProgress = Math.min(

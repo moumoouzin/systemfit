@@ -3,6 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { User } from "@/types";
 import { toast } from "@/hooks/use-toast";
 
+// Calculate level based on XP
+export const calculateLevel = (xp: number): number => {
+  const xpForNextLevel = 200;
+  return Math.max(1, Math.floor(xp / xpForNextLevel) + 1);
+};
+
 export const fetchProfile = async (
   id: string, 
   setUser: (user: User | null) => void
@@ -103,14 +109,17 @@ export const fetchProfile = async (
       }
     }
 
+    const xp = profileData?.xp || 0;
+    const calculatedLevel = calculateLevel(xp);
+
     // Construct the user object with available data
     const completeUser: User = {
       id: userProfileData.id,
       username: userProfileData.username,
       name: profileData?.name || userProfileData.username,
       avatarUrl: profileData?.avatar_url || null,
-      level: profileData?.level || 1,
-      xp: profileData?.xp || 0,
+      level: calculatedLevel, // Use calculated level instead of stored level
+      xp: xp,
       attributes: {
         strength: profileData?.strength || 1,
         vitality: profileData?.vitality || 1,
@@ -151,15 +160,30 @@ export const updateProfile = async (
     console.log("Updating profile with data:", data);
     
     const updateData: any = {};
-    if (data.name !== undefined) updateData.name = data.name;
-    if (data.avatarUrl !== undefined) updateData.avatar_url = data.avatarUrl;
-    if (data.level !== undefined) updateData.level = data.level;
-    if (data.xp !== undefined) updateData.xp = data.xp;
-    if (data.daysTrainedThisWeek !== undefined) updateData.days_trained_this_week = data.daysTrainedThisWeek;
-    if (data.streakDays !== undefined) updateData.streak_days = data.streakDays;
-    if (data.attributes?.strength !== undefined) updateData.strength = data.attributes.strength;
-    if (data.attributes?.vitality !== undefined) updateData.vitality = data.attributes.vitality;
-    if (data.attributes?.focus !== undefined) updateData.focus = data.attributes.focus;
+    
+    // If XP is updated, calculate the new level
+    if (data.xp !== undefined) {
+      const newXP = data.xp;
+      const calculatedLevel = calculateLevel(newXP);
+      
+      updateData.xp = newXP;
+      updateData.level = calculatedLevel;
+      
+      // Also update the level in our data object
+      data.level = calculatedLevel;
+      
+      console.log(`XP updated to ${newXP}, new level calculated as ${calculatedLevel}`);
+    } else {
+      // Handle other profile updates
+      if (data.name !== undefined) updateData.name = data.name;
+      if (data.avatarUrl !== undefined) updateData.avatar_url = data.avatarUrl;
+      if (data.level !== undefined) updateData.level = data.level;
+      if (data.daysTrainedThisWeek !== undefined) updateData.days_trained_this_week = data.daysTrainedThisWeek;
+      if (data.streakDays !== undefined) updateData.streak_days = data.streakDays;
+      if (data.attributes?.strength !== undefined) updateData.strength = data.attributes.strength;
+      if (data.attributes?.vitality !== undefined) updateData.vitality = data.attributes.vitality;
+      if (data.attributes?.focus !== undefined) updateData.focus = data.attributes.focus;
+    }
 
     console.log("Translated update data:", updateData);
     

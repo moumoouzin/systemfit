@@ -39,7 +39,7 @@ const HistoryItem = ({ history, onDelete }: HistoryItemProps) => {
   const handleDelete = async () => {
     try {
       // Calculate XP to remove: 25 XP per exercise that was completed
-      const xpToRemove = history.exercises.filter(ex => ex.completed).length * 25;
+      const xpToRemove = history.xpEarned || history.exercises.filter(ex => ex.completed).length * 25;
 
       // Delete the workout session
       const { error } = await supabase
@@ -51,8 +51,11 @@ const HistoryItem = ({ history, onDelete }: HistoryItemProps) => {
 
       // Update user's XP
       if (user) {
+        const newXP = Math.max(0, (user.xp || 0) - xpToRemove);
+        
         await updateProfile({
-          xp: Math.max(0, (user.xp || 0) - xpToRemove) // Ensure XP doesn't go below 0
+          xp: newXP,
+          // Level will be automatically calculated in the updateProfile function
         });
       }
 
@@ -72,8 +75,8 @@ const HistoryItem = ({ history, onDelete }: HistoryItemProps) => {
     }
   };
   
-  // Calculate XP for this workout: 25 XP per completed exercise
-  const workoutXP = history.exercises.filter(ex => ex.completed).length * 25;
+  // Calculate XP for this workout: use stored xpEarned or calculate from completed exercises
+  const workoutXP = history.xpEarned || (history.exercises.filter(ex => ex.completed).length * 25);
   
   return (
     <div className="p-4 border-b last:border-0">
