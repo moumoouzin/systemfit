@@ -22,6 +22,16 @@ type WorkoutSessionWithWorkout = Database['public']['Tables']['workout_sessions'
   } | null;
 };
 
+// Define a type for the exercise in the Json array
+interface ExerciseJson {
+  id: string;
+  name: string;
+  sets: number;
+  reps: number | string;
+  weight: number;
+  completed: boolean;
+}
+
 export const useWorkoutHistory = () => {
   const { user } = useAuth();
   const [workoutHistory, setWorkoutHistory] = useState<WorkoutHistory[]>([]);
@@ -70,14 +80,18 @@ export const useWorkoutHistory = () => {
           
           // If we have the exercises directly in the session data (from our new format)
           if (session.exercises && Array.isArray(session.exercises) && session.exercises.length > 0) {
-            exercises = session.exercises.map(ex => ({
-              id: ex.id || '',
-              name: ex.name || '',
-              sets: ex.sets || 0,
-              reps: ex.reps || 0,
-              weight: ex.weight || 0,
-              completed: ex.completed || false
-            }));
+            exercises = session.exercises.map(ex => {
+              // Type cast the Json to our ExerciseJson interface
+              const exerciseData = ex as unknown as ExerciseJson;
+              return {
+                id: exerciseData.id || '',
+                name: exerciseData.name || '',
+                sets: exerciseData.sets || 0,
+                reps: exerciseData.reps || 0,
+                weight: exerciseData.weight || 0,
+                completed: exerciseData.completed || false
+              };
+            });
           }
           // Fallback to the old format if no exercises in session data
           else if (session.workouts?.exercises) {
