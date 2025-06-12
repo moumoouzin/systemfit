@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@/types";
 import { toast } from "@/hooks/use-toast";
@@ -22,61 +21,44 @@ export const fetchProfile = async (
       return;
     }
 
-    // Check if we have a user profile
+    // Check if we have a user profile - aguardar um pouco para o trigger criar o perfil
     console.log("Fetching user profile for ID:", id);
-    const { data: userProfileData, error: userProfileError } = await supabase
-      .from("user_profiles")
-      .select("id, username")
-      .eq("id", id)
-      .single();
+    
+    let userProfileData = null;
+    let attempts = 0;
+    const maxAttempts = 5;
+    
+    // Tentar buscar o perfil algumas vezes caso o trigger ainda não tenha executado
+    while (!userProfileData && attempts < maxAttempts) {
+      const { data, error } = await supabase
+        .from("user_profiles")
+        .select("id, username")
+        .eq("id", id)
+        .maybeSingle();
 
-    if (userProfileError) {
-      console.error("Error fetching user profile:", userProfileError);
-      if (userProfileError.code === "PGRST116") {
-        // No profile found - this is a new user
-        console.log("No user profile found, user might be new");
-        
-        // Use the session user's email as a fallback username
-        const email = session.user.email;
-        const username = email ? email.split('@')[0] : `user_${id.substring(0, 8)}`;
-        
-        try {
-          // Create user_profile for new user
-          const { error: insertError } = await supabase
-            .from("user_profiles")
-            .insert({
-              id: id,
-              username: username
-            });
-            
-          if (insertError) throw insertError;
-          
-          // Now we created the profile, set basic user data
-          setUser({
-            id: id,
-            username: username,
-            name: username,
-            avatarUrl: null,
-            level: 1,
-            xp: 0,
-            attributes: {
-              strength: 1,
-              vitality: 1,
-              focus: 1,
-            },
-            daysTrainedThisWeek: 0,
-            streakDays: 0,
-          });
-          return;
-        } catch (err) {
-          console.error("Failed to create user profile:", err);
-          setUser(null);
-          return;
-        }
-      } else {
+      if (error && error.code !== "PGRST116") {
+        console.error("Error fetching user profile:", error);
         setUser(null);
         return;
       }
+
+      if (data) {
+        userProfileData = data;
+        break;
+      }
+
+      // Se não encontrou, aguardar um pouco antes de tentar novamente
+      attempts++;
+      if (attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+
+    // Se ainda não existe após as tentativas, significa que algo deu errado
+    if (!userProfileData) {
+      console.log("User profile not found after multiple attempts");
+      setUser(null);
+      return;
     }
 
     // Found user profile, now get profile data
@@ -84,13 +66,13 @@ export const fetchProfile = async (
       .from("profiles")
       .select("*")
       .eq("id", id)
-      .single();
+      .maybeSingle();
 
     if (profileError && profileError.code !== "PGRST116") {
       console.error("Error fetching profile data:", profileError);
     }
 
-    if (profileError && profileError.code === "PGRST116") {
+    if (!profileData) {
       // Profile data not found, create it
       console.log("Creating new profile data for user");
       try {
