@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { User } from "@/types";
@@ -35,17 +34,34 @@ export const login = async (
     if (error) {
       console.error("Erro de autenticação:", error);
       
+      // Verificar se a conta existe
       if (error.message === "Invalid login credentials") {
-        result.error = "Email ou senha incorretos";
+        // Verificar se o usuário existe no sistema
+        const { data: userData, error: userError } = await supabase.auth.admin.getUserByEmail(email.trim().toLowerCase());
+        
+        if (userError || !userData.user) {
+          result.error = "Esta conta não existe. Verifique o email ou crie uma nova conta.";
+          toast({
+            title: "Conta não encontrada",
+            description: "Esta conta não existe. Verifique o email ou crie uma nova conta.",
+            variant: "destructive",
+          });
+        } else {
+          result.error = "Senha incorreta. Verifique sua senha e tente novamente.";
+          toast({
+            title: "Senha incorreta",
+            description: "A senha informada está incorreta. Tente novamente.",
+            variant: "destructive",
+          });
+        }
       } else {
-        result.error = error.message || "Email ou senha inválidos";
+        result.error = error.message || "Erro ao fazer login";
+        toast({
+          title: "Erro de login",
+          description: result.error,
+          variant: "destructive",
+        });
       }
-      
-      toast({
-        title: "Erro de login",
-        description: result.error,
-        variant: "destructive",
-      });
     } else if (data.session?.user) {
       console.log("Login successful, fetching profile for:", data.session.user.id);
       await fetchProfile(data.session.user.id);
@@ -57,10 +73,10 @@ export const login = async (
     }
   } catch (err: any) {
     console.error("Erro durante o login:", err);
-    result.error = err.message;
+    result.error = "Esta conta não existe. Verifique o email ou crie uma nova conta.";
     toast({
-      title: "Erro de login",
-      description: result.error || "Ocorreu um erro ao fazer login",
+      title: "Conta não encontrada",
+      description: "Esta conta não existe. Verifique o email ou crie uma nova conta.",
       variant: "destructive",
     });
   }

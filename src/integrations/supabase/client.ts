@@ -27,14 +27,15 @@ const clearOldLocalStorage = () => {
 // Run cleanup on initialization
 clearOldLocalStorage();
 
-// Always guarantees that NO session is ever persisted
+// Enable session persistence for "logged in forever" functionality
 export const supabase = createClient<Database>(
   SUPABASE_URL, 
   SUPABASE_PUBLISHABLE_KEY,
   {
     auth: {
-      persistSession: false, // Sessions never restored or remembered
+      persistSession: true, // Enable session persistence
       autoRefreshToken: true,
+      storage: localStorage, // Use localStorage for persistence
     },
     db: {
       schema: 'public',

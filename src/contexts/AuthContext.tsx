@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { User } from "@/types";
@@ -18,7 +19,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true); // Start with loading true
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
   // fetch profile helper for login
@@ -38,16 +39,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const checkSession = async () => {
       try {
         setIsLoading(true);
-        const { data: { session } } = await supabase.auth.getSession();
+        console.log("Checking for existing session...");
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("Error getting session:", error);
+          setUser(null);
+          return;
+        }
         
         if (session?.user) {
-          console.log("Found existing session, fetching profile");
+          console.log("Found existing session, fetching profile for user:", session.user.id);
           await fetchProfile(session.user.id);
         } else {
           console.log("No valid session found");
           setUser(null);
-          // Make sure we clear any invalid session data
-          await supabase.auth.signOut();
         }
       } catch (error) {
         console.error("Error checking session:", error);
@@ -61,7 +67,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const setupAuthListener = () => {
       const { data } = supabase.auth.onAuthStateChange(
         async (event, session) => {
-          console.log("Auth state changed:", event);
+          console.log("Auth state changed:", event, session?.user?.id);
           
           if (event === 'SIGNED_IN' && session?.user) {
             setIsLoading(true);
@@ -69,6 +75,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setIsLoading(false);
           } else if (event === 'SIGNED_OUT') {
             setUser(null);
+          } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+            // Token refreshed, ensure user data is still valid
+            console.log("Token refreshed for user:", session.user.id);
+            if (!user) {
+              await fetchProfile(session.user.id);
+            }
           }
         }
       );
