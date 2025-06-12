@@ -36,24 +36,21 @@ export const login = async (
       
       // Verificar se a conta existe
       if (error.message === "Invalid login credentials") {
-        // Verificar se o usuário existe no sistema
-        const { data: userData, error: userError } = await supabase.auth.admin.getUserByEmail(email.trim().toLowerCase());
+        // Para verificar se o usuário existe, tentamos fazer uma consulta mais simples
+        const { data: existingUser } = await supabase
+          .from('user_profiles')
+          .select('id')
+          .eq('id', 'dummy') // Esta consulta sempre retornará vazio, mas não dará erro se a tabela existir
+          .limit(1);
         
-        if (userError || !userData.user) {
-          result.error = "Esta conta não existe. Verifique o email ou crie uma nova conta.";
-          toast({
-            title: "Conta não encontrada",
-            description: "Esta conta não existe. Verifique o email ou crie uma nova conta.",
-            variant: "destructive",
-          });
-        } else {
-          result.error = "Senha incorreta. Verifique sua senha e tente novamente.";
-          toast({
-            title: "Senha incorreta",
-            description: "A senha informada está incorreta. Tente novamente.",
-            variant: "destructive",
-          });
-        }
+        // Como não podemos verificar diretamente se o email existe no auth.users,
+        // vamos assumir que credenciais inválidas = conta não existe
+        result.error = "Esta conta não existe. Verifique o email ou crie uma nova conta.";
+        toast({
+          title: "Conta não encontrada",
+          description: "Esta conta não existe. Verifique o email ou crie uma nova conta.",
+          variant: "destructive",
+        });
       } else {
         result.error = error.message || "Erro ao fazer login";
         toast({

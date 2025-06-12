@@ -34,7 +34,7 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <Routes>
-              {/* Login and Register routes */}
+              {/* Login and Register routes - now properly wrapped in AuthProvider */}
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               
