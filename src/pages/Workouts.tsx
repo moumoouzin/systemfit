@@ -1,19 +1,22 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import WorkoutCard from "@/components/WorkoutCard";
 import { Workout } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useDraftWorkout } from "@/hooks/useDraftWorkout";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Workouts = () => {
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { draft, deleteDraft, hasDraft } = useDraftWorkout();
 
   useEffect(() => {
     const loadWorkouts = async () => {
@@ -147,6 +150,18 @@ const Workouts = () => {
     }
   };
 
+  const handleContinueDraft = () => {
+    navigate('/workouts/new', { state: { loadDraft: true } });
+  };
+
+  const handleDiscardDraft = () => {
+    deleteDraft();
+    toast({
+      title: "Rascunho removido",
+      description: "O rascunho de treino foi removido.",
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -161,6 +176,31 @@ const Workouts = () => {
           Novo Treino
         </Button>
       </div>
+
+      {hasDraft && (
+        <Alert className="border-blue-200 bg-blue-50">
+          <FileText className="h-4 w-4" />
+          <AlertDescription>
+            Você tem um treino em desenvolvimento. Deseja continuar a criação?
+            <div className="flex gap-2 mt-3">
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={handleContinueDraft}
+              >
+                Continuar criação
+              </Button>
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                onClick={handleDiscardDraft}
+              >
+                Remover rascunho
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {isLoading ? (
         <div className="flex items-center justify-center py-12">

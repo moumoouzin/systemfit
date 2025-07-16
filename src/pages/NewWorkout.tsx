@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useCallback } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, X, Save, Weight, Info } from "lucide-react";
+import { Plus, X, Save, Weight, Info, FileText } from "lucide-react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -23,6 +23,8 @@ import { Workout, Exercise } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
+import { useDraftWorkout, DraftWorkout } from "@/hooks/useDraftWorkout";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const workoutFormSchema = z.object({
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres").max(50, "Nome deve ter no máximo 50 caracteres"),
@@ -47,10 +49,16 @@ interface PreviousWeight {
 
 const NewWorkout = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [previousWeights, setPreviousWeights] = useState<PreviousWeight[]>([]);
   const [isLoadingWeights, setIsLoadingWeights] = useState(false);
+  const { draft, saveDraft, deleteDraft, hasDraft } = useDraftWorkout();
+  const [showDraftAlert, setShowDraftAlert] = useState(false);
+  
+  // Verificar se veio de um parâmetro para continuar um rascunho
+  const shouldLoadDraft = location.state?.loadDraft === true;
   
   const form = useForm<WorkoutFormValues>({
     resolver: zodResolver(workoutFormSchema),
@@ -72,6 +80,84 @@ const NewWorkout = () => {
       { exerciseName: 'Rosca', weight: 20 },
     ]);
   }, []);
+
+  // Verificar se deve mostrar o alerta de rascunho
+  useEffect(() => {
+    if (hasDraft && !shouldLoadDraft) {
+      setShowDraftAlert(true);
+    }
+  }, [hasDraft, shouldLoadDraft]);
+
+  // Carregar rascunho se indicado
+  useEffect(() => {
+    if (shouldLoadDraft && draft) {
+      loadDraftIntoForm(draft);
+      setShowDraftAlert(false);
+    }
+  }, [shouldLoadDraft, draft]);
+
+  // Salvar automaticamente como rascunho a cada mudança
+  const watchedValues = form.watch();
+  useEffect(() => {
+    if (!user?.id) return;
+    
+    // Só salva se houver conteúdo significativo
+    const hasContent = watchedValues.name.trim() || 
+                      watchedValues.description?.trim() || 
+                      watchedValues.exercises.some(ex => ex.name.trim());
+    
+    if (hasContent && !showDraftAlert) {
+      const draftData: DraftWorkout = {
+        id: uuidv4(),
+        name: watchedValues.name || "",
+        description: watchedValues.description || "",
+        exercises: watchedValues.exercises.map(ex => ({
+          id: ex.id || uuidv4(),
+          name: ex.name || "",
+          sets: ex.sets || 3,
+          reps: ex.reps || "",
+          lastWeight: ex.lastWeight
+        })),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      // Debounce para não salvar a cada tecla
+      const timeoutId = setTimeout(() => {
+        saveDraft(draftData);
+      }, 1000);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [watchedValues, user?.id, saveDraft, showDraftAlert]);
+
+  const loadDraftIntoForm = (draftData: DraftWorkout) => {
+    form.reset({
+      name: draftData.name,
+      description: draftData.description,
+      exercises: draftData.exercises
+    });
+  };
+
+  const handleLoadDraft = () => {
+    if (draft) {
+      loadDraftIntoForm(draft);
+      setShowDraftAlert(false);
+      toast({
+        title: "Rascunho carregado",
+        description: "Seu rascunho foi carregado com sucesso!",
+      });
+    }
+  };
+
+  const handleDiscardDraft = () => {
+    deleteDraft();
+    setShowDraftAlert(false);
+    toast({
+      title: "Rascunho descartado",
+      description: "O rascunho foi removido.",
+    });
+  };
 
   const findPreviousWeight = (exerciseName: string): number | undefined => {
     if (!exerciseName || exerciseName.trim() === '') return undefined;
@@ -183,6 +269,9 @@ const NewWorkout = () => {
       const existingWorkouts = JSON.parse(localStorage.getItem(`workouts_${user.id}`) || '[]');
       localStorage.setItem(`workouts_${user.id}`, JSON.stringify([newWorkout, ...existingWorkouts]));
       
+      // Deletar rascunho após criação bem-sucedida
+      deleteDraft();
+      
       toast({
         title: "Treino criado",
         description: "Seu novo treino foi criado com sucesso!",
@@ -226,6 +315,31 @@ const NewWorkout = () => {
           Cancelar
         </Button>
       </div>
+
+      {showDraftAlert && (
+        <Alert className="border-orange-200 bg-orange-50">
+          <FileText className="h-4 w-4" />
+          <AlertDescription>
+            Você tem um rascunho de treino salvo. Deseja continuar editando ou começar um novo?
+            <div className="flex gap-2 mt-3">
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={handleLoadDraft}
+              >
+                Continuar rascunho
+              </Button>
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                onClick={handleDiscardDraft}
+              >
+                Começar novo
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
