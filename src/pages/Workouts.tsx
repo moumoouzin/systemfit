@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, FileText } from "lucide-react";
+import { Plus, FileText, Upload } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import WorkoutCard from "@/components/WorkoutCard";
 import { Workout } from "@/types";
@@ -10,6 +10,7 @@ import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useDraftWorkout } from "@/hooks/useDraftWorkout";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const Workouts = () => {
   const [workouts, setWorkouts] = useState<Workout[]>([]);
@@ -171,10 +172,32 @@ const Workouts = () => {
             Gerencie seus treinos personalizados
           </p>
         </div>
-        <Button onClick={() => navigate('/workouts/new')} className="w-full sm:w-auto">
-          <Plus className="mr-2 h-4 w-4" />
-          Novo Treino
-        </Button>
+        <div className="flex gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="w-full sm:w-auto">
+                <Plus className="mr-2 h-4 w-4" />
+                Criar Treino
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48 bg-background border shadow-md">
+              <DropdownMenuItem 
+                onClick={() => navigate('/workouts/new')}
+                className="cursor-pointer hover:bg-muted"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Novo Treino
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => navigate('/workouts/import')}
+                className="cursor-pointer hover:bg-muted"
+              >
+                <Upload className="mr-2 h-4 w-4" />
+                Importar Planilha
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {hasDraft && (
@@ -219,9 +242,15 @@ const Workouts = () => {
       ) : (
         <div className="text-center py-12">
           <p className="text-muted-foreground mb-4">Você ainda não tem treinos cadastrados</p>
-          <Button onClick={() => navigate('/workouts/new')} className="w-full sm:w-auto">
-            Criar meu primeiro treino
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-2 justify-center">
+            <Button onClick={() => navigate('/workouts/new')} className="w-full sm:w-auto">
+              Criar meu primeiro treino
+            </Button>
+            <Button onClick={() => navigate('/workouts/import')} variant="outline" className="w-full sm:w-auto">
+              <Upload className="mr-2 h-4 w-4" />
+              Importar de planilha
+            </Button>
+          </div>
         </div>
       )}
     </div>
