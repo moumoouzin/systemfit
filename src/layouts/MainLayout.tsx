@@ -3,6 +3,8 @@ import { PropsWithChildren } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { LogOut, Menu } from "lucide-react";
+import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
+import { PWAUpdatePrompt } from "@/components/PWAUpdatePrompt";
 import { 
   SidebarProvider, 
   Sidebar, 
@@ -114,6 +116,8 @@ const MainLayout = ({ children }: PropsWithChildren) => {
           </div>
         </SidebarInset>
       </div>
+      <PWAInstallPrompt />
+      <PWAUpdatePrompt />
     </SidebarProvider>
   );
 };
