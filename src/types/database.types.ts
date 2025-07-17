@@ -132,7 +132,8 @@ export interface Database extends Omit<SupabaseDatabase, 'public'> {
           workout_id: string
           name: string
           sets: number
-          reps: number
+          reps: string
+          notes: string | null
           created_at: string
           updated_at: string
         }
@@ -141,7 +142,8 @@ export interface Database extends Omit<SupabaseDatabase, 'public'> {
           workout_id: string
           name: string
           sets?: number
-          reps?: number
+          reps?: string
+          notes?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -150,7 +152,8 @@ export interface Database extends Omit<SupabaseDatabase, 'public'> {
           workout_id?: string
           name?: string
           sets?: number
-          reps?: number
+          reps?: string
+          notes?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -195,6 +198,63 @@ export interface Database extends Omit<SupabaseDatabase, 'public'> {
             columns: ["exercise_id"]
             isOneToOne: false
             referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      active_workouts: {
+        Row: {
+          id: string
+          user_id: string
+          workout_id: string
+          workout_name: string
+          date: string
+          exercises: Json
+          exercise_status: Json
+          notes: string
+          is_completed: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          workout_id: string
+          workout_name: string
+          date?: string
+          exercises: Json
+          exercise_status: Json
+          notes?: string
+          is_completed?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          workout_id?: string
+          workout_name?: string
+          date?: string
+          exercises?: Json
+          exercise_status?: Json
+          notes?: string
+          is_completed?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "active_workouts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "active_workouts_workout_id_fkey"
+            columns: ["workout_id"]
+            isOneToOne: false
+            referencedRelation: "workouts"
             referencedColumns: ["id"]
           }
         ]

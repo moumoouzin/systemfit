@@ -9,6 +9,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import Dashboard from "./pages/Index";
 import Workouts from "./pages/Workouts";
 import NewWorkout from "./pages/NewWorkout";
+import EditWorkout from "./pages/EditWorkout";
 import WorkoutImport from "./pages/WorkoutImport";
 import WorkoutDetail from "./pages/WorkoutDetail";
 import History from "./pages/History";
@@ -46,6 +47,7 @@ const App = () => (
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
               <Route path="/workouts" element={<ProtectedRoute><Workouts /></ProtectedRoute>} />
               <Route path="/workouts/new" element={<ProtectedRoute><NewWorkout /></ProtectedRoute>} />
+              <Route path="/workouts/edit/:id" element={<ProtectedRoute><EditWorkout /></ProtectedRoute>} />
               <Route path="/workouts/import" element={<ProtectedRoute><WorkoutImport /></ProtectedRoute>} />
               <Route path="/workout/:id" element={<ProtectedRoute><WorkoutDetail /></ProtectedRoute>} />
               <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />

@@ -1,20 +1,42 @@
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dumbbell, Clock, Trash, Pencil } from "lucide-react";
+import { Dumbbell, Clock, Trash, Pencil, Play } from "lucide-react";
 import { Workout } from "@/types";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/components/ui/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface WorkoutCardProps {
   workout: Workout;
   onDelete?: (workoutId: string) => void;
+  onStartWorkout?: (workout: Workout) => Promise<boolean>;
 }
 
-const WorkoutCard = ({ workout, onDelete }: WorkoutCardProps) => {
+const WorkoutCard = ({ workout, onDelete, onStartWorkout }: WorkoutCardProps) => {
   const navigate = useNavigate();
   
-  const handleStartWorkout = () => {
+  const handleStartWorkout = async () => {
+    if (onStartWorkout) {
+      const success = await onStartWorkout(workout);
+      if (success) {
+        // Se o treino foi iniciado com sucesso, não navegar para a página de detalhes
+        // O treino ficará na seção "Sendo feito"
+        return;
+      }
+    }
+    
+    // Fallback: navegar para a página de detalhes se não houver onStartWorkout
     console.log("Starting workout:", workout.id);
     try {
       // Armazenar o treino atual no localStorage para acesso na página de detalhes
@@ -77,14 +99,35 @@ const WorkoutCard = ({ workout, onDelete }: WorkoutCardProps) => {
               <Pencil className="h-4 w-4" />
             </Button>
             {onDelete && (
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={handleDelete} 
-                className="h-8 w-8 flex-shrink-0 text-destructive"
-              >
-                <Trash className="h-4 w-4" />
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 flex-shrink-0 text-destructive"
+                    title="Excluir treino"
+                  >
+                    <Trash className="h-4 w-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Excluir treino</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Tem certeza que deseja excluir o treino "{workout.name}"? Esta ação não pode ser desfeita.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={handleDelete}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Excluir
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
           </div>
         </div>
@@ -108,6 +151,7 @@ const WorkoutCard = ({ workout, onDelete }: WorkoutCardProps) => {
           className="w-full text-sm"
           onClick={handleStartWorkout}
         >
+          <Play className="mr-2 h-4 w-4" />
           Iniciar Treino
         </Button>
       </CardFooter>

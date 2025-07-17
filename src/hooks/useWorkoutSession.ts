@@ -158,6 +158,12 @@ export const useWorkoutSession = ({ workoutId }: UseWorkoutSessionProps = {}) =>
     );
   };
 
+  const updateExerciseNotes = (id: string, notes: string) => {
+    setExercises(prevExercises =>
+      prevExercises.map(ex => (ex.id === id ? { ...ex, notes } : ex))
+    );
+  };
+
   const updateExercise = (id: string, updates: Partial<Exercise>) => {
     setExercises(prevExercises =>
       prevExercises.map(ex => (ex.id === id ? { ...ex, ...updates } : ex))
@@ -172,7 +178,7 @@ export const useWorkoutSession = ({ workoutId }: UseWorkoutSessionProps = {}) =>
       const completedExercises = exerciseStatus.filter(ex => ex.completed).length;
       const xpEarned = completedExercises * 25;
       
-      // Map completed exercises with their weights
+      // Map completed exercises with their weights and notes
       const exerciseDetails = exercises.map(exercise => {
         const status = exerciseStatus.find(s => s.id === exercise.id);
         return {
@@ -181,7 +187,8 @@ export const useWorkoutSession = ({ workoutId }: UseWorkoutSessionProps = {}) =>
           sets: exercise.sets,
           reps: exercise.reps,
           weight: status?.weight || 0,
-          completed: status?.completed || false
+          completed: status?.completed || false,
+          notes: exercise.notes || ""
         };
       });
       
@@ -286,6 +293,7 @@ export const useWorkoutSession = ({ workoutId }: UseWorkoutSessionProps = {}) =>
     initializeExerciseStatus,
     toggleExerciseCompletion,
     updateWeight,
+    updateExerciseNotes,
     handleFinishWorkout
   };
 };

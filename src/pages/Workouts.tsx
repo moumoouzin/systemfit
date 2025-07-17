@@ -4,13 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Plus, FileText, Upload } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import WorkoutCard from "@/components/WorkoutCard";
+import { ActiveWorkoutCard } from "@/components/ActiveWorkoutCard";
 import { Workout } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useDraftWorkout } from "@/hooks/useDraftWorkout";
+import { useActiveWorkout } from "@/hooks/useActiveWorkout";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { v4 as uuidv4 } from "uuid";
 
 const Workouts = () => {
   const [workouts, setWorkouts] = useState<Workout[]>([]);
@@ -18,6 +21,71 @@ const Workouts = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { draft, deleteDraft, hasDraft } = useDraftWorkout();
+  const { 
+    activeWorkout, 
+    startWorkout, 
+    updateExerciseStatus, 
+    updateExerciseNotes, 
+    updateWorkoutNotes, 
+    completeWorkout, 
+    pauseWorkout,
+    cancelWorkout
+  } = useActiveWorkout();
+
+
+
+  const createExampleWorkouts = () => {
+    const currentDate = new Date().toISOString();
+    const exampleWorkouts: Workout[] = [
+      {
+        id: uuidv4(),
+        name: "Treino de Pernas",
+        exercises: [
+          { id: uuidv4(), name: "Agachamento", sets: 4, reps: "12" },
+          { id: uuidv4(), name: "Leg Press", sets: 3, reps: "15" },
+          { id: uuidv4(), name: "Cadeira Extensora", sets: 3, reps: "12" },
+          { id: uuidv4(), name: "Stiff", sets: 3, reps: "12" },
+        ],
+        createdAt: currentDate,
+        updatedAt: currentDate
+      },
+      {
+        id: uuidv4(),
+        name: "Treino de Peito e Ombro",
+        exercises: [
+          { id: uuidv4(), name: "Supino Reto", sets: 4, reps: "10" },
+          { id: uuidv4(), name: "Crucifixo", sets: 3, reps: "12" },
+          { id: uuidv4(), name: "Desenvolvimento", sets: 3, reps: "10" },
+          { id: uuidv4(), name: "Elevação Lateral", sets: 3, reps: "15" },
+        ],
+        createdAt: currentDate,
+        updatedAt: currentDate
+      }
+    ];
+    setWorkouts(exampleWorkouts);
+    localStorage.setItem(`workouts_${user?.id}`, JSON.stringify(exampleWorkouts));
+  };
+
+  const clearInvalidWorkouts = () => {
+    if (user?.id) {
+      localStorage.removeItem(`workouts_${user.id}`);
+      setWorkouts([]);
+      toast({
+        title: "Treinos limpos",
+        description: "Os treinos inválidos foram removidos. Crie seus próprios treinos!",
+      });
+    }
+  };
+
+  const createExampleWorkoutsOnDemand = () => {
+    if (user?.id) {
+      createExampleWorkouts();
+      toast({
+        title: "Treinos de exemplo criados",
+        description: "Foram criados treinos de exemplo para você começar!",
+      });
+    }
+  };
 
   useEffect(() => {
     const loadWorkouts = async () => {
@@ -62,38 +130,32 @@ const Workouts = () => {
           // If no workouts in database, try to get from localStorage
           const savedWorkouts = localStorage.getItem(`workouts_${user.id}`);
           if (savedWorkouts) {
-            setWorkouts(JSON.parse(savedWorkouts));
-          } else {
-            // Create example workouts for new users
-            const currentDate = new Date().toISOString();
-            const exampleWorkouts: Workout[] = [
-              {
-                id: "1",
-                name: "Treino de Pernas",
-                exercises: [
-                  { id: "1-1", name: "Agachamento", sets: 4, reps: 12 },
-                  { id: "1-2", name: "Leg Press", sets: 3, reps: 15 },
-                  { id: "1-3", name: "Cadeira Extensora", sets: 3, reps: 12 },
-                  { id: "1-4", name: "Stiff", sets: 3, reps: 12 },
-                ],
-                createdAt: currentDate,
-                updatedAt: currentDate
-              },
-              {
-                id: "2",
-                name: "Treino de Peito e Ombro",
-                exercises: [
-                  { id: "2-1", name: "Supino Reto", sets: 4, reps: 10 },
-                  { id: "2-2", name: "Crucifixo", sets: 3, reps: 12 },
-                  { id: "2-3", name: "Desenvolvimento", sets: 3, reps: 10 },
-                  { id: "2-4", name: "Elevação Lateral", sets: 3, reps: 15 },
-                ],
-                createdAt: currentDate,
-                updatedAt: currentDate
+            try {
+              const parsedWorkouts = JSON.parse(savedWorkouts);
+              // Filter out workouts with invalid UUIDs (like "1", "2", etc.)
+              const validWorkouts = parsedWorkouts.filter((workout: Workout) => {
+                // Check if the ID is a valid UUID format
+                const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+                return uuidRegex.test(workout.id);
+              });
+              
+              if (validWorkouts.length > 0) {
+                setWorkouts(validWorkouts);
+                localStorage.setItem(`workouts_${user.id}`, JSON.stringify(validWorkouts));
+              } else {
+                // Don't create example workouts automatically - let user create their own
+                setWorkouts([]);
+                localStorage.removeItem(`workouts_${user.id}`);
               }
-            ];
-            setWorkouts(exampleWorkouts);
-            localStorage.setItem(`workouts_${user.id}`, JSON.stringify(exampleWorkouts));
+            } catch (error) {
+              console.error("Error parsing saved workouts:", error);
+              // Don't create example workouts automatically - let user create their own
+              setWorkouts([]);
+              localStorage.removeItem(`workouts_${user.id}`);
+            }
+          } else {
+            // Don't create example workouts automatically - let user create their own
+            setWorkouts([]);
           }
         }
       } catch (error) {
@@ -122,20 +184,22 @@ const Workouts = () => {
         return;
       }
       
-      const updatedWorkouts = workouts.filter((w) => w.id !== workoutId);
-      setWorkouts(updatedWorkouts);
-      localStorage.setItem(`workouts_${user.id}`, JSON.stringify(updatedWorkouts));
-      
-      // Also delete from Supabase if it exists there
-      const { error } = await supabase
+      // Excluir o treino (os exercícios relacionados serão excluídos automaticamente pelo CASCADE DELETE)
+      const { error: workoutError } = await supabase
         .from('workouts')
         .delete()
         .eq('id', workoutId)
         .eq('user_id', user.id);
       
-      if (error) {
-        console.error("Error deleting workout from Supabase:", error);
+      if (workoutError) {
+        console.error("Error deleting workout from Supabase:", workoutError);
+        throw workoutError;
       }
+      
+      // Atualizar o estado local
+      const updatedWorkouts = workouts.filter((w) => w.id !== workoutId);
+      setWorkouts(updatedWorkouts);
+      localStorage.setItem(`workouts_${user.id}`, JSON.stringify(updatedWorkouts));
       
       toast({
         title: "Treino excluído",
@@ -225,6 +289,28 @@ const Workouts = () => {
         </Alert>
       )}
 
+      {/* Seção "Sendo feito" */}
+      {activeWorkout && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-semibold">Sendo feito</h2>
+            <div className="flex-1 h-px bg-border"></div>
+          </div>
+          
+          <ActiveWorkoutCard
+            activeWorkout={activeWorkout}
+            onUpdateExerciseStatus={updateExerciseStatus}
+            onUpdateExerciseNotes={updateExerciseNotes}
+            onUpdateWorkoutNotes={updateWorkoutNotes}
+            onComplete={completeWorkout}
+            onPause={pauseWorkout}
+            onCancel={cancelWorkout}
+          />
+        </div>
+      )}
+
+
+
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -236,6 +322,7 @@ const Workouts = () => {
               key={workout.id}
               workout={workout}
               onDelete={handleDelete}
+              onStartWorkout={startWorkout}
             />
           ))}
         </div>
@@ -245,6 +332,9 @@ const Workouts = () => {
           <div className="flex flex-col sm:flex-row gap-2 justify-center">
             <Button onClick={() => navigate('/workouts/new')} className="w-full sm:w-auto">
               Criar meu primeiro treino
+            </Button>
+            <Button onClick={createExampleWorkoutsOnDemand} variant="outline" className="w-full sm:w-auto">
+              Criar treinos de exemplo
             </Button>
             <Button onClick={() => navigate('/workouts/import')} variant="outline" className="w-full sm:w-auto">
               <Upload className="mr-2 h-4 w-4" />

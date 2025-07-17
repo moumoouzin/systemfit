@@ -13,12 +13,13 @@ import { v4 as uuidv4 } from 'uuid';
 import { Workout } from '@/types';
 
 interface CSVRow {
-  'Nome do Treino': string;
-  'Descrição do Treino': string;
+  'Nome do Treino'?: string;
+  'Descrição do Treino'?: string;
   'Nome do Exercício': string;
   'Séries': string;
   'Repetições': string;
-  'Peso (kg)': string;
+  'Peso (kg)'?: string;
+  'Observação'?: string;
 }
 
 const WorkoutImport = () => {
@@ -32,68 +33,40 @@ const WorkoutImport = () => {
   const generateSampleFile = () => {
     const sampleData = [
       {
-        'Nome do Treino': 'Treino de Peito e Tríceps',
-        'Descrição do Treino': 'Foco em desenvolvimento do peitoral e tríceps',
         'Nome do Exercício': 'Supino Reto',
         'Séries': '4',
         'Repetições': '8-10',
         'Peso (kg)': '80'
       },
       {
-        'Nome do Treino': 'Treino de Peito e Tríceps',
-        'Descrição do Treino': 'Foco em desenvolvimento do peitoral e tríceps',
         'Nome do Exercício': 'Supino Inclinado',
         'Séries': '3',
         'Repetições': '10-12',
         'Peso (kg)': '70'
       },
       {
-        'Nome do Treino': 'Treino de Peito e Tríceps',
-        'Descrição do Treino': 'Foco em desenvolvimento do peitoral e tríceps',
         'Nome do Exercício': 'Crucifixo',
         'Séries': '3',
         'Repetições': '12-15',
         'Peso (kg)': '25'
       },
       {
-        'Nome do Treino': 'Treino de Peito e Tríceps',
-        'Descrição do Treino': 'Foco em desenvolvimento do peitoral e tríceps',
         'Nome do Exercício': 'Tríceps Pulley',
         'Séries': '3',
         'Repetições': '12-15',
         'Peso (kg)': '35'
       },
       {
-        'Nome do Treino': 'Treino de Pernas',
-        'Descrição do Treino': 'Treino completo para membros inferiores',
         'Nome do Exercício': 'Agachamento',
         'Séries': '4',
         'Repetições': '10-12',
         'Peso (kg)': '100'
       },
       {
-        'Nome do Treino': 'Treino de Pernas',
-        'Descrição do Treino': 'Treino completo para membros inferiores',
         'Nome do Exercício': 'Leg Press',
         'Séries': '3',
-        'Repetições': '15-20',
-        'Peso (kg)': '200'
-      },
-      {
-        'Nome do Treino': 'Treino de Pernas',
-        'Descrição do Treino': 'Treino completo para membros inferiores',
-        'Nome do Exercício': 'Cadeira Extensora',
-        'Séries': '3',
-        'Repetições': '12-15',
-        'Peso (kg)': '45'
-      },
-      {
-        'Nome do Treino': 'Treino de Pernas',
-        'Descrição do Treino': 'Treino completo para membros inferiores',
-        'Nome do Exercício': 'Mesa Flexora',
-        'Séries': '3',
-        'Repetições': '12-15',
-        'Peso (kg)': '40'
+        'Repetições': '15',
+        'Peso (kg)': '120'
       }
     ];
 
@@ -141,19 +114,38 @@ const WorkoutImport = () => {
   };
 
   const processWorkouts = (data: CSVRow[]): Workout[] => {
+    console.log("🔍 Iniciando processamento de dados...");
+    console.log("📊 Dados brutos recebidos:", data);
+    console.log("📋 Número de linhas:", data.length);
+    
     const workoutMap = new Map<string, Workout>();
 
-    data.forEach((row) => {
-      const workoutName = row['Nome do Treino']?.trim();
-      const description = row['Descrição do Treino']?.trim();
+    data.forEach((row, index) => {
+      console.log(`\n📝 Processando linha ${index + 1}:`, row);
+      
+      // Verificar se tem a coluna "Nome do Treino" ou usar nome padrão
+      const workoutName = row['Nome do Treino']?.trim() || 'Treino Importado';
+      const description = row['Descrição do Treino']?.trim() || '';
       const exerciseName = row['Nome do Exercício']?.trim();
       const sets = parseInt(row['Séries']) || 3;
       const reps = row['Repetições']?.trim() || '12';
       const weight = parseFloat(row['Peso (kg)']) || 0;
 
-      if (!workoutName || !exerciseName) return;
+      console.log("🔍 Valores extraídos:");
+      console.log("  - Nome do Treino:", workoutName);
+      console.log("  - Descrição:", description);
+      console.log("  - Nome do Exercício:", exerciseName);
+      console.log("  - Séries:", sets);
+      console.log("  - Repetições:", reps);
+      console.log("  - Peso:", weight);
+
+      if (!exerciseName) {
+        console.log("❌ Linha ignorada - nome do exercício vazio");
+        return;
+      }
 
       if (!workoutMap.has(workoutName)) {
+        console.log("🆕 Criando novo treino:", workoutName);
         workoutMap.set(workoutName, {
           id: uuidv4(),
           name: workoutName,
@@ -164,6 +156,7 @@ const WorkoutImport = () => {
       }
 
       const workout = workoutMap.get(workoutName)!;
+      console.log("➕ Adicionando exercício ao treino:", exerciseName);
       workout.exercises.push({
         id: uuidv4(),
         name: exerciseName,
@@ -172,7 +165,14 @@ const WorkoutImport = () => {
       });
     });
 
-    return Array.from(workoutMap.values());
+    const result = Array.from(workoutMap.values());
+    console.log("\n✅ Processamento concluído:");
+    console.log("📊 Treinos encontrados:", result.length);
+    result.forEach((workout, index) => {
+      console.log(`  ${index + 1}. ${workout.name} - ${workout.exercises.length} exercícios`);
+    });
+
+    return result;
   };
 
   const handleImport = async () => {
@@ -185,6 +185,10 @@ const WorkoutImport = () => {
       return;
     }
 
+    console.log("🚀 Iniciando importação...");
+    console.log("📁 Arquivo:", file.name);
+    console.log("👤 Usuário:", user.id);
+    
     setIsProcessing(true);
 
     Papa.parse(file, {
@@ -192,10 +196,20 @@ const WorkoutImport = () => {
       skipEmptyLines: true,
       complete: async (results) => {
         try {
+          console.log("📊 Resultados do parsing:", results);
+          console.log("📋 Número de linhas:", results.data.length);
+          console.log("🏷️ Headers encontrados:", results.meta.fields);
+          
           const data = results.data as CSVRow[];
+          console.log("🔍 Primeiras 3 linhas de dados:", data.slice(0, 3));
+          
           const workouts = processWorkouts(data);
 
+          console.log("✅ Treinos processados:", workouts);
+          console.log("📊 Número de treinos:", workouts.length);
+
           if (workouts.length === 0) {
+            console.log("❌ Nenhum treino encontrado - mostrando erro");
             toast({
               title: "Nenhum treino encontrado",
               description: "Verifique se a planilha está no formato correto.",
@@ -205,8 +219,11 @@ const WorkoutImport = () => {
             return;
           }
 
+          console.log("💾 Iniciando salvamento no Supabase...");
+          
           // Salvar treinos no Supabase
           for (const workout of workouts) {
+            console.log(`💾 Salvando treino: ${workout.name}`);
             const { data: workoutData, error: workoutError } = await supabase
               .from('workouts')
               .insert({
@@ -220,34 +237,45 @@ const WorkoutImport = () => {
               .single();
 
             if (workoutError) {
-              console.error("Erro ao criar treino:", workoutError);
+              console.error("❌ Erro ao criar treino:", workoutError);
               continue;
             }
 
+            console.log(`✅ Treino salvo: ${workout.name}`);
+
             // Salvar exercícios
             if (workout.exercises.length > 0) {
+              console.log(`💾 Salvando ${workout.exercises.length} exercícios para ${workout.name}`);
               const exercisesToInsert = workout.exercises.map(ex => ({
                 id: uuidv4(),
                 workout_id: workout.id,
                 name: ex.name,
                 sets: ex.sets,
-                reps: isNaN(Number(ex.reps)) ? 0 : Number(ex.reps)
+                reps: String(ex.reps) // Garantir que seja string
               }));
+
+              console.log("📝 Exercícios para inserir:", exercisesToInsert);
 
               const { error: exercisesError } = await supabase
                 .from('exercises')
                 .insert(exercisesToInsert);
 
               if (exercisesError) {
-                console.error("Erro ao criar exercícios:", exercisesError);
+                console.error("❌ Erro ao criar exercícios:", exercisesError);
+              } else {
+                console.log(`✅ Exercícios salvos para ${workout.name}`);
               }
             }
           }
 
+          console.log("💾 Atualizando localStorage...");
+          
           // Atualizar localStorage
           const existingWorkouts = JSON.parse(localStorage.getItem(`workouts_${user.id}`) || '[]');
           const updatedWorkouts = [...workouts, ...existingWorkouts];
           localStorage.setItem(`workouts_${user.id}`, JSON.stringify(updatedWorkouts));
+
+          console.log("✅ Importação concluída com sucesso!");
 
           toast({
             title: "Treinos importados",
@@ -256,7 +284,7 @@ const WorkoutImport = () => {
 
           navigate('/workouts');
         } catch (error) {
-          console.error("Erro ao processar arquivo:", error);
+          console.error("❌ Erro ao processar arquivo:", error);
           toast({
             title: "Erro na importação",
             description: "Não foi possível processar o arquivo.",
@@ -267,7 +295,7 @@ const WorkoutImport = () => {
         }
       },
       error: (error) => {
-        console.error("Erro ao ler arquivo:", error);
+        console.error("❌ Erro ao ler arquivo:", error);
         toast({
           title: "Erro ao ler arquivo",
           description: "Não foi possível ler o arquivo CSV.",
@@ -298,8 +326,12 @@ const WorkoutImport = () => {
       <Alert>
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          <strong>Formato obrigatório:</strong> O arquivo deve ser um CSV com as colunas: 
-          "Nome do Treino", "Descrição do Treino", "Nome do Exercício", "Séries", "Repetições", "Peso (kg)"
+          <strong>Formato aceito:</strong> O arquivo deve ser um CSV com pelo menos as colunas: 
+          "Nome do Exercício", "Séries", "Repetições". 
+          <br />
+          <strong>Colunas opcionais:</strong> "Nome do Treino", "Descrição do Treino", "Peso (kg)"
+          <br />
+          <strong>Se não houver "Nome do Treino":</strong> Será criado um treino chamado "Treino Importado"
         </AlertDescription>
       </Alert>
 

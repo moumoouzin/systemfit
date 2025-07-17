@@ -10,6 +10,7 @@ export interface DraftWorkout {
     name: string;
     sets: number;
     reps: string;
+    notes?: string;
     lastWeight?: number;
   }>;
   createdAt: string;

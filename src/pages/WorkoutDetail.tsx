@@ -25,6 +25,7 @@ const WorkoutDetail = () => {
     setNotes,
     toggleExerciseCompletion,
     updateWeight,
+    updateExerciseNotes,
     handleFinishWorkout
   } = useWorkoutSession({ workoutId: id });
 
@@ -89,6 +90,7 @@ const WorkoutDetail = () => {
               status={status}
               onToggleCompletion={toggleExerciseCompletion}
               onUpdateWeight={updateWeight}
+              onUpdateNotes={updateExerciseNotes}
             />
           );
         })}

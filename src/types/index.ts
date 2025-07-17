@@ -27,7 +27,8 @@ export interface Exercise {
   id: string;
   name: string;
   sets: number;
-  reps: string | number;  // Updated to accept both string and number
+  reps: string;  // Sempre string para aceitar texto livre
+  notes?: string;  // Campo opcional para observações
 }
 
 export interface ExerciseStatus {
@@ -52,7 +53,7 @@ export interface WorkoutExerciseHistory {
   id: string;
   name: string;
   sets: number;
-  reps: string | number;  // Updated to accept both string and number
+  reps: string;  // Sempre string para aceitar texto livre
   weight: number;
   completed: boolean;
 }

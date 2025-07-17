@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, X, Save, Weight, Info, FileText } from "lucide-react";
+import { Plus, X, Save, Weight, Info } from "lucide-react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -23,8 +23,6 @@ import { Workout, Exercise } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
-import { useDraftWorkout, DraftWorkout } from "@/hooks/useDraftWorkout";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const workoutFormSchema = z.object({
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres").max(50, "Nome deve ter no máximo 50 caracteres"),
@@ -48,19 +46,15 @@ interface PreviousWeight {
   weight: number;
 }
 
-const NewWorkout = () => {
+const EditWorkout = () => {
   const navigate = useNavigate();
-  const location = useLocation();
+  const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [previousWeights, setPreviousWeights] = useState<PreviousWeight[]>([]);
   const [isLoadingWeights, setIsLoadingWeights] = useState(false);
-  const { draft, saveDraft, deleteDraft, hasDraft } = useDraftWorkout();
-  const [showDraftAlert, setShowDraftAlert] = useState(false);
-  
-  // Verificar se veio de um parâmetro para continuar um rascunho
-  const shouldLoadDraft = location.state?.loadDraft === true;
-  
+
   const form = useForm<WorkoutFormValues>({
     resolver: zodResolver(workoutFormSchema),
     defaultValues: {
@@ -72,6 +66,66 @@ const NewWorkout = () => {
     },
   });
 
+  // Carregar o treino existente
+  useEffect(() => {
+    const loadWorkout = async () => {
+      if (!id || !user?.id) return;
+
+      setIsLoading(true);
+      try {
+        const { data: workoutData, error: workoutError } = await supabase
+          .from('workouts')
+          .select(`
+            *,
+            exercises (*)
+          `)
+          .eq('id', id)
+          .eq('user_id', user.id)
+          .single();
+
+        if (workoutError) {
+          console.error("Error fetching workout:", workoutError);
+          toast({
+            title: "Erro ao carregar treino",
+            description: "Não foi possível carregar o treino para edição.",
+            variant: "destructive",
+          });
+          navigate("/workouts");
+          return;
+        }
+
+        if (workoutData) {
+          const exercises = workoutData.exercises.map((ex: any) => ({
+            id: ex.id,
+            name: ex.name,
+            sets: ex.sets,
+            reps: ex.reps,
+            notes: ex.notes || "",
+            lastWeight: undefined
+          }));
+
+          form.reset({
+            name: workoutData.name,
+            description: "",
+            exercises: exercises
+          });
+        }
+      } catch (error) {
+        console.error("Error loading workout:", error);
+        toast({
+          title: "Erro ao carregar treino",
+          description: "Não foi possível carregar o treino para edição.",
+          variant: "destructive",
+        });
+        navigate("/workouts");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadWorkout();
+  }, [id, user?.id, form, navigate]);
+
   useEffect(() => {
     setPreviousWeights([
       { exerciseName: 'Supino', weight: 60 },
@@ -81,84 +135,6 @@ const NewWorkout = () => {
       { exerciseName: 'Rosca', weight: 20 },
     ]);
   }, []);
-
-  // Verificar se deve mostrar o alerta de rascunho
-  useEffect(() => {
-    if (hasDraft && !shouldLoadDraft) {
-      setShowDraftAlert(true);
-    }
-  }, [hasDraft, shouldLoadDraft]);
-
-  // Carregar rascunho se indicado
-  useEffect(() => {
-    if (shouldLoadDraft && draft) {
-      loadDraftIntoForm(draft);
-      setShowDraftAlert(false);
-    }
-  }, [shouldLoadDraft, draft]);
-
-  // Salvar automaticamente como rascunho a cada mudança
-  const watchedValues = form.watch();
-  useEffect(() => {
-    if (!user?.id) return;
-    
-    // Só salva se houver conteúdo significativo
-    const hasContent = watchedValues.name.trim() || 
-                      watchedValues.description?.trim() || 
-                      watchedValues.exercises.some(ex => ex.name.trim());
-    
-    if (hasContent && !showDraftAlert) {
-      const draftData: DraftWorkout = {
-        id: uuidv4(),
-        name: watchedValues.name || "",
-        description: watchedValues.description || "",
-        exercises: watchedValues.exercises.map(ex => ({
-          id: ex.id || uuidv4(),
-          name: ex.name || "",
-          sets: ex.sets || 3,
-          reps: ex.reps || "",
-          lastWeight: ex.lastWeight
-        })),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-      
-      // Debounce para não salvar a cada tecla
-      const timeoutId = setTimeout(() => {
-        saveDraft(draftData);
-      }, 1000);
-      
-      return () => clearTimeout(timeoutId);
-    }
-  }, [watchedValues, user?.id, saveDraft, showDraftAlert]);
-
-  const loadDraftIntoForm = (draftData: DraftWorkout) => {
-    form.reset({
-      name: draftData.name,
-      description: draftData.description,
-      exercises: draftData.exercises
-    });
-  };
-
-  const handleLoadDraft = () => {
-    if (draft) {
-      loadDraftIntoForm(draft);
-      setShowDraftAlert(false);
-      toast({
-        title: "Rascunho carregado",
-        description: "Seu rascunho foi carregado com sucesso!",
-      });
-    }
-  };
-
-  const handleDiscardDraft = () => {
-    deleteDraft();
-    setShowDraftAlert(false);
-    toast({
-      title: "Rascunho descartado",
-      description: "O rascunho foi removido.",
-    });
-  };
 
   const findPreviousWeight = (exerciseName: string): number | undefined => {
     if (!exerciseName || exerciseName.trim() === '') return undefined;
@@ -202,45 +178,43 @@ const NewWorkout = () => {
   };
 
   const onSubmit = async (data: WorkoutFormValues) => {
+    if (!id || !user?.id) return;
+    
     setIsSubmitting(true);
     
     try {
-      if (!user?.id) {
-        toast({
-          title: "Erro",
-          description: "Você precisa estar logado para criar um treino.",
-          variant: "destructive",
-        });
-        setIsSubmitting(false);
-        return;
-      }
-      
-      const currentDate = new Date().toISOString();
-      const workoutId = uuidv4();
-      
-      const { data: workoutData, error: workoutError } = await supabase
+      // Atualizar o treino
+      const { error: workoutError } = await supabase
         .from('workouts')
-        .insert({
-          id: workoutId,
-          user_id: user.id,
+        .update({
           name: data.name,
-          created_at: currentDate,
-          updated_at: currentDate
+          updated_at: new Date().toISOString()
         })
-        .select()
-        .single();
+        .eq('id', id)
+        .eq('user_id', user.id);
       
       if (workoutError) {
-        console.error("Error creating workout in Supabase:", workoutError);
-        throw new Error("Não foi possível criar o treino no banco de dados.");
+        console.error("Error updating workout:", workoutError);
+        throw new Error("Não foi possível atualizar o treino.");
       }
-      
+
+      // Deletar exercícios existentes
+      const { error: deleteError } = await supabase
+        .from('exercises')
+        .delete()
+        .eq('workout_id', id);
+
+      if (deleteError) {
+        console.error("Error deleting exercises:", deleteError);
+      }
+
+      // Inserir novos exercícios
       const exercisesToInsert = data.exercises.map(ex => ({
         id: uuidv4(),
-        workout_id: workoutId,
+        workout_id: id,
         name: ex.name,
         sets: ex.sets,
-        reps: ex.reps, // Salvar como string, não converter para número
+        reps: ex.reps,
         notes: ex.notes || null
       }));
       
@@ -250,42 +224,37 @@ const NewWorkout = () => {
           .insert(exercisesToInsert);
         
         if (exercisesError) {
-          console.error("Error creating exercises in Supabase:", exercisesError);
-          console.log("Continuing despite exercise insert error");
+          console.error("Error creating exercises:", exercisesError);
+          throw new Error("Não foi possível atualizar os exercícios.");
         }
       }
-      
-      const newWorkout: Workout = {
-        id: workoutId,
-        name: data.name,
-        exercises: data.exercises.map(ex => ({
-          id: ex.id,
-          name: ex.name,
-          sets: ex.sets,
-          reps: ex.reps,
-          notes: ex.notes
-        })),
-        createdAt: currentDate,
-        updatedAt: currentDate
-      };
-      
+
+      // Atualizar localStorage
       const existingWorkouts = JSON.parse(localStorage.getItem(`workouts_${user.id}`) || '[]');
-      localStorage.setItem(`workouts_${user.id}`, JSON.stringify([newWorkout, ...existingWorkouts]));
-      
-      // Deletar rascunho após criação bem-sucedida
-      deleteDraft();
+      const updatedWorkouts = existingWorkouts.map((w: Workout) => 
+        w.id === id 
+          ? { ...w, name: data.name, exercises: data.exercises.map(ex => ({
+              id: ex.id,
+              name: ex.name,
+              sets: ex.sets,
+              reps: ex.reps,
+              notes: ex.notes
+            })) }
+          : w
+      );
+      localStorage.setItem(`workouts_${user.id}`, JSON.stringify(updatedWorkouts));
       
       toast({
-        title: "Treino criado",
-        description: "Seu novo treino foi criado com sucesso!",
+        title: "Treino atualizado",
+        description: "Seu treino foi atualizado com sucesso!",
       });
       
       navigate("/workouts");
     } catch (error) {
-      console.error("Error creating workout:", error);
+      console.error("Error updating workout:", error);
       toast({
-        title: "Erro ao criar treino",
-        description: error instanceof Error ? error.message : "Não foi possível criar o treino. Tente novamente.",
+        title: "Erro ao atualizar treino",
+        description: error instanceof Error ? error.message : "Não foi possível atualizar o treino. Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -302,13 +271,21 @@ const NewWorkout = () => {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Novo Treino</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Editar Treino</h1>
           <p className="text-muted-foreground">
-            Crie um novo treino personalizado
+            Edite seu treino personalizado
           </p>
         </div>
         <Button 
@@ -319,38 +296,13 @@ const NewWorkout = () => {
         </Button>
       </div>
 
-      {showDraftAlert && (
-        <Alert className="border-orange-200 bg-orange-50">
-          <FileText className="h-4 w-4" />
-          <AlertDescription>
-            Você tem um rascunho de treino salvo. Deseja continuar editando ou começar um novo?
-            <div className="flex gap-2 mt-3">
-              <Button 
-                size="sm" 
-                variant="outline" 
-                onClick={handleLoadDraft}
-              >
-                Continuar rascunho
-              </Button>
-              <Button 
-                size="sm" 
-                variant="ghost" 
-                onClick={handleDiscardDraft}
-              >
-                Começar novo
-              </Button>
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
-
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           <Card>
             <CardHeader>
               <CardTitle>Informações básicas</CardTitle>
               <CardDescription>
-                Preencha as informações gerais do seu treino
+                Edite as informações gerais do seu treino
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -370,27 +322,6 @@ const NewWorkout = () => {
                   </FormItem>
                 )}
               />
-              
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Descrição (opcional)</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Descrição ou notas sobre este treino" 
-                        className="resize-none" 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Adicione notas ou detalhes sobre este treino.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             </CardContent>
           </Card>
 
@@ -399,7 +330,7 @@ const NewWorkout = () => {
               <div>
                 <CardTitle>Exercícios</CardTitle>
                 <CardDescription>
-                  Adicione os exercícios para este treino
+                  Edite os exercícios para este treino
                 </CardDescription>
               </div>
               <Button 
@@ -513,40 +444,6 @@ const NewWorkout = () => {
                           </p>
                         )}
                       </div>
-                      
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <FormLabel htmlFor={`exercises.${index}.lastWeight`}>Última carga (kg)</FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Registre a última carga utilizada neste exercício</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </div>
-                        <Controller
-                          control={form.control}
-                          name={`exercises.${index}.lastWeight`}
-                          render={({ field }) => (
-                            <div className="flex items-center gap-2">
-                              <Input
-                                id={`exercises.${index}.lastWeight`}
-                                type="number"
-                                min={0}
-                                placeholder={isLoadingWeights ? "Carregando..." : "0"}
-                                value={field.value === undefined ? "" : field.value}
-                                onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-                                className="w-full"
-                              />
-                              <Weight className="h-5 w-5 text-muted-foreground" />
-                            </div>
-                          )}
-                        />
-                      </div>
                     </div>
                   </div>
                 ))}
@@ -571,7 +468,7 @@ const NewWorkout = () => {
               ) : (
                 <>
                   <Save className="mr-2 h-4 w-4" />
-                  Criar Treino
+                  Atualizar Treino
                 </>
               )}
             </Button>
@@ -582,4 +479,4 @@ const NewWorkout = () => {
   );
 };
 
-export default NewWorkout;
+export default EditWorkout; 
