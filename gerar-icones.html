@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Gerar Ícones PNG</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        canvas { border: 1px solid #ccc; margin: 10px; }
+        button { padding: 10px 20px; margin: 10px; font-size: 16px; }
+        .container { text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Gerar Ícones PNG para PWA</h1>
+        
+        <div>
+            <canvas id="canvas192" width="192" height="192"></canvas>
+            <canvas id="canvas512" width="512" height="512"></canvas>
+        </div>
+        
+        <div>
+            <button onclick="gerarIcones()">Gerar Ícones</button>
+            <button onclick="baixarIcones()">Baixar Ícones</button>
+        </div>
+        
+        <div id="status"></div>
+    </div>
+
+    <script>
+        function criarIcone(canvasId, tamanho) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            
+            // Fundo roxo
+            ctx.fillStyle = '#8b5cf6';
+            ctx.fillRect(0, 0, tamanho, tamanho);
+            
+            // Círculo branco
+            ctx.fillStyle = 'white';
+            ctx.globalAlpha = 0.9;
+            ctx.beginPath();
+            ctx.arc(tamanho/2, tamanho/2, tamanho/3, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Quadrado roxo no centro
+            ctx.fillStyle = '#8b5cf6';
+            ctx.globalAlpha = 1;
+            const quadradoTamanho = tamanho/4;
+            ctx.fillRect(tamanho/2 - quadradoTamanho/2, tamanho/2 - quadradoTamanho/2, quadradoTamanho, quadradoTamanho);
+            
+            // Círculo branco pequeno
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(tamanho/2, tamanho/2, tamanho/24, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Linhas brancas (símbolo de fitness)
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = tamanho/48;
+            ctx.lineCap = 'round';
+            
+            // Linha vertical
+            ctx.beginPath();
+            ctx.moveTo(tamanho/2, tamanho/2 - tamanho/6);
+            ctx.lineTo(tamanho/2, tamanho/2 + tamanho/6);
+            ctx.stroke();
+            
+            // Linha horizontal
+            ctx.beginPath();
+            ctx.moveTo(tamanho/2 - tamanho/6, tamanho/2);
+            ctx.lineTo(tamanho/2 + tamanho/6, tamanho/2);
+            ctx.stroke();
+        }
+        
+        function gerarIcones() {
+            criarIcone('canvas192', 192);
+            criarIcone('canvas512', 512);
+            document.getElementById('status').innerHTML = '<p style="color: green;">Ícones gerados com sucesso!</p>';
+        }
+        
+        function baixarIcones() {
+            // Download 192x192
+            const canvas192 = document.getElementById('canvas192');
+            const link192 = document.createElement('a');
+            link192.download = 'pwa-192x192.png';
+            link192.href = canvas192.toDataURL();
+            link192.click();
+            
+            // Download 512x512
+            const canvas512 = document.getElementById('canvas512');
+            const link512 = document.createElement('a');
+            link512.download = 'pwa-512x512.png';
+            link512.href = canvas512.toDataURL();
+            link512.click();
+            
+            document.getElementById('status').innerHTML = '<p style="color: green;">Ícones baixados! Mova-os para a pasta public/</p>';
+        }
+        
+        // Gerar ícones ao carregar
+        window.onload = function() {
+            gerarIcones();
+        };
+    </script>
+</body>
+</html> 

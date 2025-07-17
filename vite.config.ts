@@ -36,7 +36,7 @@ export default defineConfig(({ mode }) => ({
           },
         ],
       },
-      includeAssets: ['favicon.ico', 'apple-touch-icon.svg', 'masked-icon.svg'],
+      includeAssets: ['favicon.ico'],
       manifest: {
         name: 'SystemFit - Seu Personal Trainer',
         short_name: 'SystemFit',
@@ -59,32 +59,23 @@ export default defineConfig(({ mode }) => ({
             type: 'image/x-icon',
           },
           {
-            src: 'pwa-192x192.png',
+            src: 'favicon.ico',
             sizes: '192x192',
-            type: 'image/png',
+            type: 'image/x-icon',
             purpose: 'any',
           },
           {
-            src: 'pwa-512x512.png',
+            src: 'favicon.ico',
             sizes: '512x512',
-            type: 'image/png',
+            type: 'image/x-icon',
             purpose: 'any',
           },
           {
-            src: 'pwa-512x512.png',
+            src: 'favicon.ico',
             sizes: '512x512',
-            type: 'image/png',
+            type: 'image/x-icon',
             purpose: 'maskable',
           },
-        ],
-        screenshots: [
-          {
-            src: 'pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            form_factor: 'wide',
-            label: 'Tela principal do SystemFit'
-          }
         ],
         shortcuts: [
           {
@@ -92,19 +83,16 @@ export default defineConfig(({ mode }) => ({
             short_name: 'Novo Treino',
             description: 'Criar um novo treino',
             url: '/workouts/new',
-            icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }]
+            icons: [{ src: 'favicon.ico', sizes: '192x192' }]
           },
           {
             name: 'Histórico',
             short_name: 'Histórico',
             description: 'Ver histórico de treinos',
             url: '/history',
-            icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }]
+            icons: [{ src: 'favicon.ico', sizes: '192x192' }]
           }
-        ],
-        edge_side_panel: {
-          preferred_width: 400
-        }
+        ]
       },
     }),
     mode === 'development' &&

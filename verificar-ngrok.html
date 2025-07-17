@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Verificar Ngrok</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .status { padding: 10px; margin: 10px; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        button { padding: 10px 20px; margin: 10px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Verificar Status do Ngrok</h1>
+    
+    <button onclick="verificarNgrok()">Verificar Ngrok</button>
+    <button onclick="abrirNgrok()">Abrir Ngrok</button>
+    
+    <div id="status"></div>
+    
+    <div id="urls"></div>
+
+    <script>
+        async function verificarNgrok() {
+            const statusDiv = document.getElementById('status');
+            const urlsDiv = document.getElementById('urls');
+            
+            try {
+                const response = await fetch('http://localhost:4040/api/tunnels');
+                const data = await response.json();
+                
+                if (data.tunnels && data.tunnels.length > 0) {
+                    statusDiv.innerHTML = '<div class="status success">✅ Ngrok está funcionando!</div>';
+                    
+                    let urlsHtml = '<h3>URLs Disponíveis:</h3>';
+                    data.tunnels.forEach(tunnel => {
+                        urlsHtml += `
+                            <div style="margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                                <strong>${tunnel.name}:</strong> 
+                                <a href="${tunnel.public_url}" target="_blank">${tunnel.public_url}</a>
+                                <br>
+                                <small>Status: ${tunnel.status}</small>
+                            </div>
+                        `;
+                    });
+                    urlsDiv.innerHTML = urlsHtml;
+                } else {
+                    statusDiv.innerHTML = '<div class="status error">❌ Nenhum túnel encontrado</div>';
+                    urlsDiv.innerHTML = '<p>Execute: <code>ngrok http 4173</code></p>';
+                }
+            } catch (error) {
+                statusDiv.innerHTML = '<div class="status error">❌ Erro ao conectar com ngrok</div>';
+                urlsDiv.innerHTML = '<p>Certifique-se de que o ngrok está rodando</p>';
+            }
+        }
+        
+        function abrirNgrok() {
+            window.open('http://localhost:4040', '_blank');
+        }
+        
+        // Verificar automaticamente
+        window.onload = function() {
+            setTimeout(verificarNgrok, 1000);
+        };
+    </script>
+</body>
+</html> 
