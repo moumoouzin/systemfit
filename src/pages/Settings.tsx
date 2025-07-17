@@ -25,11 +25,12 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { Shield, Bell, User } from "lucide-react";
+import { Shield, Bell, User, Smartphone } from "lucide-react";
 import ProfilePhotoUpload from "@/components/ProfilePhotoUpload";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useTheme } from "@/contexts/ThemeContext";
 import MainLayout from "@/layouts/MainLayout";
+import { PWADebug } from "@/components/PWADebug";
 
 const profileFormSchema = z.object({
   name: z
@@ -129,6 +130,10 @@ const Settings = () => {
             <TabsTrigger value="security" className="flex items-center gap-2">
               <Shield className="h-4 w-4" />
               <span>Segurança</span>
+            </TabsTrigger>
+            <TabsTrigger value="pwa" className="flex items-center gap-2">
+              <Smartphone className="h-4 w-4" />
+              <span>PWA</span>
             </TabsTrigger>
           </TabsList>
 
@@ -258,6 +263,20 @@ const Settings = () => {
                     </Button>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="pwa" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Progressive Web App (PWA)</CardTitle>
+                <CardDescription>
+                  Status e informações sobre a instalação do app no seu dispositivo.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <PWADebug />
               </CardContent>
             </Card>
           </TabsContent>
