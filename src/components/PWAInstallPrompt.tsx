@@ -28,7 +28,8 @@ export const PWAInstallPrompt = () => {
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-      setShowInstallPrompt(true);
+      // Mostrar prompt imediatamente
+      setTimeout(() => setShowInstallPrompt(true), 1000);
     };
 
     const handleAppInstalled = () => {
@@ -37,6 +38,16 @@ export const PWAInstallPrompt = () => {
       setDeferredPrompt(null);
     };
 
+    // Verificar se pode instalar mesmo sem evento
+    if ('serviceWorker' in navigator && !isInstalled) {
+      setTimeout(() => {
+        // Mostrar prompt manual para iOS
+        if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+          setShowInstallPrompt(true);
+        }
+      }, 3000);
+    }
+
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
 
@@ -44,7 +55,7 @@ export const PWAInstallPrompt = () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
-  }, []);
+  }, [isInstalled]);
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
@@ -79,7 +90,10 @@ export const PWAInstallPrompt = () => {
             <div className="flex-1">
               <CardTitle className="text-lg">Instalar SystemFit</CardTitle>
               <CardDescription>
-                Instale o app para acessar mais rápido e usar offline
+                {deferredPrompt 
+                  ? "Instale o app para acessar mais rápido e usar offline"
+                  : "No Safari: toque em 'Compartilhar' → 'Adicionar à Tela de Início'"
+                }
               </CardDescription>
             </div>
             <Button
@@ -94,20 +108,22 @@ export const PWAInstallPrompt = () => {
         </CardHeader>
         <CardContent className="pt-0">
           <div className="flex gap-2">
-            <Button
-              onClick={handleInstallClick}
-              className="flex-1"
-              size="sm"
-            >
-              <Download className="mr-2 h-4 w-4" />
-              Instalar
-            </Button>
+            {deferredPrompt && (
+              <Button
+                onClick={handleInstallClick}
+                className="flex-1"
+                size="sm"
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Instalar
+              </Button>
+            )}
             <Button
               variant="outline"
               onClick={handleDismiss}
               size="sm"
             >
-              Agora não
+              {deferredPrompt ? "Agora não" : "Entendi"}
             </Button>
           </div>
         </CardContent>

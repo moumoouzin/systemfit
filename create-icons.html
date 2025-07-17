@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Criar Ícones PNG</title>
+</head>
+<body>
+    <h1>Criar Ícones PNG para PWA</h1>
+    
+    <canvas id="canvas192" width="192" height="192"></canvas>
+    <canvas id="canvas512" width="512" height="512"></canvas>
+    
+    <br>
+    <button onclick="downloadIcons()">Baixar Ícones</button>
+    
+    <script>
+        function createIcon(canvasId, size) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            
+            // Fundo roxo
+            ctx.fillStyle = '#8b5cf6';
+            ctx.fillRect(0, 0, size, size);
+            
+            // Círculo branco
+            ctx.fillStyle = 'white';
+            ctx.globalAlpha = 0.9;
+            ctx.beginPath();
+            ctx.arc(size/2, size/2, size/3, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Quadrado roxo no centro
+            ctx.fillStyle = '#8b5cf6';
+            ctx.globalAlpha = 1;
+            const squareSize = size/4;
+            ctx.fillRect(size/2 - squareSize/2, size/2 - squareSize/2, squareSize, squareSize);
+            
+            // Círculo branco pequeno
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(size/2, size/2, size/24, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Linhas brancas (símbolo de fitness)
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = size/48;
+            ctx.lineCap = 'round';
+            
+            // Linha vertical
+            ctx.beginPath();
+            ctx.moveTo(size/2, size/2 - size/6);
+            ctx.lineTo(size/2, size/2 + size/6);
+            ctx.stroke();
+            
+            // Linha horizontal
+            ctx.beginPath();
+            ctx.moveTo(size/2 - size/6, size/2);
+            ctx.lineTo(size/2 + size/6, size/2);
+            ctx.stroke();
+        }
+        
+        function downloadIcons() {
+            createIcon('canvas192', 192);
+            createIcon('canvas512', 512);
+            
+            // Download 192x192
+            const canvas192 = document.getElementById('canvas192');
+            const link192 = document.createElement('a');
+            link192.download = 'pwa-192x192.png';
+            link192.href = canvas192.toDataURL();
+            link192.click();
+            
+            // Download 512x512
+            const canvas512 = document.getElementById('canvas512');
+            const link512 = document.createElement('a');
+            link512.download = 'pwa-512x512.png';
+            link512.href = canvas512.toDataURL();
+            link512.click();
+        }
+        
+        // Criar ícones ao carregar
+        window.onload = function() {
+            createIcon('canvas192', 192);
+            createIcon('canvas512', 512);
+        };
+    </script>
+</body>
+</html> 

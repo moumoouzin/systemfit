@@ -142,7 +142,7 @@ const Workouts = () => {
               if (validWorkouts.length > 0) {
                 setWorkouts(validWorkouts);
                 localStorage.setItem(`workouts_${user.id}`, JSON.stringify(validWorkouts));
-              } else {
+          } else {
                 // Don't create example workouts automatically - let user create their own
                 setWorkouts([]);
                 localStorage.removeItem(`workouts_${user.id}`);
