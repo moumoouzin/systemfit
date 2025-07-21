@@ -87,7 +87,7 @@ export const useWorkoutHistory = () => {
                 id: exerciseData.id || '',
                 name: exerciseData.name || '',
                 sets: exerciseData.sets || 0,
-                reps: exerciseData.reps || 0,
+                reps: String(exerciseData.reps || 0),
                 weight: exerciseData.weight || 0,
                 completed: exerciseData.completed || false
               };
@@ -99,7 +99,7 @@ export const useWorkoutHistory = () => {
               id: exercise.id,
               name: exercise.name,
               sets: exercise.sets,
-              reps: exercise.reps,
+              reps: String(exercise.reps),
               weight: exercise.exercise_weights?.[0]?.weight || 0,
               completed: true // We assume that if the exercise is registered, it was completed
             }));

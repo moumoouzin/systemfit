@@ -18,10 +18,12 @@ import {
 } from "@/components/ui/sidebar";
 import { Link, useLocation } from "react-router-dom";
 import { LayoutDashboard, Dumbbell, History, LineChart, Settings } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const MainLayout = ({ children }: PropsWithChildren) => {
   const { user, logout } = useAuth();
   const location = useLocation();
+  const isMobile = useIsMobile();
 
   const routes = [
     {
@@ -57,30 +59,31 @@ const MainLayout = ({ children }: PropsWithChildren) => {
   ];
 
   return (
-    <SidebarProvider defaultOpen={false}>
+    <SidebarProvider defaultOpen={!isMobile}>
       <div className="flex min-h-screen w-full bg-background">
         <Sidebar 
           side="left"
-          variant="floating" 
-          className="border-none shadow-none md:border-r md:shadow-sm"
+          variant={isMobile ? "sidebar" : "floating"}
+          className={isMobile ? "border-r" : "border-none shadow-none md:border-r md:shadow-sm"}
+          collapsible="icon"
         >
-          <SidebarHeader className="px-4 mb-2">
-            <div className="text-2xl font-bold">SystemFit</div>
-            <p className="text-sm text-muted-foreground">Fitness RPG</p>
+          <SidebarHeader className={`px-4 mb-2 ${isMobile ? 'py-4' : ''}`}>
+            <div className="text-xl md:text-2xl font-bold">SystemFit</div>
+            <p className="text-xs md:text-sm text-muted-foreground">Fitness RPG</p>
           </SidebarHeader>
           
           {user && (
-            <div className="px-4 mb-6 flex items-center gap-2">
-              <div className="flex-shrink-0 h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
-                <span className="text-primary font-medium">
+            <div className="px-4 mb-4 md:mb-6 flex items-center gap-2">
+              <div className="flex-shrink-0 h-8 w-8 md:h-10 md:w-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+                <span className="text-primary font-medium text-sm md:text-base">
                   {user.name?.charAt(0).toUpperCase() || user.username.charAt(0).toUpperCase()}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{user.name || user.username}</p>
+                <p className="text-xs md:text-sm font-medium truncate">{user.name || user.username}</p>
               </div>
-              <Button variant="ghost" size="icon" onClick={logout} title="Sair">
-                <LogOut className="h-5 w-5" />
+              <Button variant="ghost" size={isMobile ? "sm" : "icon"} onClick={logout} title="Sair">
+                <LogOut className="h-4 w-4 md:h-5 md:w-5" />
               </Button>
             </div>
           )}
@@ -93,10 +96,11 @@ const MainLayout = ({ children }: PropsWithChildren) => {
                     asChild 
                     isActive={route.active}
                     tooltip={route.label}
+                    size={isMobile ? "sm" : "default"}
                   >
                     <Link to={route.href} className="gap-2">
-                      <route.icon className="h-5 w-5" />
-                      <span>{route.label}</span>
+                      <route.icon className="h-4 w-4 md:h-5 md:w-5" />
+                      <span className="text-sm md:text-base">{route.label}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -105,14 +109,16 @@ const MainLayout = ({ children }: PropsWithChildren) => {
           </SidebarContent>
         </Sidebar>
         
-        <SidebarInset className="pt-6 pb-16 md:pb-6">
-          <div className="px-4 md:px-6 max-w-4xl mx-auto">
-            <div className="mb-6 flex items-center gap-4">
+        <SidebarInset className={`${isMobile ? 'pt-4 pb-20' : 'pt-6 pb-16 md:pb-6'}`}>
+          <div className={`px-3 md:px-6 ${isMobile ? 'max-w-full' : 'max-w-4xl mx-auto'}`}>
+            <div className={`mb-4 md:mb-6 flex items-center gap-2 md:gap-4 ${isMobile ? 'sticky top-0 bg-background/95 backdrop-blur-sm z-10 py-2' : ''}`}>
               <SidebarTrigger>
-                <Menu className="h-6 w-6" />
+                <Menu className="h-5 w-5 md:h-6 md:w-6" />
               </SidebarTrigger>
             </div>
-            {children}
+            <div className={isMobile ? 'space-y-4' : ''}>
+              {children}
+            </div>
           </div>
         </SidebarInset>
       </div>
