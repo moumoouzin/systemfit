@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Workout, Exercise, ExerciseStatus, SetStatus } from '@/types';
+import { Workout, Exercise, ExerciseStatus, SetStatus, ExerciseNotes } from '@/types';
 import { toast } from '@/components/ui/use-toast';
 
 export interface ActiveWorkout {

@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Workout, Exercise, ExerciseStatus, SetStatus } from "@/types";
+import { Workout, Exercise, ExerciseStatus, SetStatus, ExerciseNotes } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 
@@ -128,9 +128,55 @@ export const useWorkoutSession = ({ workoutId }: UseWorkoutSessionProps = {}) =>
     }
   };
 
+  const fetchPreviousNotes = async (exercises: Exercise[]) => {
+    if (!user?.id) return {};
+    
+    try {
+      const exerciseIds = exercises.map(ex => ex.id);
+      
+      // Get the latest notes for each exercise
+      const { data, error } = await supabase
+        .from('exercise_notes')
+        .select('*')
+        .eq('user_id', user.id)
+        .in('exercise_id', exerciseIds)
+        .order('date', { ascending: false });
+      
+      if (error) {
+        console.error("Error fetching previous notes:", error);
+        return {};
+      }
+      
+      // Group notes by exercise_id
+      const notesMap: Record<string, ExerciseNotes[]> = {};
+      if (data) {
+        data.forEach(record => {
+          if (!notesMap[record.exercise_id]) {
+            notesMap[record.exercise_id] = [];
+          }
+          notesMap[record.exercise_id].push({
+            exerciseId: record.exercise_id,
+            notes: record.notes,
+            workoutId: record.workout_id,
+            workoutName: record.workout_name,
+            date: record.date
+          });
+        });
+      }
+      
+      return notesMap;
+    } catch (error) {
+      console.error("Error in fetchPreviousNotes:", error);
+      return {};
+    }
+  };
+
   const initializeExerciseStatus = async (exercisesList: Exercise[]) => {
-    // Fetch previous weights for all exercises
-    const previousWeights = await fetchPreviousWeights(exercisesList);
+    // Fetch previous weights and notes for all exercises
+    const [previousWeights, previousNotes] = await Promise.all([
+      fetchPreviousWeights(exercisesList),
+      fetchPreviousNotes(exercisesList)
+    ]);
     
     const initialStatus: ExerciseStatus[] = exercisesList.map(exercise => ({
       id: exercise.id,
@@ -141,7 +187,9 @@ export const useWorkoutSession = ({ workoutId }: UseWorkoutSessionProps = {}) =>
         weight: 0,
         completed: false
       })),
-      previousWeight: previousWeights[exercise.id] || 0, // Add previous weight
+      notes: "",
+      previousWeight: previousWeights[exercise.id] || 0,
+      previousNotes: previousNotes[exercise.id] || [],
     }));
     
     setExerciseStatus(initialStatus);
@@ -279,6 +327,25 @@ export const useWorkoutSession = ({ workoutId }: UseWorkoutSessionProps = {}) =>
           } catch (weightError) {
             console.error('Error updating exercise weight:', weightError);
             // Continue despite weight tracking errors
+          }
+        }
+
+        // Save exercise notes if there are any
+        if (status.notes && status.notes.trim()) {
+          try {
+            await supabase
+              .from('exercise_notes')
+              .insert({
+                exercise_id: status.id,
+                user_id: user.id,
+                workout_session_id: sessionInsertData.id,
+                workout_id: workout.id,
+                workout_name: workout.name,
+                notes: status.notes.trim(),
+                date: new Date().toISOString()
+              });
+          } catch (notesError) {
+            console.error('Error saving exercise notes:', notesError);
           }
         }
       }

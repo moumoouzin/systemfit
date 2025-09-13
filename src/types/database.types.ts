@@ -263,6 +263,74 @@ export interface Database extends Omit<SupabaseDatabase, 'public'> {
           }
         ]
       }
+      exercise_notes: {
+        Row: {
+          id: string
+          exercise_id: string
+          user_id: string
+          workout_session_id: string | null
+          workout_id: string
+          workout_name: string
+          notes: string
+          date: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          exercise_id: string
+          user_id: string
+          workout_session_id?: string | null
+          workout_id: string
+          workout_name: string
+          notes: string
+          date?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          exercise_id?: string
+          user_id?: string
+          workout_session_id?: string | null
+          workout_id?: string
+          workout_name?: string
+          notes?: string
+          date?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exercise_notes_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exercise_notes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exercise_notes_workout_session_id_fkey"
+            columns: ["workout_session_id"]
+            isOneToOne: false
+            referencedRelation: "workout_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exercise_notes_workout_id_fkey"
+            columns: ["workout_id"]
+            isOneToOne: false
+            referencedRelation: "workouts"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       active_workouts: {
         Row: {
           id: string

@@ -35,7 +35,9 @@ export interface ExerciseStatus {
   id: string;
   completed: boolean;
   sets: SetStatus[];
+  notes: string;
   previousWeight?: number;
+  previousNotes?: ExerciseNotes[];
 }
 
 export interface SetStatus {
@@ -43,6 +45,14 @@ export interface SetStatus {
   reps: number;
   weight: number;
   completed: boolean;
+}
+
+export interface ExerciseNotes {
+  exerciseId: string;
+  notes: string;
+  workoutId: string;
+  workoutName: string;
+  date: string;
 }
 
 export interface WorkoutHistory {

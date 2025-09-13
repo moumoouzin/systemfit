@@ -106,9 +106,12 @@ const HistoryItem = ({ history, onDelete }: HistoryItemProps) => {
 
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <div 
+                      className="inline-flex items-center justify-center h-8 w-8 rounded-md hover:bg-accent hover:text-accent-foreground cursor-pointer"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    </div>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>

@@ -22,15 +22,20 @@ export const ExerciseCard = ({
   onUpdateWeight,
   onUpdateNotes
 }: ExerciseCardProps) => {
-  const [weight, setWeight] = useState<string>(status.weight.toString());
+  const [weight, setWeight] = useState<string>("0");
   const [notes, setNotes] = useState<string>(exercise.notes || "");
   const [showNotes, setShowNotes] = useState<boolean>(!!exercise.notes);
   
   useEffect(() => {
-    if (status.weight > 0) {
-      setWeight(status.weight.toString());
+    // Calculate average weight from sets
+    if (status.sets && status.sets.length > 0) {
+      const completedSets = status.sets.filter(set => set.completed && set.weight > 0);
+      if (completedSets.length > 0) {
+        const avgWeight = completedSets.reduce((sum, set) => sum + set.weight, 0) / completedSets.length;
+        setWeight(avgWeight.toString());
+      }
     }
-  }, [status.weight]);
+  }, [status.sets]);
 
   useEffect(() => {
     setNotes(exercise.notes || "");

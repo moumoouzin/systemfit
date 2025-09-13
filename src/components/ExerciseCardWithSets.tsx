@@ -4,8 +4,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Exercise, ExerciseStatus, SetStatus } from "@/types";
-import { Weight, TrendingUp, TrendingDown, Minus, FileText, Plus, Trash2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Exercise, ExerciseStatus, SetStatus, ExerciseNotes } from "@/types";
+import { Weight, TrendingUp, TrendingDown, Minus, FileText, Plus, Trash2, Bell, History } from "lucide-react";
 
 interface ExerciseCardWithSetsProps {
   exercise: Exercise;
@@ -22,13 +23,14 @@ export const ExerciseCardWithSets = ({
   onUpdateSets,
   onUpdateNotes
 }: ExerciseCardWithSetsProps) => {
-  const [notes, setNotes] = useState<string>(exercise.notes || "");
-  const [showNotes, setShowNotes] = useState<boolean>(!!exercise.notes);
+  const [notes, setNotes] = useState<string>(status.notes || "");
+  const [showNotes, setShowNotes] = useState<boolean>(!!status.notes);
+  const [showPreviousNotes, setShowPreviousNotes] = useState<boolean>(false);
   
   useEffect(() => {
-    setNotes(exercise.notes || "");
-    setShowNotes(!!exercise.notes);
-  }, [exercise.notes]);
+    setNotes(status.notes || "");
+    setShowNotes(!!status.notes);
+  }, [status.notes]);
 
   const handleSetChange = (setIndex: number, field: 'reps' | 'weight', value: string) => {
     const newSets = [...status.sets];
@@ -79,6 +81,9 @@ export const ExerciseCardWithSets = ({
       onUpdateNotes(exercise.id, newNotes);
     }
   };
+
+  const hasPreviousNotes = status.previousNotes && status.previousNotes.length > 0;
+  const latestPreviousNote = hasPreviousNotes ? status.previousNotes![0] : null;
 
   const calculateTotalWeight = () => {
     return status.sets.reduce((total, set) => total + (set.weight * set.reps), 0);
@@ -254,15 +259,50 @@ export const ExerciseCardWithSets = ({
               <label className="text-sm font-medium flex items-center gap-2">
                 <FileText className="h-4 w-4" />
                 Observações (opcional)
+                {hasPreviousNotes && (
+                  <Badge variant="outline" className="text-xs bg-blue-50 text-blue-600 border-blue-200">
+                    <Bell className="h-3 w-3 mr-1" />
+                    Último treino
+                  </Badge>
+                )}
               </label>
-              <button
-                type="button"
-                onClick={() => setShowNotes(!showNotes)}
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {showNotes ? "Ocultar" : "Mostrar"}
-              </button>
+              <div className="flex items-center gap-2">
+                {hasPreviousNotes && (
+                  <button
+                    type="button"
+                    onClick={() => setShowPreviousNotes(!showPreviousNotes)}
+                    className="text-xs text-blue-600 hover:text-blue-800 transition-colors flex items-center gap-1"
+                  >
+                    <History className="h-3 w-3" />
+                    {showPreviousNotes ? "Ocultar" : "Ver anterior"}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setShowNotes(!showNotes)}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showNotes ? "Ocultar" : "Mostrar"}
+                </button>
+              </div>
             </div>
+
+            {/* Observações do último treino */}
+            {hasPreviousNotes && showPreviousNotes && latestPreviousNote && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium text-blue-800">
+                    Última observação ({latestPreviousNote.workoutName})
+                  </span>
+                  <span className="text-xs text-blue-600">
+                    {new Date(latestPreviousNote.date).toLocaleDateString('pt-BR')}
+                  </span>
+                </div>
+                <p className="text-sm text-blue-700 italic">
+                  "{latestPreviousNote.notes}"
+                </p>
+              </div>
+            )}
             
             {showNotes && (
               <Textarea

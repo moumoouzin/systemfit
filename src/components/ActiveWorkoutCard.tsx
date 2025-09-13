@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ExerciseCard } from "@/components/ExerciseCard";
+import { ExerciseCardWithSets } from "@/components/ExerciseCardWithSets";
 import { ActiveWorkout } from "@/hooks/useActiveWorkout";
 import { Play, Pause, CheckCircle, FileText, Clock, X } from "lucide-react";
 import { format } from "date-fns";
@@ -177,15 +177,15 @@ export const ActiveWorkoutCard = ({
             if (!status) return null;
             
             return (
-              <ExerciseCard
+              <ExerciseCardWithSets
                 key={exercise.id}
                 exercise={exercise}
                 status={status}
                 onToggleCompletion={(id) => 
                   onUpdateExerciseStatus(id, { completed: !status.completed })
                 }
-                onUpdateWeight={(id, weight) => 
-                  onUpdateExerciseStatus(id, { weight })
+                onUpdateSets={(id, sets) => 
+                  onUpdateExerciseStatus(id, { sets })
                 }
                 onUpdateNotes={onUpdateExerciseNotes}
               />
