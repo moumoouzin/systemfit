@@ -75,12 +75,12 @@ const WorkoutCard = ({ workout, onDelete, onStartWorkout }: WorkoutCardProps) =>
   const estimatedTime = workout.exercises.length * 3;
   
   return (
-    <Card className="h-full flex flex-col hover:shadow-md transition-shadow">
-      <CardHeader className="pb-2">
+    <Card className="h-full flex flex-col hover:shadow-md transition-shadow w-full">
+      <CardHeader className="pb-2 px-3 sm:px-6 pt-3 sm:pt-6">
         <div className="flex justify-between items-start gap-2">
           <div className="min-w-0 flex-1">
-            <CardTitle className="flex items-center text-lg gap-2 truncate">
-              <Dumbbell className="h-5 w-5 flex-shrink-0 text-primary" />
+            <CardTitle className="flex items-center text-base sm:text-lg gap-2 truncate">
+              <Dumbbell className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 text-primary" />
               <span className="truncate">{workout.name}</span>
             </CardTitle>
             <CardDescription className="flex items-center text-xs">
@@ -88,15 +88,15 @@ const WorkoutCard = ({ workout, onDelete, onStartWorkout }: WorkoutCardProps) =>
               <span>{estimatedTime} min • {workout.exercises.length} exercícios</span>
             </CardDescription>
           </div>
-          <div className="flex gap-1">
+          <div className="flex gap-1 flex-shrink-0">
             <Button 
               variant="ghost" 
               size="icon" 
               onClick={handleEdit}
-              className="h-8 w-8 flex-shrink-0"
+              className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0"
               title="Editar treino"
             >
-              <Pencil className="h-4 w-4" />
+              <Pencil className="h-3 w-3 sm:h-4 sm:w-4" />
             </Button>
             {onDelete && (
               <AlertDialog>
@@ -104,10 +104,10 @@ const WorkoutCard = ({ workout, onDelete, onStartWorkout }: WorkoutCardProps) =>
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="h-8 w-8 flex-shrink-0 text-destructive"
+                    className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0 text-destructive"
                     title="Excluir treino"
                   >
-                    <Trash className="h-4 w-4" />
+                    <Trash className="h-3 w-3 sm:h-4 sm:w-4" />
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
@@ -132,10 +132,10 @@ const WorkoutCard = ({ workout, onDelete, onStartWorkout }: WorkoutCardProps) =>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="flex-1">
+      <CardContent className="flex-1 px-3 sm:px-6">
         <ul className="space-y-1 text-sm">
           {workout.exercises.slice(0, 3).map((exercise) => (
-            <li key={exercise.id} className="text-muted-foreground truncate">
+            <li key={exercise.id} className="text-muted-foreground truncate text-xs sm:text-sm">
               {exercise.name}: {exercise.sets} séries × {exercise.reps} reps
             </li>
           ))}
@@ -146,12 +146,12 @@ const WorkoutCard = ({ workout, onDelete, onStartWorkout }: WorkoutCardProps) =>
           )}
         </ul>
       </CardContent>
-      <CardFooter>
+      <CardFooter className="px-3 sm:px-6 pb-3 sm:pb-6">
         <Button 
-          className="w-full text-sm"
+          className="w-full text-xs sm:text-sm py-2"
           onClick={handleStartWorkout}
         >
-          <Play className="mr-2 h-4 w-4" />
+          <Play className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
           Iniciar Treino
         </Button>
       </CardFooter>

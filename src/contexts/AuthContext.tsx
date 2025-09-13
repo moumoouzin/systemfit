@@ -34,32 +34,37 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     let subscription: { unsubscribe: () => void } | null = null;
+    let mounted = true;
     
     // Check for an existing session first
     const checkSession = async () => {
       try {
-        setIsLoading(true);
-        console.log("Checking for existing session...");
         const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (!mounted) return;
         
         if (error) {
           console.error("Error getting session:", error);
           setUser(null);
+          setIsLoading(false);
           return;
         }
         
         if (session?.user) {
-          console.log("Found existing session, fetching profile for user:", session.user.id);
           await fetchProfile(session.user.id);
         } else {
-          console.log("No valid session found");
           setUser(null);
+        }
+        
+        if (mounted) {
+          setIsLoading(false);
         }
       } catch (error) {
         console.error("Error checking session:", error);
-        setUser(null);
-      } finally {
-        setIsLoading(false);
+        if (mounted) {
+          setUser(null);
+          setIsLoading(false);
+        }
       }
     };
 
@@ -67,17 +72,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const setupAuthListener = () => {
       const { data } = supabase.auth.onAuthStateChange(
         async (event, session) => {
-          console.log("Auth state changed:", event, session?.user?.id);
+          if (!mounted) return;
           
           if (event === 'SIGNED_IN' && session?.user) {
-            setIsLoading(true);
             await fetchProfile(session.user.id);
-            setIsLoading(false);
           } else if (event === 'SIGNED_OUT') {
             setUser(null);
           } else if (event === 'TOKEN_REFRESHED' && session?.user) {
-            // Token refreshed, ensure user data is still valid
-            console.log("Token refreshed for user:", session.user.id);
+            // Only fetch profile if we don't have user data
             if (!user) {
               await fetchProfile(session.user.id);
             }
@@ -89,10 +91,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
     
     checkSession().then(() => {
-      subscription = setupAuthListener();
+      if (mounted) {
+        subscription = setupAuthListener();
+      }
     });
 
     return () => {
+      mounted = false;
       if (subscription) {
         subscription.unsubscribe();
       }
