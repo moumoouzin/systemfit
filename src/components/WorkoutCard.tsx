@@ -75,17 +75,17 @@ const WorkoutCard = ({ workout, onDelete, onStartWorkout }: WorkoutCardProps) =>
   const estimatedTime = workout.exercises.length * 3;
   
   return (
-    <Card className="h-full flex flex-col hover:shadow-md transition-shadow w-full">
+    <Card className="h-full flex flex-col hover:shadow-md transition-shadow w-full max-w-full">
       <CardHeader className="pb-2 px-3 sm:px-6 pt-3 sm:pt-6">
         <div className="flex justify-between items-start gap-2">
           <div className="min-w-0 flex-1">
-            <CardTitle className="flex items-center text-base sm:text-lg gap-2 truncate">
+            <CardTitle className="flex items-center text-base sm:text-lg gap-2">
               <Dumbbell className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 text-primary" />
-              <span className="truncate">{workout.name}</span>
+              <span className="truncate break-words">{workout.name}</span>
             </CardTitle>
-            <CardDescription className="flex items-center text-xs">
+            <CardDescription className="flex items-center text-xs mt-1">
               <Clock className="mr-1 h-3 w-3 flex-shrink-0" />
-              <span>{estimatedTime} min • {workout.exercises.length} exercícios</span>
+              <span className="break-words">{estimatedTime} min • {workout.exercises.length} exercícios</span>
             </CardDescription>
           </div>
           <div className="flex gap-1 flex-shrink-0">
@@ -135,8 +135,8 @@ const WorkoutCard = ({ workout, onDelete, onStartWorkout }: WorkoutCardProps) =>
       <CardContent className="flex-1 px-3 sm:px-6">
         <ul className="space-y-1 text-sm">
           {workout.exercises.slice(0, 3).map((exercise) => (
-            <li key={exercise.id} className="text-muted-foreground truncate text-xs sm:text-sm">
-              {exercise.name}: {exercise.sets} séries × {exercise.reps} reps
+            <li key={exercise.id} className="text-muted-foreground text-xs sm:text-sm break-words">
+              <span className="font-medium">{exercise.name}</span>: {exercise.sets} séries × {exercise.reps} reps
             </li>
           ))}
           {workout.exercises.length > 3 && (

@@ -143,23 +143,24 @@ export const ExerciseCardWithSets = ({
 
   return (
     <Card className={status.completed ? "border-primary" : ""}>
-      <CardContent className="p-4">
-        <div className="flex flex-col space-y-4">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center space-x-3">
+      <CardContent className="p-3 sm:p-4">
+        <div className="flex flex-col space-y-3 sm:space-y-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start space-x-3 min-w-0 flex-1">
               <Checkbox 
                 id={`exercise-${exercise.id}`}
                 checked={status.completed}
                 onCheckedChange={() => onToggleCompletion(exercise.id)}
+                className="mt-1 flex-shrink-0"
               />
-              <div>
+              <div className="min-w-0 flex-1">
                 <label 
                   htmlFor={`exercise-${exercise.id}`}
-                  className={`text-lg font-medium ${status.completed ? "line-through text-muted-foreground" : ""}`}
+                  className={`text-base sm:text-lg font-medium block break-words ${status.completed ? "line-through text-muted-foreground" : ""}`}
                 >
                   {exercise.name}
                 </label>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground mt-1">
                   {exercise.sets} séries × {exercise.reps} reps
                 </p>
               </div>
@@ -175,47 +176,55 @@ export const ExerciseCardWithSets = ({
             
             <div className="space-y-2">
               {status.sets.map((set, index) => (
-                <div key={index} className="flex items-center space-x-2 p-2 border rounded-lg">
-                  <div className="flex items-center space-x-2 min-w-0 flex-1">
-                    <span className="text-sm font-medium w-8">#{set.setNumber}</span>
+                <div key={index} className="p-2 sm:p-3 border rounded-lg bg-card">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                    {/* Número da série */}
+                    <div className="flex items-center">
+                      <span className="text-xs font-medium text-muted-foreground min-w-[1.5rem]">#{set.setNumber}</span>
+                    </div>
                     
-                    <div className="flex items-center space-x-1 flex-1">
+                    {/* Inputs de reps e peso */}
+                    <div className="flex items-center gap-1 flex-1 min-w-0">
                       <Input
                         type="number"
                         value={set.reps || ''}
                         onChange={(e) => handleSetChange(index, 'reps', e.target.value)}
                         placeholder="Reps"
-                        className="w-20"
+                        className="w-12 text-center text-xs"
                         disabled={!status.completed}
                       />
-                      <span className="text-sm text-muted-foreground">×</span>
+                      <span className="text-xs text-muted-foreground">×</span>
                       <Input
                         type="number"
                         value={set.weight || ''}
                         onChange={(e) => handleSetChange(index, 'weight', e.target.value)}
                         placeholder="Peso"
-                        className="w-20"
+                        className="w-12 text-center text-xs"
                         disabled={!status.completed}
                       />
-                      <span className="text-sm text-muted-foreground">kg</span>
+                      <span className="text-xs text-muted-foreground">kg</span>
                     </div>
                     
-                    <Checkbox
-                      checked={set.completed}
-                      onCheckedChange={() => handleSetCompletion(index)}
-                      disabled={!status.completed}
-                    />
-                    
-                    {status.sets.length > 1 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeSet(index)}
-                        className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
+                    {/* Controles */}
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <Checkbox
+                        checked={set.completed}
+                        onCheckedChange={() => handleSetCompletion(index)}
+                        disabled={!status.completed}
+                        className="h-4 w-4"
+                      />
+                      
+                      {status.sets.length > 1 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeSet(index)}
+                          className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -234,20 +243,22 @@ export const ExerciseCardWithSets = ({
             
             {/* Resumo das séries */}
             {status.sets.some(set => set.completed) && (
-              <div className="bg-muted/50 p-3 rounded-lg space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Peso médio:</span>
-                  <span className="font-medium">{calculateAverageWeight().toFixed(1)}kg</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Volume total:</span>
-                  <span className="font-medium">{calculateTotalWeight().toFixed(1)}kg</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Séries completadas:</span>
-                  <span className="font-medium">
-                    {status.sets.filter(set => set.completed).length}/{status.sets.length}
-                  </span>
+              <div className="bg-muted/50 p-3 rounded-lg space-y-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">
+                  <div className="flex justify-between sm:flex-col sm:items-center sm:text-center">
+                    <span className="text-muted-foreground">Peso médio:</span>
+                    <span className="font-medium">{calculateAverageWeight().toFixed(1)}kg</span>
+                  </div>
+                  <div className="flex justify-between sm:flex-col sm:items-center sm:text-center">
+                    <span className="text-muted-foreground">Volume total:</span>
+                    <span className="font-medium">{calculateTotalWeight().toFixed(1)}kg</span>
+                  </div>
+                  <div className="flex justify-between sm:flex-col sm:items-center sm:text-center">
+                    <span className="text-muted-foreground">Séries completadas:</span>
+                    <span className="font-medium">
+                      {status.sets.filter(set => set.completed).length}/{status.sets.length}
+                    </span>
+                  </div>
                 </div>
               </div>
             )}
@@ -255,23 +266,23 @@ export const ExerciseCardWithSets = ({
 
           {/* Seção de Observações */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <label className="text-sm font-medium flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                Observações (opcional)
+                <FileText className="h-4 w-4 flex-shrink-0" />
+                <span className="break-words">Observações (opcional)</span>
                 {hasPreviousNotes && (
-                  <Badge variant="outline" className="text-xs bg-blue-50 text-blue-600 border-blue-200">
+                  <Badge variant="outline" className="text-xs bg-blue-50 text-blue-600 border-blue-200 flex-shrink-0">
                     <Bell className="h-3 w-3 mr-1" />
                     Último treino
                   </Badge>
                 )}
               </label>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 {hasPreviousNotes && (
                   <button
                     type="button"
                     onClick={() => setShowPreviousNotes(!showPreviousNotes)}
-                    className="text-xs text-blue-600 hover:text-blue-800 transition-colors flex items-center gap-1"
+                    className="text-xs text-blue-600 hover:text-blue-800 transition-colors flex items-center gap-1 whitespace-nowrap"
                   >
                     <History className="h-3 w-3" />
                     {showPreviousNotes ? "Ocultar" : "Ver anterior"}
@@ -280,7 +291,7 @@ export const ExerciseCardWithSets = ({
                 <button
                   type="button"
                   onClick={() => setShowNotes(!showNotes)}
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
                 >
                   {showNotes ? "Ocultar" : "Mostrar"}
                 </button>
@@ -290,15 +301,15 @@ export const ExerciseCardWithSets = ({
             {/* Observações do último treino */}
             {hasPreviousNotes && showPreviousNotes && latestPreviousNote && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-medium text-blue-800">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-2">
+                  <span className="text-xs font-medium text-blue-800 break-words">
                     Última observação ({latestPreviousNote.workoutName})
                   </span>
-                  <span className="text-xs text-blue-600">
+                  <span className="text-xs text-blue-600 whitespace-nowrap">
                     {new Date(latestPreviousNote.date).toLocaleDateString('pt-BR')}
                   </span>
                 </div>
-                <p className="text-sm text-blue-700 italic">
+                <p className="text-sm text-blue-700 italic break-words">
                   "{latestPreviousNote.notes}"
                 </p>
               </div>

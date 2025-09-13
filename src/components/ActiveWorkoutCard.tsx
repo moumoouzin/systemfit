@@ -82,7 +82,7 @@ export const ActiveWorkoutCard = ({
 
   return (
     <Card className="border-2 border-primary/20 bg-primary/5">
-      <CardHeader>
+      <CardHeader className="p-3 sm:p-6">
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <CardTitle className="flex items-center gap-2">
@@ -99,33 +99,33 @@ export const ActiveWorkoutCard = ({
               </div>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-1 sm:gap-2 flex-wrap">
             <Button
               variant="outline"
               size="sm"
               onClick={onPause}
-              className="flex items-center gap-2"
+              className="flex items-center gap-1 text-xs px-2 py-1 h-7"
             >
-              <Pause className="h-4 w-4" />
-              Pausar
+              <Pause className="h-3 w-3" />
+              <span className="hidden sm:inline">Pausar</span>
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={handleCancel}
               disabled={isCanceling}
-              className="flex items-center gap-2 text-destructive hover:text-destructive"
+              className="flex items-center gap-1 text-xs px-2 py-1 h-7 text-destructive hover:text-destructive"
             >
-              <X className="h-4 w-4" />
-              {isCanceling ? "Cancelando..." : "Cancelar"}
+              <X className="h-3 w-3" />
+              <span className="hidden sm:inline">{isCanceling ? "Cancelando..." : "Cancelar"}</span>
             </Button>
             <Button
               onClick={handleComplete}
               disabled={isCompleting}
-              className="flex items-center gap-2"
+              className="flex items-center gap-1 text-xs px-2 py-1 h-7"
             >
-              <CheckCircle className="h-4 w-4" />
-              {isCompleting ? "Finalizando..." : "Finalizar"}
+              <CheckCircle className="h-3 w-3" />
+              <span className="hidden sm:inline">{isCompleting ? "Finalizando..." : "Finalizar"}</span>
             </Button>
           </div>
         </div>
@@ -139,7 +139,7 @@ export const ActiveWorkoutCard = ({
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4">
+      <CardContent className="p-3 sm:p-6 space-y-3 sm:space-y-4">
         {/* Notas do treino */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
