@@ -8,7 +8,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
-    port: 8080,
+    port: 8084,
   },
   plugins: [
     react(),
@@ -22,6 +22,10 @@ export default defineConfig(({ mode }) => ({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         skipWaiting: true,
         clientsClaim: true,
+        cleanupOutdatedCaches: true,
+        // Configurações para melhor comportamento em background
+        navigateFallback: 'index.html',
+        navigateFallbackDenylist: [/^\/__.*$/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/whmvgdhodoybcixjaodm\.supabase\.co\/.*/i,

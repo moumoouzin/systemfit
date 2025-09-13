@@ -34,8 +34,15 @@ export interface Exercise {
 export interface ExerciseStatus {
   id: string;
   completed: boolean;
-  weight: number;
+  sets: SetStatus[];
   previousWeight?: number;
+}
+
+export interface SetStatus {
+  setNumber: number;
+  reps: number;
+  weight: number;
+  completed: boolean;
 }
 
 export interface WorkoutHistory {
@@ -54,7 +61,7 @@ export interface WorkoutExerciseHistory {
   name: string;
   sets: number;
   reps: string;  // Sempre string para aceitar texto livre
-  weight: number;
+  setsPerformed: SetPerformed[];
   completed: boolean;
 }
 

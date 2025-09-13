@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { PWABackgroundManager } from "@/components/PWABackgroundManager";
 import Dashboard from "./pages/Index";
 import Workouts from "./pages/Workouts";
 import NewWorkout from "./pages/NewWorkout";
@@ -35,30 +36,32 @@ const App = () => (
       <TooltipProvider>
         <BrowserRouter>
           <AuthProvider>
-            <Routes>
-              {/* Login and Register routes - now properly wrapped in AuthProvider */}
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              
-              {/* Redirect root to login */}
-              <Route path="/" element={<Navigate to="/login" replace />} />
-              
-              {/* Protected routes */}
-              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-              <Route path="/workouts" element={<ProtectedRoute><Workouts /></ProtectedRoute>} />
-              <Route path="/workouts/new" element={<ProtectedRoute><NewWorkout /></ProtectedRoute>} />
-              <Route path="/workouts/edit/:id" element={<ProtectedRoute><EditWorkout /></ProtectedRoute>} />
-              <Route path="/workouts/import" element={<ProtectedRoute><WorkoutImport /></ProtectedRoute>} />
-              <Route path="/workout/:id" element={<ProtectedRoute><WorkoutDetail /></ProtectedRoute>} />
-              <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
-              <Route path="/stats" element={<ProtectedRoute><Stats /></ProtectedRoute>} />
-              <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-              
-              {/* 404 route */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-            <Toaster />
-            <Sonner />
+            <PWABackgroundManager>
+              <Routes>
+                {/* Login and Register routes - now properly wrapped in AuthProvider */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                
+                {/* Redirect root to login */}
+                <Route path="/" element={<Navigate to="/login" replace />} />
+                
+                {/* Protected routes */}
+                <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                <Route path="/workouts" element={<ProtectedRoute><Workouts /></ProtectedRoute>} />
+                <Route path="/workouts/new" element={<ProtectedRoute><NewWorkout /></ProtectedRoute>} />
+                <Route path="/workouts/edit/:id" element={<ProtectedRoute><EditWorkout /></ProtectedRoute>} />
+                <Route path="/workouts/import" element={<ProtectedRoute><WorkoutImport /></ProtectedRoute>} />
+                <Route path="/workout/:id" element={<ProtectedRoute><WorkoutDetail /></ProtectedRoute>} />
+                <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
+                <Route path="/stats" element={<ProtectedRoute><Stats /></ProtectedRoute>} />
+                <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+                
+                {/* 404 route */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+              <Toaster />
+              <Sonner />
+            </PWABackgroundManager>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>

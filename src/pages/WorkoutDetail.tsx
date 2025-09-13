@@ -6,7 +6,7 @@ import { Clock, CheckCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CardFooter } from "@/components/ui/card";
 import { toast } from "@/components/ui/use-toast";
-import { ExerciseCard } from "@/components/ExerciseCard";
+import { ExerciseCardWithSets } from "@/components/ExerciseCardWithSets";
 import { WorkoutNotes } from "@/components/WorkoutNotes";
 import { useWorkoutSession } from "@/hooks/useWorkoutSession";
 
@@ -24,7 +24,7 @@ const WorkoutDetail = () => {
     isSubmitting,
     setNotes,
     toggleExerciseCompletion,
-    updateWeight,
+    updateSets,
     updateExerciseNotes,
     handleFinishWorkout
   } = useWorkoutSession({ workoutId: id });
@@ -84,12 +84,12 @@ const WorkoutDetail = () => {
           if (!status) return null;
           
           return (
-            <ExerciseCard
+            <ExerciseCardWithSets
               key={exercise.id}
               exercise={exercise}
               status={status}
               onToggleCompletion={toggleExerciseCompletion}
-              onUpdateWeight={updateWeight}
+              onUpdateSets={updateSets}
               onUpdateNotes={updateExerciseNotes}
             />
           );

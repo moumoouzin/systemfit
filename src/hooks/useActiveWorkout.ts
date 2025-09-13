@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Workout, Exercise, ExerciseStatus } from '@/types';
+import { Workout, Exercise, ExerciseStatus, SetStatus } from '@/types';
 import { toast } from '@/components/ui/use-toast';
 
 export interface ActiveWorkout {
@@ -165,8 +165,25 @@ export const useActiveWorkout = () => {
     if (!user?.id) return false;
 
     try {
-      // Verificar se já existe um treino ativo
+      // Verificar se já existe um treino ativo (tanto no estado quanto no banco)
       if (activeWorkout) {
+        toast({
+          title: "Treino em andamento",
+          description: "Você já tem um treino ativo. Finalize-o primeiro ou continue de onde parou.",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      // Verificar no banco de dados também para garantir que não há treinos ativos
+      const { data: existingActiveWorkout } = await supabase
+        .from('active_workouts')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('is_completed', false)
+        .single();
+
+      if (existingActiveWorkout) {
         toast({
           title: "Treino em andamento",
           description: "Você já tem um treino ativo. Finalize-o primeiro ou continue de onde parou.",
@@ -182,7 +199,12 @@ export const useActiveWorkout = () => {
           return {
             id: exercise.id,
             completed: false,
-            weight: 0,
+            sets: Array.from({ length: exercise.sets }, (_, index) => ({
+              setNumber: index + 1,
+              reps: 0,
+              weight: 0,
+              completed: false
+            })),
             previousWeight,
           };
         })
@@ -300,7 +322,12 @@ export const useActiveWorkout = () => {
           name: exercise.name,
           sets: exercise.sets,
           reps: exercise.reps,
-          weight: status?.weight || 0,
+          setsPerformed: (status?.sets || []).map(set => ({
+            setNumber: set.setNumber,
+            reps: set.reps,
+            weight: set.weight,
+            completed: set.completed
+          })),
           completed: status?.completed || false,
           notes: exercise.notes || "",
         };
@@ -337,8 +364,12 @@ export const useActiveWorkout = () => {
       // Salvar pesos dos exercícios
       const completedExerciseStatuses = activeWorkout.exerciseStatus.filter(status => status.completed);
       for (const status of completedExerciseStatuses) {
-        if (status.weight > 0) {
+        const completedSets = status.sets.filter(set => set.completed && set.weight > 0);
+        if (completedSets.length > 0) {
           try {
+            // Calcular peso médio para este exercício
+            const avgWeight = completedSets.reduce((sum, set) => sum + set.weight, 0) / completedSets.length;
+            
             // Marcar todos os pesos existentes como não mais recentes
             await supabase
               .from('exercise_weights')
@@ -346,13 +377,13 @@ export const useActiveWorkout = () => {
               .eq('exercise_id', status.id)
               .eq('user_id', user.id);
 
-            // Inserir novo peso como mais recente
+            // Inserir novo peso médio como mais recente
             await supabase
               .from('exercise_weights')
               .insert({
                 exercise_id: status.id,
                 user_id: user.id,
-                weight: status.weight,
+                weight: avgWeight,
                 is_latest: true,
               });
           } catch (weightError) {
@@ -423,10 +454,50 @@ export const useActiveWorkout = () => {
     }
   };
 
+  // Limpar treinos ativos órfãos (que não deveriam existir)
+  const cleanupOrphanedActiveWorkouts = async () => {
+    if (!user?.id) return;
+
+    try {
+      // Verificar se há treinos ativos que não deveriam existir
+      const { data: activeWorkouts, error } = await supabase
+        .from('active_workouts')
+        .select('id, workout_id, created_at')
+        .eq('user_id', user.id)
+        .eq('is_completed', false)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error checking active workouts:', error);
+        return;
+      }
+
+      // Se há mais de um treino ativo, manter apenas o mais recente
+      if (activeWorkouts && activeWorkouts.length > 1) {
+        const toDelete = activeWorkouts.slice(1); // Manter o primeiro (mais recente)
+        
+        for (const workout of toDelete) {
+          await supabase
+            .from('active_workouts')
+            .delete()
+            .eq('id', workout.id);
+        }
+        
+        console.log(`Cleaned up ${toDelete.length} orphaned active workouts`);
+      }
+    } catch (error) {
+      console.error('Error cleaning up orphaned workouts:', error);
+    }
+  };
+
   // Carregar treino ativo na inicialização
   useEffect(() => {
     const loadWorkout = async () => {
       if (user?.id) {
+        // Primeiro limpar treinos órfãos
+        await cleanupOrphanedActiveWorkouts();
+        
+        // Depois carregar o treino ativo
         const saved = await loadActiveWorkout();
         setActiveWorkout(saved);
       } else {

@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Workout, Exercise, ExerciseStatus } from "@/types";
+import { Workout, Exercise, ExerciseStatus, SetStatus } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 
@@ -135,7 +135,12 @@ export const useWorkoutSession = ({ workoutId }: UseWorkoutSessionProps = {}) =>
     const initialStatus: ExerciseStatus[] = exercisesList.map(exercise => ({
       id: exercise.id,
       completed: false,
-      weight: 0,
+      sets: Array.from({ length: exercise.sets }, (_, index) => ({
+        setNumber: index + 1,
+        reps: 0,
+        weight: 0,
+        completed: false
+      })),
       previousWeight: previousWeights[exercise.id] || 0, // Add previous weight
     }));
     
@@ -150,10 +155,10 @@ export const useWorkoutSession = ({ workoutId }: UseWorkoutSessionProps = {}) =>
     );
   };
 
-  const updateWeight = (id: string, weight: number) => {
+  const updateSets = (id: string, sets: SetStatus[]) => {
     setExerciseStatus(prev => 
       prev.map(status => 
-        status.id === id ? { ...status, weight } : status
+        status.id === id ? { ...status, sets } : status
       )
     );
   };
@@ -178,7 +183,7 @@ export const useWorkoutSession = ({ workoutId }: UseWorkoutSessionProps = {}) =>
       const completedExercises = exerciseStatus.filter(ex => ex.completed).length;
       const xpEarned = completedExercises * 25;
       
-      // Map completed exercises with their weights and notes
+      // Map completed exercises with their sets and notes
       const exerciseDetails = exercises.map(exercise => {
         const status = exerciseStatus.find(s => s.id === exercise.id);
         return {
@@ -186,7 +191,12 @@ export const useWorkoutSession = ({ workoutId }: UseWorkoutSessionProps = {}) =>
           name: exercise.name,
           sets: exercise.sets,
           reps: exercise.reps,
-          weight: status?.weight || 0,
+          setsPerformed: (status?.sets || []).map(set => ({
+            setNumber: set.setNumber,
+            reps: set.reps,
+            weight: set.weight,
+            completed: set.completed
+          })),
           completed: status?.completed || false,
           notes: exercise.notes || ""
         };
@@ -226,11 +236,15 @@ export const useWorkoutSession = ({ workoutId }: UseWorkoutSessionProps = {}) =>
         description: `Você ganhou ${xpEarned} XP!`,
       });
 
-      // Also store exercise weights for historical tracking
+      // Also store exercise sets for historical tracking
       const completedExerciseStatuses = exerciseStatus.filter(status => status.completed);
       for (const status of completedExerciseStatuses) {
-        if (status.weight > 0) {
+        const completedSets = status.sets.filter(set => set.completed && set.weight > 0);
+        if (completedSets.length > 0) {
           try {
+            // Calculate average weight for this exercise
+            const avgWeight = completedSets.reduce((sum, set) => sum + set.weight, 0) / completedSets.length;
+            
             // First set all existing weights for this exercise to not latest
             await supabase
               .from('exercise_weights')
@@ -238,20 +252,47 @@ export const useWorkoutSession = ({ workoutId }: UseWorkoutSessionProps = {}) =>
               .eq('exercise_id', status.id)
               .eq('user_id', user.id);
             
-            // Then insert the new weight as the latest
+            // Then insert the new average weight as the latest
             await supabase
               .from('exercise_weights')
               .insert({
                 exercise_id: status.id,
                 user_id: user.id,
-                weight: status.weight,
+                weight: avgWeight,
                 is_latest: true
               });
+
+            // TODO: Save individual sets after migration is applied
+            // for (const set of completedSets) {
+            //   await supabase
+            //     .from('exercise_sets')
+            //     .insert({
+            //       exercise_id: status.id,
+            //       user_id: user.id,
+            //       workout_session_id: sessionInsertData.id,
+            //       set_number: set.setNumber,
+            //       reps: set.reps,
+            //       weight: set.weight,
+            //       completed: set.completed
+            //     });
+            // }
           } catch (weightError) {
             console.error('Error updating exercise weight:', weightError);
             // Continue despite weight tracking errors
           }
         }
+      }
+
+      // Remove any active workout for this user to prevent duplicates
+      try {
+        await supabase
+          .from('active_workouts')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('is_completed', false);
+      } catch (activeWorkoutError) {
+        console.error('Error removing active workout:', activeWorkoutError);
+        // Continue despite active workout cleanup errors
       }
 
       return { success: true };
@@ -292,7 +333,7 @@ export const useWorkoutSession = ({ workoutId }: UseWorkoutSessionProps = {}) =>
     isSubmitting,
     initializeExerciseStatus,
     toggleExerciseCompletion,
-    updateWeight,
+    updateSets,
     updateExerciseNotes,
     handleFinishWorkout
   };

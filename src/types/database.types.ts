@@ -202,6 +202,67 @@ export interface Database extends Omit<SupabaseDatabase, 'public'> {
           }
         ]
       }
+      exercise_sets: {
+        Row: {
+          id: string
+          exercise_id: string
+          user_id: string
+          workout_session_id: string | null
+          set_number: number
+          reps: number
+          weight: number
+          completed: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          exercise_id: string
+          user_id: string
+          workout_session_id?: string | null
+          set_number: number
+          reps: number
+          weight: number
+          completed?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          exercise_id?: string
+          user_id?: string
+          workout_session_id?: string | null
+          set_number?: number
+          reps?: number
+          weight?: number
+          completed?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exercise_sets_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exercise_sets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exercise_sets_workout_session_id_fkey"
+            columns: ["workout_session_id"]
+            isOneToOne: false
+            referencedRelation: "workout_sessions"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       active_workouts: {
         Row: {
           id: string
