@@ -71,6 +71,7 @@ export interface WorkoutExerciseHistory {
   name: string;
   sets: number;
   reps: string;  // Sempre string para aceitar texto livre
+  weight: number;  // Peso médio para compatibilidade com interface antiga
   setsPerformed: SetPerformed[];
   completed: boolean;
 }
@@ -93,8 +94,10 @@ export interface ExercisePerformed {
 }
 
 export interface SetPerformed {
+  setNumber: number;
   reps: number;
   weight: number;
+  completed: boolean;
 }
 
 export interface ExerciseProgress {

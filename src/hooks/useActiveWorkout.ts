@@ -19,6 +19,19 @@ export const useActiveWorkout = () => {
   const { user } = useAuth();
   const [activeWorkout, setActiveWorkout] = useState<ActiveWorkout | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [forceUpdate, setForceUpdate] = useState(0);
+
+  // Log de mudanças de estado
+  useEffect(() => {
+    console.log('🔄 useActiveWorkout - state changed:', {
+      hasActiveWorkout: !!activeWorkout,
+      activeWorkoutId: activeWorkout?.id,
+      activeWorkoutName: activeWorkout?.workoutName,
+      isLoading,
+      forceUpdate,
+      timestamp: new Date().toISOString()
+    });
+  }, [activeWorkout, isLoading, forceUpdate]);
 
   // Carregar treino ativo do banco de dados
   const loadActiveWorkout = async () => {
@@ -30,20 +43,30 @@ export const useActiveWorkout = () => {
     try {
       console.log('loadActiveWorkout - fetching from database for user:', user.id);
       
+      // Verificar se o usuário está autenticado
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log('loadActiveWorkout - current session:', session ? 'authenticated' : 'not authenticated');
+      
       const { data, error } = await supabase
         .from('active_workouts')
         .select('*')
         .eq('user_id', user.id)
         .eq('is_completed', false)
-        .single();
+        .maybeSingle();
       
       if (error) {
+        console.error('loadActiveWorkout - database error details:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
+        
         if (error.code === 'PGRST116') {
           // Nenhum treino ativo encontrado
           console.log('loadActiveWorkout - no active workout found');
           return null;
         }
-        console.error('loadActiveWorkout - database error:', error);
         return null;
       }
       
@@ -146,7 +169,7 @@ export const useActiveWorkout = () => {
         .eq('exercise_id', exerciseId)
         .eq('user_id', user.id)
         .eq('is_latest', true)
-        .single();
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
         console.error('Error fetching previous weight:', error);
@@ -162,11 +185,25 @@ export const useActiveWorkout = () => {
 
   // Iniciar um novo treino
   const startWorkout = async (workout: Workout) => {
-    if (!user?.id) return false;
+    console.log('🚀 startWorkout - FUNCTION CALLED');
+    console.log('📊 startWorkout - input:', {
+      workoutId: workout.id,
+      workoutName: workout.name,
+      hasUser: !!user?.id,
+      userId: user?.id,
+      hasActiveWorkout: !!activeWorkout
+    });
+
+    if (!user?.id) {
+      console.log('❌ startWorkout - no user ID, returning false');
+      return false;
+    }
 
     try {
+      console.log('🔄 startWorkout - checking for existing active workout in state...');
       // Verificar se já existe um treino ativo (tanto no estado quanto no banco)
       if (activeWorkout) {
+        console.log('❌ startWorkout - active workout exists in state, showing toast');
         toast({
           title: "Treino em andamento",
           description: "Você já tem um treino ativo. Finalize-o primeiro ou continue de onde parou.",
@@ -175,15 +212,40 @@ export const useActiveWorkout = () => {
         return false;
       }
 
+      console.log('🔄 startWorkout - checking database for existing active workouts...');
       // Verificar no banco de dados também para garantir que não há treinos ativos
-      const { data: existingActiveWorkout } = await supabase
-        .from('active_workouts')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('is_completed', false)
-        .single();
+      let existingActiveWorkout = null;
+      
+      try {
+        console.log('🔄 startWorkout - executing database query...');
+        const { data, error } = await Promise.race([
+          supabase
+            .from('active_workouts')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('is_completed', false)
+            .maybeSingle(),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Database query timeout')), 5000)
+          )
+        ]) as any;
+        
+        if (error) {
+          console.error('❌ startWorkout - database query error:', error);
+          throw error;
+        }
+        
+        existingActiveWorkout = data;
+        console.log('📡 startWorkout - database check result:', { existingActiveWorkout });
+      } catch (error) {
+        console.error('❌ startWorkout - database check failed:', error);
+        console.log('🔄 startWorkout - continuing without database check...');
+        // Continuar sem verificação do banco se houver erro
+        existingActiveWorkout = null;
+      }
 
       if (existingActiveWorkout) {
+        console.log('❌ startWorkout - existing active workout found in database, showing toast');
         toast({
           title: "Treino em andamento",
           description: "Você já tem um treino ativo. Finalize-o primeiro ou continue de onde parou.",
@@ -192,9 +254,12 @@ export const useActiveWorkout = () => {
         return false;
       }
 
+      console.log('✅ startWorkout - no existing active workouts, creating new one');
+      console.log('🔄 startWorkout - creating exercise status...');
       // Criar status inicial dos exercícios e buscar pesos anteriores
       const exerciseStatus: ExerciseStatus[] = await Promise.all(
         workout.exercises.map(async (exercise) => {
+          console.log(`🔄 startWorkout - processing exercise: ${exercise.name}`);
           const previousWeight = await getPreviousWeight(exercise.id);
           return {
             id: exercise.id,
@@ -205,11 +270,15 @@ export const useActiveWorkout = () => {
               weight: 0,
               completed: false
             })),
+            notes: "",
             previousWeight,
           };
         })
       );
 
+      console.log('✅ startWorkout - exercise status created:', exerciseStatus.length, 'exercises');
+
+      console.log('🔄 startWorkout - creating active workout object...');
       const newActiveWorkout: ActiveWorkout = {
         id: '', // Será gerado pelo banco
         workoutId: workout.id,
@@ -221,22 +290,36 @@ export const useActiveWorkout = () => {
         isCompleted: false,
       };
 
+      console.log('🔄 startWorkout - saving to database...');
       await saveActiveWorkout(newActiveWorkout);
+      console.log('✅ startWorkout - saved to database successfully');
       
+      console.log('🔄 startWorkout - reloading from database...');
       // Recarregar o treino do banco para obter o ID gerado
       const savedWorkout = await loadActiveWorkout();
       if (savedWorkout) {
+        console.log('✅ startWorkout - loaded from database:', savedWorkout.workoutName);
         setActiveWorkout(savedWorkout);
+      } else {
+        console.log('❌ startWorkout - failed to load from database');
       }
 
+      console.log('🔄 startWorkout - showing success toast...');
       toast({
         title: "Treino iniciado!",
         description: `${workout.name} foi adicionado à área "Sendo feito".`,
       });
 
+      console.log('🎉 startWorkout - COMPLETED SUCCESSFULLY');
       return true;
     } catch (error) {
-      console.error('Error starting workout:', error);
+      console.error('❌ startWorkout - error details:', {
+        error,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        errorStack: error instanceof Error ? error.stack : undefined,
+        workoutId: workout.id,
+        workoutName: workout.name
+      });
       toast({
         title: "Erro ao iniciar treino",
         description: "Não foi possível iniciar o treino.",
@@ -317,17 +400,21 @@ export const useActiveWorkout = () => {
       // Preparar dados dos exercícios
       const exerciseDetails = activeWorkout.exercises.map(exercise => {
         const status = activeWorkout.exerciseStatus.find(s => s.id === exercise.id);
+        const setsPerformed = (status?.sets || []).map(set => ({
+          setNumber: set.setNumber,
+          reps: set.reps,
+          weight: set.weight,
+          completed: set.completed
+        }));
+        
+        console.log('Saving exercise:', exercise.name, 'with sets:', setsPerformed);
+        
         return {
           id: exercise.id,
           name: exercise.name,
           sets: exercise.sets,
           reps: exercise.reps,
-          setsPerformed: (status?.sets || []).map(set => ({
-            setNumber: set.setNumber,
-            reps: set.reps,
-            weight: set.weight,
-            completed: set.completed
-          })),
+          setsPerformed: setsPerformed,
           completed: status?.completed || false,
           notes: exercise.notes || "",
         };
@@ -430,26 +517,78 @@ export const useActiveWorkout = () => {
 
   // Cancelar treino (remover sem salvar no histórico)
   const cancelWorkout = async () => {
-    if (!activeWorkout || !user?.id) return;
+    console.log('🚀 cancelWorkout - FUNCTION CALLED');
+    console.log('📊 cancelWorkout - current state:', {
+      hasActiveWorkout: !!activeWorkout,
+      activeWorkoutId: activeWorkout?.id,
+      activeWorkoutName: activeWorkout?.workoutName,
+      hasUser: !!user?.id,
+      userId: user?.id
+    });
+
+    if (!activeWorkout || !user?.id) {
+      console.log('❌ cancelWorkout - no active workout or user, exiting');
+      return;
+    }
+
+    console.log('✅ cancelWorkout - starting cancellation for workout:', activeWorkout.workoutName);
 
     try {
-      // Remover treino ativo do banco
-      const { error } = await supabase
-        .from('active_workouts')
-        .delete()
-        .eq('id', activeWorkout.id)
-        .eq('user_id', user.id);
-
-      if (error) {
-        throw error;
+      console.log('🔄 cancelWorkout - calling supabase delete...');
+      
+      // Remover treino ativo do banco com timeout
+      let deleteError = null;
+      
+      try {
+        console.log('🔄 cancelWorkout - executing delete query...');
+        const { error } = await Promise.race([
+          supabase
+            .from('active_workouts')
+            .delete()
+            .eq('id', activeWorkout.id)
+            .eq('user_id', user.id),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Delete query timeout')), 5000)
+          )
+        ]) as any;
+        
+        deleteError = error;
+        console.log('📡 cancelWorkout - supabase response:', { error });
+      } catch (error) {
+        console.error('❌ cancelWorkout - delete query failed:', error);
+        console.log('🔄 cancelWorkout - continuing with local state cleanup...');
+        // Continuar com limpeza local mesmo se o delete falhar
+        deleteError = null;
       }
 
+      if (deleteError && deleteError.message !== 'Delete query timeout') {
+        console.error('❌ cancelWorkout - database error:', deleteError);
+        throw deleteError;
+      }
+
+      console.log('✅ cancelWorkout - database deletion successful');
+
+      console.log('🔄 cancelWorkout - clearing state...');
       // Limpar treino ativo do estado
       setActiveWorkout(null);
+      
+      console.log('🔄 cancelWorkout - forcing UI update...');
+      // Forçar atualização da interface
+      setForceUpdate(prev => {
+        console.log('🔄 cancelWorkout - forceUpdate changed from', prev, 'to', prev + 1);
+        return prev + 1;
+      });
 
-      console.log('Workout canceled successfully');
+      console.log('✅ cancelWorkout - state cleared successfully');
+      console.log('🎉 cancelWorkout - COMPLETED SUCCESSFULLY');
     } catch (error) {
-      console.error('Error canceling workout:', error);
+      console.error('❌ cancelWorkout - error details:', {
+        error,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        errorStack: error instanceof Error ? error.stack : undefined,
+        activeWorkoutId: activeWorkout?.id,
+        userId: user?.id
+      });
       throw error;
     }
   };
@@ -509,9 +648,80 @@ export const useActiveWorkout = () => {
     loadWorkout();
   }, [user?.id]);
 
+  // Escutar eventos de refresh quando app volta do background
+  useEffect(() => {
+    const handleAppRefresh = async () => {
+      console.log('App foreground refresh triggered - reloading active workout');
+      if (user?.id) {
+        try {
+          // Limpar treinos órfãos primeiro
+          await cleanupOrphanedActiveWorkouts();
+          
+          // Depois carregar o treino ativo
+          const saved = await loadActiveWorkout();
+          setActiveWorkout(saved);
+          
+          console.log('Active workout reloaded successfully');
+        } catch (error) {
+          console.error('Error reloading active workout:', error);
+        }
+      }
+    };
+
+    const handlePwaRefresh = async () => {
+      console.log('PWA background refresh triggered - reloading active workout');
+      if (user?.id) {
+        try {
+          await cleanupOrphanedActiveWorkouts();
+          const saved = await loadActiveWorkout();
+          setActiveWorkout(saved);
+        } catch (error) {
+          console.error('Error reloading active workout on PWA refresh:', error);
+        }
+      }
+    };
+
+    const handleStateRecovery = async (event: CustomEvent) => {
+      console.log('App state recovery triggered - reloading active workout');
+      if (user?.id) {
+        try {
+          // Pequeno delay para garantir que a sessão esteja estável
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          await cleanupOrphanedActiveWorkouts();
+          const saved = await loadActiveWorkout();
+          setActiveWorkout(saved);
+          
+          console.log('Active workout recovered successfully');
+        } catch (error) {
+          console.error('Error recovering active workout:', error);
+        }
+      }
+    };
+
+    // Adicionar debounce para evitar múltiplas chamadas
+    let refreshTimeout: NodeJS.Timeout;
+    const debouncedRefresh = () => {
+      clearTimeout(refreshTimeout);
+      refreshTimeout = setTimeout(handleAppRefresh, 300);
+    };
+
+    window.addEventListener('app-foreground-refresh', debouncedRefresh);
+    window.addEventListener('pwa-background-refresh', handlePwaRefresh);
+    window.addEventListener('app-state-recovery', handleStateRecovery as EventListener);
+
+    return () => {
+      clearTimeout(refreshTimeout);
+      window.removeEventListener('app-foreground-refresh', debouncedRefresh);
+      window.removeEventListener('pwa-background-refresh', handlePwaRefresh);
+      window.removeEventListener('app-state-recovery', handleStateRecovery as EventListener);
+    };
+  }, [user?.id]);
+
   return {
     activeWorkout,
     isLoading,
+    forceUpdate,
     startWorkout,
     updateExerciseStatus,
     updateExerciseNotes,

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,6 +8,8 @@ import { Play, Pause, CheckCircle, FileText, Clock, X } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/components/ui/use-toast";
+import { useForceUpdate } from "@/hooks/useForceUpdate";
+import { useComponentTracker } from "@/hooks/useComponentTracker";
 
 interface ActiveWorkoutCardProps {
   activeWorkout: ActiveWorkout;
@@ -28,10 +30,12 @@ export const ActiveWorkoutCard = ({
   onPause,
   onCancel,
 }: ActiveWorkoutCardProps) => {
+  const componentId = useComponentTracker('ActiveWorkoutCard');
   const [isCompleting, setIsCompleting] = useState(false);
   const [isCanceling, setIsCanceling] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
   const [workoutNotes, setWorkoutNotes] = useState(activeWorkout.notes);
+  const { forceUpdate } = useForceUpdate();
 
   const handleComplete = async () => {
     setIsCompleting(true);
@@ -51,22 +55,49 @@ export const ActiveWorkoutCard = ({
   };
 
   const handleCancel = async () => {
+    console.log('🎯 ActiveWorkoutCard - handleCancel CLICKED');
+    console.log('📊 ActiveWorkoutCard - current state:', {
+      isCanceling,
+      activeWorkoutId: activeWorkout?.id,
+      activeWorkoutName: activeWorkout?.workoutName
+    });
+    
     setIsCanceling(true);
+    console.log('🔄 ActiveWorkoutCard - isCanceling set to true');
+    
     try {
+      console.log('🚀 ActiveWorkoutCard - calling onCancel...');
       await onCancel();
+      console.log('✅ ActiveWorkoutCard - onCancel completed successfully');
+      
+      console.log('🔄 ActiveWorkoutCard - forcing UI update...');
+      // Forçar atualização da interface
+      forceUpdate();
+      console.log('✅ ActiveWorkoutCard - forceUpdate called');
+      
+      console.log('🔄 ActiveWorkoutCard - showing success toast...');
       toast({
         title: "Treino cancelado!",
         description: "O treino foi removido sem salvar no histórico.",
       });
+      console.log('✅ ActiveWorkoutCard - success toast shown');
     } catch (error) {
-      console.error("Error canceling workout:", error);
+      console.error("❌ ActiveWorkoutCard - error canceling workout:", error);
+      console.error("❌ ActiveWorkoutCard - error details:", {
+        error,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        errorStack: error instanceof Error ? error.stack : undefined
+      });
+      
       toast({
         title: "Erro ao cancelar",
         description: "Não foi possível cancelar o treino.",
         variant: "destructive",
       });
     } finally {
+      console.log('🔄 ActiveWorkoutCard - setting isCanceling to false');
       setIsCanceling(false);
+      console.log('✅ ActiveWorkoutCard - handleCancel COMPLETED');
     }
   };
 

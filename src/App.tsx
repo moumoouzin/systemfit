@@ -7,6 +7,45 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { PWABackgroundManager } from "@/components/PWABackgroundManager";
+import { useConnectionManager } from "@/hooks/useConnectionManager";
+import { useAppStateManager } from "@/hooks/useAppStateManager";
+import { useDebugLogger } from "@/hooks/useDebugLogger";
+
+// Componente interno para usar debug logger dentro do Router
+const AppContent = () => {
+  useDebugLogger();
+  
+  return (
+    <AuthProvider>
+      <PWABackgroundManager>
+        <Routes>
+          {/* Login and Register routes - now properly wrapped in AuthProvider */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          
+          {/* Redirect root to login */}
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          
+          {/* Protected routes */}
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/workouts" element={<ProtectedRoute><Workouts /></ProtectedRoute>} />
+          <Route path="/workouts/new" element={<ProtectedRoute><NewWorkout /></ProtectedRoute>} />
+          <Route path="/workouts/edit/:id" element={<ProtectedRoute><EditWorkout /></ProtectedRoute>} />
+          <Route path="/workouts/import" element={<ProtectedRoute><WorkoutImport /></ProtectedRoute>} />
+          <Route path="/workout/:id" element={<ProtectedRoute><WorkoutDetail /></ProtectedRoute>} />
+          <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
+          <Route path="/stats" element={<ProtectedRoute><Stats /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          
+          {/* 404 route */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+        <Toaster />
+        <Sonner />
+      </PWABackgroundManager>
+    </AuthProvider>
+  );
+};
 import Dashboard from "./pages/Index";
 import Workouts from "./pages/Workouts";
 import NewWorkout from "./pages/NewWorkout";
@@ -30,43 +69,22 @@ const queryClient = new QueryClient({
   }
 });
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider>
-      <TooltipProvider>
-        <BrowserRouter>
-          <AuthProvider>
-            <PWABackgroundManager>
-              <Routes>
-                {/* Login and Register routes - now properly wrapped in AuthProvider */}
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                
-                {/* Redirect root to login */}
-                <Route path="/" element={<Navigate to="/login" replace />} />
-                
-                {/* Protected routes */}
-                <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-                <Route path="/workouts" element={<ProtectedRoute><Workouts /></ProtectedRoute>} />
-                <Route path="/workouts/new" element={<ProtectedRoute><NewWorkout /></ProtectedRoute>} />
-                <Route path="/workouts/edit/:id" element={<ProtectedRoute><EditWorkout /></ProtectedRoute>} />
-                <Route path="/workouts/import" element={<ProtectedRoute><WorkoutImport /></ProtectedRoute>} />
-                <Route path="/workout/:id" element={<ProtectedRoute><WorkoutDetail /></ProtectedRoute>} />
-                <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
-                <Route path="/stats" element={<ProtectedRoute><Stats /></ProtectedRoute>} />
-                <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-                
-                {/* 404 route */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-              <Toaster />
-              <Sonner />
-            </PWABackgroundManager>
-          </AuthProvider>
-        </BrowserRouter>
-      </TooltipProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  // Inicializar gerenciadores
+  useConnectionManager();
+  useAppStateManager();
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <TooltipProvider>
+          <BrowserRouter>
+            <AppContent />
+          </BrowserRouter>
+        </TooltipProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

@@ -52,6 +52,10 @@ export default defineConfig(({ mode }) => ({
         scope: '/',
         start_url: '/',
         id: 'systemfit-pwa',
+        display_override: ['window-controls-overlay', 'standalone'],
+        edge_side_panel: {
+          preferred_width: 400,
+        },
         categories: ['health', 'fitness', 'sports'],
         lang: 'pt-BR',
         dir: 'ltr',
