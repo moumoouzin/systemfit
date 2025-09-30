@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -26,50 +26,76 @@ export const ExerciseCardWithSets = ({
   const [notes, setNotes] = useState<string>(status.notes || "");
   const [showNotes, setShowNotes] = useState<boolean>(!!status.notes);
   const [showPreviousNotes, setShowPreviousNotes] = useState<boolean>(false);
+  const [localSets, setLocalSets] = useState<SetStatus[]>(status.sets);
   
   useEffect(() => {
     setNotes(status.notes || "");
     setShowNotes(!!status.notes);
   }, [status.notes]);
 
+  useEffect(() => {
+    setLocalSets(status.sets);
+  }, [status.sets]);
+
+  // Debounced function to update sets in the database
+  const debouncedUpdateSets = useCallback(
+    (() => {
+      let timeoutId: NodeJS.Timeout;
+      return (sets: SetStatus[]) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+          onUpdateSets(exercise.id, sets);
+        }, 300); // 300ms delay
+      };
+    })(),
+    [exercise.id, onUpdateSets]
+  );
+
   const handleSetChange = (setIndex: number, field: 'reps' | 'weight', value: string) => {
-    const newSets = [...status.sets];
+    const newSets = [...localSets];
     if (newSets[setIndex]) {
       if (field === 'reps') {
         newSets[setIndex].reps = parseInt(value) || 0;
       } else {
         newSets[setIndex].weight = parseFloat(value) || 0;
       }
-      onUpdateSets(exercise.id, newSets);
+      // Update local state immediately for responsive UI
+      setLocalSets(newSets);
+      // Debounce the database update
+      debouncedUpdateSets(newSets);
     }
   };
 
   const handleSetCompletion = (setIndex: number) => {
-    const newSets = [...status.sets];
+    const newSets = [...localSets];
     if (newSets[setIndex]) {
       newSets[setIndex].completed = !newSets[setIndex].completed;
+      setLocalSets(newSets);
       onUpdateSets(exercise.id, newSets);
     }
   };
 
   const addSet = () => {
     const newSet: SetStatus = {
-      setNumber: status.sets.length + 1,
+      setNumber: localSets.length + 1,
       reps: 0,
       weight: 0,
       completed: false
     };
-    onUpdateSets(exercise.id, [...status.sets, newSet]);
+    const newSets = [...localSets, newSet];
+    setLocalSets(newSets);
+    onUpdateSets(exercise.id, newSets);
   };
 
   const removeSet = (setIndex: number) => {
-    if (status.sets.length > 1) {
-      const newSets = status.sets.filter((_, index) => index !== setIndex);
+    if (localSets.length > 1) {
+      const newSets = localSets.filter((_, index) => index !== setIndex);
       // Renumerar as séries
       const renumberedSets = newSets.map((set, index) => ({
         ...set,
         setNumber: index + 1
       }));
+      setLocalSets(renumberedSets);
       onUpdateSets(exercise.id, renumberedSets);
     }
   };
@@ -130,16 +156,17 @@ export const ExerciseCardWithSets = ({
 
   // Inicializar séries se não existirem
   useEffect(() => {
-    if (status.sets.length === 0) {
+    if (localSets.length === 0) {
       const initialSets: SetStatus[] = Array.from({ length: exercise.sets }, (_, index) => ({
         setNumber: index + 1,
         reps: 0,
         weight: 0,
         completed: false
       }));
+      setLocalSets(initialSets);
       onUpdateSets(exercise.id, initialSets);
     }
-  }, [exercise.sets, status.sets.length, exercise.id, onUpdateSets]);
+  }, [exercise.sets, localSets.length, exercise.id, onUpdateSets]);
 
   return (
     <Card className={status.completed ? "border-primary" : ""}>
@@ -175,7 +202,7 @@ export const ExerciseCardWithSets = ({
             </div>
             
             <div className="space-y-2">
-              {status.sets.map((set, index) => (
+              {localSets.map((set, index) => (
                 <div key={index} className="p-2 sm:p-3 border rounded-lg bg-card">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                     {/* Número da série */}
@@ -223,7 +250,7 @@ export const ExerciseCardWithSets = ({
                         className="h-4 w-4"
                       />
                       
-                      {status.sets.length > 1 && (
+                      {localSets.length > 1 && (
                         <Button
                           variant="ghost"
                           size="sm"
