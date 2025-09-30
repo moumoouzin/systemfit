@@ -36,9 +36,6 @@ const HistoryItem = ({ history, onDelete }: HistoryItemProps) => {
   const formattedDate = format(new Date(history.date), "dd 'de' MMMM, yyyy", { locale: ptBR });
   const formattedTime = format(new Date(history.date), "HH:mm");
 
-  console.log('🎨 Rendering HistoryItem for:', history.workoutName);
-  console.log('🎨 History data:', JSON.stringify(history, null, 2));
-
   const handleDelete = async () => {
     try {
       // Calculate XP to remove: 25 XP per exercise that was completed
@@ -139,13 +136,7 @@ const HistoryItem = ({ history, onDelete }: HistoryItemProps) => {
             <div className="space-y-4 pt-4">
               <div className="space-y-4">
                 {history.exercises && history.exercises.length > 0 ? (
-                  history.exercises.map(exercise => {
-                    console.log('🎨 Rendering exercise:', exercise.name);
-                    console.log('🎨 Exercise weight:', exercise.weight);
-                    console.log('🎨 Exercise setsPerformed:', exercise.setsPerformed);
-                    console.log('🎨 Exercise completed:', exercise.completed);
-                    
-                    return (
+                  history.exercises.map(exercise => (
                       <div 
                         key={exercise.id} 
                         className="p-3 rounded-lg bg-muted/30 space-y-3"
@@ -177,29 +168,28 @@ const HistoryItem = ({ history, onDelete }: HistoryItemProps) => {
                         
                         {/* Mostrar detalhes das séries se disponíveis */}
                         {exercise.setsPerformed && exercise.setsPerformed.length > 0 && (
-                          <div className="space-y-1">
-                            <p className="text-xs font-medium text-muted-foreground">Séries realizadas:</p>
-                            <div className="grid grid-cols-1 gap-1">
+                          <div className="space-y-2 mt-3 p-3 bg-background/50 rounded-lg border border-border/50">
+                            <p className="text-xs font-medium text-foreground/70">Séries realizadas:</p>
+                            <div className="grid grid-cols-1 gap-2">
                               {exercise.setsPerformed.map((set, setIndex) => (
-                                <div 
-                                  key={setIndex}
-                                  className={`flex items-center justify-between p-2 rounded text-xs ${
-                                    set.completed 
-                                      ? 'bg-green-50 border border-green-200 text-green-800' 
-                                      : 'bg-gray-50 border border-gray-200 text-gray-600'
-                                  }`}
-                                >
-                                  <span>Série {set.setNumber}</span>
-                                  <span>{set.reps} reps × {set.weight}kg</span>
-                                  {set.completed && <span className="text-green-600">✓</span>}
-                                </div>
+                              <div 
+                                key={setIndex}
+                                className={`flex items-center justify-between p-3 rounded-lg text-sm border ${
+                                  set.completed 
+                                    ? 'bg-purple-900/20 border-purple-500/30 text-purple-100' 
+                                    : 'bg-muted/50 border-border text-muted-foreground'
+                                }`}
+                              >
+                                <span className="font-medium">Série {set.setNumber}</span>
+                                <span>{set.reps} reps × {set.weight}kg</span>
+                                {set.completed && <span className="text-purple-400 font-bold">✓</span>}
+                              </div>
                               ))}
                             </div>
                           </div>
                         )}
                       </div>
-                    );
-                  })
+                  ))
                 ) : (
                   <p className="text-sm text-muted-foreground">Não há detalhes disponíveis para este treino.</p>
                 )}

@@ -11,9 +11,6 @@ const History = () => {
   const { workoutHistory, isLoading, error } = useWorkoutHistory();
   const [localHistory, setLocalHistory] = useState(workoutHistory);
   
-  console.log('📄 History page - workoutHistory:', workoutHistory);
-  console.log('📄 History page - isLoading:', isLoading);
-  console.log('📄 History page - error:', error);
   
   useEffect(() => {
     setLocalHistory(workoutHistory);
