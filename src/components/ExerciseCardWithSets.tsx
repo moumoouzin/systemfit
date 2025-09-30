@@ -184,25 +184,34 @@ export const ExerciseCardWithSets = ({
                     </div>
                     
                     {/* Inputs de reps e peso */}
-                    <div className="flex items-center gap-1 flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
                       <Input
-                        type="number"
+                        type="tel"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
                         value={set.reps || ''}
                         onChange={(e) => handleSetChange(index, 'reps', e.target.value)}
-                        placeholder="Reps"
-                        className="w-12 text-center text-xs"
+                        placeholder="R"
+                        className="w-16 sm:w-20 text-center text-sm"
                         disabled={!status.completed}
+                        min="0"
+                        max="999"
                       />
-                      <span className="text-xs text-muted-foreground">×</span>
+                      <span className="text-sm text-muted-foreground">×</span>
                       <Input
-                        type="number"
+                        type="tel"
+                        inputMode="decimal"
+                        pattern="[0-9]*\.?[0-9]*"
                         value={set.weight || ''}
                         onChange={(e) => handleSetChange(index, 'weight', e.target.value)}
-                        placeholder="Peso"
-                        className="w-12 text-center text-xs"
+                        placeholder="P"
+                        className="w-16 sm:w-20 text-center text-sm"
                         disabled={!status.completed}
+                        min="0"
+                        max="999"
+                        step="0.5"
                       />
-                      <span className="text-xs text-muted-foreground">kg</span>
+                      <span className="text-sm text-muted-foreground">kg</span>
                     </div>
                     
                     {/* Controles */}
