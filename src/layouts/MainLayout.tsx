@@ -20,6 +20,7 @@ import { Link, useLocation } from "react-router-dom";
 import { LayoutDashboard, Dumbbell, History, LineChart, Settings } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import BottomNavigation from "@/components/BottomNavigation";
+import { FitChat } from "@/components/FitChat";
 
 const MainLayout = ({ children }: PropsWithChildren) => {
   const { user, logout } = useAuth();
@@ -154,6 +155,8 @@ const MainLayout = ({ children }: PropsWithChildren) => {
       
       {/* Bottom Navigation - apenas para mobile */}
       {isMobile && <BottomNavigation />}
+      
+      <FitChat />
       
       <PWAInstallPrompt />
       <PWAUpdatePrompt />
