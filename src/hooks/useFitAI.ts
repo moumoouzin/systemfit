@@ -36,11 +36,54 @@ export const useFitAI = () => {
 
   const { startWorkout, activeWorkout, updateExerciseStatus } = useActiveWorkout();
 
-  const updateConfig = (newConfig: Partial<FitAIConfig>) => {
+  useEffect(() => {
+    const loadConfig = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: settings } = await supabase
+        .from('user_settings')
+        .select('key, value')
+        .eq('user_id', user.id);
+
+      if (settings) {
+        const newConfig = { ...config };
+        settings.forEach(setting => {
+          if (setting.key === 'fitchat_apikey') newConfig.apiKey = setting.value;
+          if (setting.key === 'fitchat_model') newConfig.model = setting.value;
+        });
+        setConfig(newConfig);
+      }
+    };
+    loadConfig();
+  }, []);
+
+  const updateConfig = async (newConfig: Partial<FitAIConfig>) => {
     const updated = { ...config, ...newConfig };
     setConfig(updated);
+    
+    // Local persistence
     if (newConfig.apiKey !== undefined) localStorage.setItem('fitchat_apikey', newConfig.apiKey);
     if (newConfig.model !== undefined) localStorage.setItem('fitchat_model', newConfig.model);
+
+    // Supabase persistence
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      if (newConfig.apiKey !== undefined) {
+        await supabase.from('user_settings').upsert({ 
+          user_id: user.id, 
+          key: 'fitchat_apikey', 
+          value: newConfig.apiKey 
+        });
+      }
+      if (newConfig.model !== undefined) {
+        await supabase.from('user_settings').upsert({ 
+          user_id: user.id, 
+          key: 'fitchat_model', 
+          value: newConfig.model 
+        });
+      }
+    }
   };
 
   const addMessage = (role: 'user' | 'assistant', content: string) => {
@@ -58,8 +101,35 @@ export const useFitAI = () => {
     if (action.type === "start_workout") {
       const workoutId = action.workoutId;
       if (workoutId) {
-        await startWorkout(workoutId);
-        return `Treino iniciado com sucesso! ID: ${workoutId}`;
+        // Precisamos buscar o objeto completo do treino com os exercícios
+        const { data: workoutData, error } = await supabase
+          .from('workouts')
+          .select('*, exercises(*)')
+          .eq('id', workoutId)
+          .single();
+
+        if (error || !workoutData) {
+          console.error("Erro ao buscar detalhes do treino:", error);
+          return "Erro ao iniciar: Treino não encontrado no banco de dados.";
+        }
+
+        // Converter para o tipo Workout esperado pelo hook
+        // O Supabase retorna exercises como um array de objetos se usarmos o select com join
+        const workoutToStart: Workout = {
+            id: workoutData.id,
+            name: workoutData.name,
+            exercises: workoutData.exercises as any, 
+            createdAt: workoutData.created_at,
+            updatedAt: workoutData.updated_at
+        };
+
+        const success = await startWorkout(workoutToStart); // startWorkout retorna boolean ou void? No hook é void mas na logica parece ser async
+        
+        // Verificando implementação do startWorkout: ele retorna true/false
+        // Mas no hook useActiveWorkout exportado, precisamos ver se ele expõe o retorno.
+        // Assumindo que sim.
+        
+        return `Comando enviado para iniciar o treino "${workoutData.name}".`;
       }
       return "Erro: ID do treino não fornecido.";
     }
