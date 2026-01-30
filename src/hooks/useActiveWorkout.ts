@@ -104,14 +104,41 @@ export const useActiveWorkout = () => {
       if (workout) {
         console.log('saveActiveWorkout - saving workout:', workout.workoutName);
         
-        // Primeiro, remover qualquer treino ativo existente
+        // Se já temos um ID, tentamos atualizar o registro existente para evitar deletar/criar
+        if (workout.id) {
+          const { data, error } = await supabase
+            .from('active_workouts')
+            .update({
+              workout_id: workout.workoutId,
+              workout_name: workout.workoutName,
+              date: workout.date,
+              exercises: workout.exercises as any,
+              exercise_status: workout.exerciseStatus as any,
+              notes: workout.notes,
+              is_completed: workout.isCompleted,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', workout.id)
+            .select()
+            .single();
+
+          if (!error && data) {
+            console.log('saveActiveWorkout - workout updated successfully (UPDATE)');
+            return data;
+          }
+          
+          console.warn('saveActiveWorkout - update failed or returned no data, falling back to delete/insert', error);
+        }
+
+        // Fallback: Remover qualquer treino ativo existente e criar novo
+        // Isso acontece se não tivermos ID ou se o update falhar
         await supabase
           .from('active_workouts')
           .delete()
           .eq('user_id', user.id)
           .eq('is_completed', false);
         
-        // Depois, inserir o novo treino
+        // Inserir o novo treino
         const { data, error } = await supabase
           .from('active_workouts')
           .insert({
@@ -132,7 +159,7 @@ export const useActiveWorkout = () => {
           throw error;
         }
         
-        console.log('saveActiveWorkout - workout saved successfully');
+        console.log('saveActiveWorkout - workout saved successfully (INSERT)');
         return data;
       } else {
         // Remover treino ativo
