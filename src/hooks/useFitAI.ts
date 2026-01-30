@@ -95,7 +95,31 @@ export const useFitAI = () => {
     }]);
   };
 
-  const executeAction = async (action: any) => {
+  // Função auxiliar para extrair JSONs da resposta
+  const extractJsonActions = (text: string): any[] => {
+    const actions: any[] = [];
+    // Regex para encontrar objetos JSON. Tenta lidar com blocos de código e objetos soltos
+    const jsonRegex = /\{[\s\S]*?\}/g;
+    const matches = text.match(jsonRegex);
+
+    if (matches) {
+      for (const match of matches) {
+        try {
+          // Tenta limpar o match de possíveis caracteres markdown residuais se necessário
+          const cleanMatch = match.trim();
+          const parsed = JSON.parse(cleanMatch);
+          if (parsed.action) {
+            actions.push(parsed);
+          }
+        } catch (e) {
+          // Ignora falhas de parse individuais
+        }
+      }
+    }
+    return actions;
+  };
+
+  const executeAction = async (action: any, currentWorkoutState: any) => {
     console.log("Executing AI Action:", action);
     
     if (action.type === "start_workout") {
@@ -110,7 +134,7 @@ export const useFitAI = () => {
 
         if (error || !workoutData) {
           console.error("Erro ao buscar detalhes do treino:", error);
-          return "Erro ao iniciar: Treino não encontrado no banco de dados.";
+          return { message: "Erro ao iniciar: Treino não encontrado no banco de dados.", updatedWorkout: currentWorkoutState };
         }
 
         // Converter para o tipo Workout esperado pelo hook
@@ -123,27 +147,29 @@ export const useFitAI = () => {
             updatedAt: workoutData.updated_at
         };
 
-        const success = await startWorkout(workoutToStart); // startWorkout retorna boolean ou void? No hook é void mas na logica parece ser async
-        
-        // Verificando implementação do startWorkout: ele retorna true/false
-        // Mas no hook useActiveWorkout exportado, precisamos ver se ele expõe o retorno.
-        // Assumindo que sim.
-        
-        return `Comando enviado para iniciar o treino "${workoutData.name}".`;
+        await startWorkout(workoutToStart);
+        return { message: `Comando enviado para iniciar o treino "${workoutData.name}".`, updatedWorkout: currentWorkoutState };
       }
-      return "Erro: ID do treino não fornecido.";
+      return { message: "Erro: ID do treino não fornecido.", updatedWorkout: currentWorkoutState };
     }
 
     if (action.type === "log_set") {
       const { exerciseId, reps, weight } = action;
-      if (!activeWorkout) return "Erro: Nenhum treino ativo no momento.";
       
-      const currentStatus = activeWorkout.exerciseStatus.find(s => s.id === exerciseId);
-      const exerciseName = activeWorkout.exercises.find(e => e.id === exerciseId)?.name || "Exercício";
+      // Usa o estado passado ou o atual do hook
+      const workoutState = currentWorkoutState || activeWorkout;
+      
+      if (!workoutState) return { message: "Erro: Nenhum treino ativo no momento.", updatedWorkout: workoutState };
+      
+      const currentStatus = workoutState.exerciseStatus.find((s: any) => s.id === exerciseId);
+      const exerciseName = workoutState.exercises.find((e: any) => e.id === exerciseId)?.name || "Exercício";
       
       let nextSetNumber = 1;
       if (currentStatus && currentStatus.sets && currentStatus.sets.length > 0) {
         const lastSet = currentStatus.sets[currentStatus.sets.length - 1];
+        // Se a última série já foi completada (no banco ou nesta sessão de updates), criamos uma nova
+        // Se foi criada mas não completada, atualizamos ela? A IA geralmente manda log de série feita.
+        // Vamos assumir que log_set SEMPRE adiciona uma nova série concluída ou completa a atual pendente.
         if (lastSet.completed) {
             nextSetNumber = lastSet.setNumber + 1;
         } else {
@@ -159,14 +185,29 @@ export const useFitAI = () => {
           completed: true
       };
       
-      const otherSets = existingSets.filter(s => s.setNumber !== nextSetNumber);
-      const updatedSets = [...otherSets, newSet].sort((a,b) => a.setNumber - b.setNumber);
+      const otherSets = existingSets.filter((s: any) => s.setNumber !== nextSetNumber);
+      const updatedSets = [...otherSets, newSet].sort((a: any,b: any) => a.setNumber - b.setNumber);
       
+      // Atualiza no banco
       await updateExerciseStatus(exerciseId, { sets: updatedSets });
-      return `Série registrada com sucesso para ${exerciseName}: ${reps} reps, ${weight}kg (Série ${nextSetNumber}).`;
+
+      // Atualiza o estado local temporário para a próxima iteração
+      const updatedExerciseStatus = workoutState.exerciseStatus.map((s: any) => 
+        s.id === exerciseId ? { ...s, sets: updatedSets } : s
+      );
+      
+      const newWorkoutState = {
+          ...workoutState,
+          exerciseStatus: updatedExerciseStatus
+      };
+
+      return { 
+          message: `Série registrada: ${exerciseName} - ${reps}x${weight}kg (Série ${nextSetNumber}).`, 
+          updatedWorkout: newWorkoutState 
+      };
     }
 
-    return "Ação desconhecida.";
+    return { message: "Ação desconhecida.", updatedWorkout: currentWorkoutState };
   };
 
   const processMessage = async (userMessage: string) => {
@@ -204,7 +245,7 @@ Você tem acesso ao contexto atual do usuário (treinos disponíveis, treino ati
 
 IMPORTANTE: Você pode executar ações no aplicativo respondendo com um JSON estrito.
 Se o usuário pedir para realizar uma ação, analise o contexto e responda APENAS o JSON da ação.
-Se for apenas conversa ou dúvida, responda em texto normal.
+Se houver múltiplas ações (ex: várias séries), responda com múltiplos objetos JSON em sequência ou uma lista de objetos.
 
 AÇÕES DISPONÍVEIS (Responda APENAS o JSON se for executar):
 
@@ -263,31 +304,41 @@ ${context}
 
       // 4. Processar Resposta
       let processedContent = aiContent;
+      let finalMessage = "";
 
-      // Tentar detectar JSON
-      try {
-        // As vezes a IA coloca markdown ```json ... ```
-        const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const jsonStr = jsonMatch[0];
-          const actionData = JSON.parse(jsonStr);
-          
-          if (actionData.action) {
-             // É uma ação! Executar.
-             const resultMsg = await executeAction({
-               type: actionData.action,
-               ...actionData
-             });
-             processedContent = resultMsg;
-             // Opcional: Poderíamos fazer uma segunda chamada para a IA gerar uma resposta amigável baseada no resultado,
-             // mas por enquanto vamos mostrar o resultado direto.
+      // Extrair todas as ações possíveis
+      const actions = extractJsonActions(aiContent);
+      
+      if (actions.length > 0) {
+        let currentWorkoutState = activeWorkout; // Estado inicial para encadeamento
+        const results = [];
+
+        for (const action of actions) {
+          const result = await executeAction(action, currentWorkoutState);
+          results.push(result.message);
+          if (result.updatedWorkout) {
+            currentWorkoutState = result.updatedWorkout;
           }
         }
-      } catch (e) {
-        console.log("Resposta não é JSON ou erro no parse, tratando como texto normal.");
+        
+        // Remove os JSONs da mensagem final para mostrar apenas o texto (se houver) ou os resultados
+        // Se a resposta for SÓ JSON, mostramos os resultados das ações.
+        // Se tiver texto misturado, mostramos o texto + resultados.
+        
+        // Estratégia simples: Se executou ações, a resposta da IA é substituída pelo log das ações.
+        // A menos que a IA tenha falado algo útil que não seja JSON.
+        const textWithoutJson = aiContent.replace(/\{[\s\S]*?\}/g, "").trim();
+        
+        if (textWithoutJson) {
+           finalMessage = `${textWithoutJson}\n\n✅ Ações realizadas:\n${results.join('\n')}`;
+        } else {
+           finalMessage = `✅ Ações realizadas:\n${results.join('\n')}`;
+        }
+      } else {
+        finalMessage = aiContent;
       }
 
-      addMessage('assistant', processedContent);
+      addMessage('assistant', finalMessage);
 
     } catch (error) {
       console.error('FitChat Error:', error);
