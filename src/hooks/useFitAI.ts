@@ -122,7 +122,10 @@ export const useFitAI = () => {
   const executeAction = async (action: any, currentWorkoutState: any) => {
     console.log("Executing AI Action:", action);
     
-    if (action.type === "start_workout") {
+    // Normaliza o tipo da ação (aceita tanto "type" quanto "action" vindo do JSON)
+    const actionType = action.type || action.action;
+    
+    if (actionType === "start_workout") {
       const workoutId = action.workoutId;
       if (workoutId) {
         // Precisamos buscar o objeto completo do treino com os exercícios
@@ -153,7 +156,7 @@ export const useFitAI = () => {
       return { message: "Erro: ID do treino não fornecido.", updatedWorkout: currentWorkoutState };
     }
 
-    if (action.type === "log_set") {
+    if (actionType === "log_set") {
       const { exerciseId, reps, weight } = action;
       
       // Usa o estado passado ou o atual do hook
@@ -207,7 +210,7 @@ export const useFitAI = () => {
       };
     }
 
-    return { message: "Ação desconhecida.", updatedWorkout: currentWorkoutState };
+    return { message: "Ação desconhecida: " + JSON.stringify(action), updatedWorkout: currentWorkoutState };
   };
 
   const processMessage = async (userMessage: string) => {
