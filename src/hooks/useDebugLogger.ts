@@ -5,13 +5,13 @@ export const useDebugLogger = () => {
   const location = useLocation();
 
   useEffect(() => {
-    console.log('🌐 PAGE NAVIGATION:', {
-      pathname: location.pathname,
-      search: location.search,
-      hash: location.hash,
-      timestamp: new Date().toISOString()
-    });
-  }, [location]);
+      // console.log('🌐 PAGE NAVIGATION:', {
+      //   pathname: location.pathname,
+      //   search: location.search,
+      //   hash: location.hash,
+      //   timestamp: new Date().toISOString()
+      // });
+    }, [location]);
 
   // Log de cliques em botões
   useEffect(() => {

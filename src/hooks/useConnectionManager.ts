@@ -23,7 +23,7 @@ export const useConnectionManager = () => {
           window.dispatchEvent(new CustomEvent('connection-lost'));
         } else {
           if (!isConnected.current) {
-            console.log('Connection restored');
+            // console.log('Connection restored');
             isConnected.current = true;
             
             // Disparar evento de reconexão

@@ -24,13 +24,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Log mudanças de estado do usuário
   useEffect(() => {
-    console.log('👤 AuthContext - user state changed:', {
-      hasUser: !!user,
-      userId: user?.id,
-      userName: user?.username,
-      isLoading,
-      timestamp: new Date().toISOString()
-    });
+    // console.log('👤 AuthContext - user state changed:', {
+    //   hasUser: !!user,
+    //   userId: user?.id,
+    //   userName: user?.username,
+    //   isLoading,
+    //   timestamp: new Date().toISOString()
+    // });
   }, [user, isLoading]);
 
   // fetch profile helper for login
@@ -44,27 +44,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    console.log('🚀 AuthContext - component mounting, setting up auth...');
+    // console.log('🚀 AuthContext - component mounting, setting up auth...');
     let subscription: { unsubscribe: () => void } | null = null;
     let mounted = true;
     
     // Check for an existing session first
     const checkSession = async () => {
-      console.log('🔍 AuthContext - checking initial session...');
+      // console.log('🔍 AuthContext - checking initial session...');
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
         
-        console.log('📡 AuthContext - session check result:', {
-          hasSession: !!session,
-          hasUser: !!session?.user,
-          userId: session?.user?.id,
-          error: error?.message,
-          mounted,
-          timestamp: new Date().toISOString()
-        });
+        // console.log('📡 AuthContext - session check result:', {
+        //   hasSession: !!session,
+        //   hasUser: !!session?.user,
+        //   userId: session?.user?.id,
+        //   error: error?.message,
+        //   mounted,
+        //   timestamp: new Date().toISOString()
+        // });
         
         if (!mounted) {
-          console.log('❌ AuthContext - component unmounted during session check');
+          // console.log('❌ AuthContext - component unmounted during session check');
           return;
         }
         
@@ -76,15 +76,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
         
         if (session?.user) {
-          console.log('✅ AuthContext - session found, fetching profile');
+          // console.log('✅ AuthContext - session found, fetching profile');
           await fetchProfile(session.user.id);
         } else {
-          console.log('❌ AuthContext - no session found, clearing user');
+          // console.log('❌ AuthContext - no session found, clearing user');
           setUser(null);
         }
         
         if (mounted) {
-          console.log('✅ AuthContext - session check completed, setting loading to false');
+          // console.log('✅ AuthContext - session check completed, setting loading to false');
           setIsLoading(false);
         }
       } catch (error) {
@@ -100,35 +100,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const setupAuthListener = () => {
       const { data } = supabase.auth.onAuthStateChange(
         async (event, session) => {
-          console.log('🔐 AuthContext - auth state change:', {
-            event,
-            hasSession: !!session,
-            hasUser: !!session?.user,
-            userId: session?.user?.id,
-            currentUser: user?.id,
-            mounted,
-            timestamp: new Date().toISOString()
-          });
+          // console.log('🔐 AuthContext - auth state change:', {
+          //   event,
+          //   hasSession: !!session,
+          //   hasUser: !!session?.user,
+          //   userId: session?.user?.id,
+          //   currentUser: user?.id,
+          //   mounted,
+          //   timestamp: new Date().toISOString()
+          // });
           
           if (!mounted) {
-            console.log('❌ AuthContext - component unmounted, ignoring auth change');
+            // console.log('❌ AuthContext - component unmounted, ignoring auth change');
             return;
           }
           
           if (event === 'SIGNED_IN' && session?.user) {
-            console.log('✅ AuthContext - user signed in, fetching profile');
+            // console.log('✅ AuthContext - user signed in, fetching profile');
             await fetchProfile(session.user.id);
           } else if (event === 'SIGNED_OUT') {
-            console.log('❌ AuthContext - user signed out, clearing user');
+            // console.log('❌ AuthContext - user signed out, clearing user');
             setUser(null);
           } else if (event === 'TOKEN_REFRESHED' && session?.user) {
-            console.log('🔄 AuthContext - token refreshed');
+            // console.log('🔄 AuthContext - token refreshed');
             // Only fetch profile if we don't have user data
             if (!user) {
-              console.log('🔄 AuthContext - no user data, fetching profile');
+              // console.log('🔄 AuthContext - no user data, fetching profile');
               await fetchProfile(session.user.id);
             } else {
-              console.log('✅ AuthContext - user data already available');
+              // console.log('✅ AuthContext - user data already available');
             }
           }
         }
@@ -144,11 +144,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     return () => {
-      console.log('💥 AuthContext - component unmounting, cleaning up...');
+      // console.log('💥 AuthContext - component unmounting, cleaning up...');
       mounted = false;
       if (subscription) {
         subscription.unsubscribe();
-        console.log('✅ AuthContext - auth subscription unsubscribed');
+        // console.log('✅ AuthContext - auth subscription unsubscribed');
       }
     };
   }, []);
@@ -156,7 +156,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Escutar eventos de refresh para reconectar quando app volta do background
   useEffect(() => {
     const handleAppRefresh = async () => {
-      console.log('App foreground refresh - checking auth session');
+      // console.log('App foreground refresh - checking auth session');
       try {
         // Pequeno delay para garantir que a página esteja totalmente ativa
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -171,16 +171,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (session?.user) {
           if (!user) {
             // Se temos uma sessão mas não temos dados do usuário, buscar perfil
-            console.log('Session found but no user data - fetching profile');
+            // console.log('Session found but no user data - fetching profile');
             await fetchProfile(session.user.id);
           } else {
             // Se já temos usuário, apenas verificar se a sessão ainda é válida
-            console.log('User already loaded, session is valid');
+            // console.log('User already loaded, session is valid');
           }
         } else {
           // Sem sessão, limpar usuário se existir
           if (user) {
-            console.log('No session found, clearing user');
+            // console.log('No session found, clearing user');
             setUser(null);
           }
         }
@@ -190,19 +190,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     const handleStateRecovery = async (event: CustomEvent) => {
-      console.log('App state recovery - checking auth session');
+      // console.log('App state recovery - checking auth session');
       try {
         const { session } = event.detail;
         
         if (session?.user) {
           if (!user) {
-            console.log('State recovery - fetching profile for user:', session.user.id);
+            // console.log('State recovery - fetching profile for user:', session.user.id);
             await fetchProfile(session.user.id);
           } else {
-            console.log('State recovery - user already loaded');
+            // console.log('State recovery - user already loaded');
           }
         } else {
-          console.log('State recovery - no valid session');
+          // console.log('State recovery - no valid session');
           if (user) {
             setUser(null);
           }

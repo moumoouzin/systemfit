@@ -114,14 +114,14 @@ const WorkoutImport = () => {
   };
 
   const processWorkouts = (data: CSVRow[]): Workout[] => {
-    console.log("🔍 Iniciando processamento de dados...");
-    console.log("📊 Dados brutos recebidos:", data);
-    console.log("📋 Número de linhas:", data.length);
+    // console.log("🔍 Iniciando processamento de dados...");
+    // console.log("📊 Dados brutos recebidos:", data);
+    // console.log("📋 Número de linhas:", data.length);
     
     const workoutMap = new Map<string, Workout>();
 
     data.forEach((row, index) => {
-      console.log(`\n📝 Processando linha ${index + 1}:`, row);
+      // console.log(`\n📝 Processando linha ${index + 1}:`, row);
       
       // Verificar se tem a coluna "Nome do Treino" ou usar nome padrão
       const workoutName = row['Nome do Treino']?.trim() || 'Treino Importado';
@@ -131,21 +131,21 @@ const WorkoutImport = () => {
       const reps = row['Repetições']?.trim() || '12';
       const weight = parseFloat(row['Peso (kg)']) || 0;
 
-      console.log("🔍 Valores extraídos:");
-      console.log("  - Nome do Treino:", workoutName);
-      console.log("  - Descrição:", description);
-      console.log("  - Nome do Exercício:", exerciseName);
-      console.log("  - Séries:", sets);
-      console.log("  - Repetições:", reps);
-      console.log("  - Peso:", weight);
+      // console.log("🔍 Valores extraídos:");
+      // console.log("  - Nome do Treino:", workoutName);
+      // console.log("  - Descrição:", description);
+      // console.log("  - Nome do Exercício:", exerciseName);
+      // console.log("  - Séries:", sets);
+      // console.log("  - Repetições:", reps);
+      // console.log("  - Peso:", weight);
 
       if (!exerciseName) {
-        console.log("❌ Linha ignorada - nome do exercício vazio");
+        // console.log("❌ Linha ignorada - nome do exercício vazio");
         return;
       }
 
       if (!workoutMap.has(workoutName)) {
-        console.log("🆕 Criando novo treino:", workoutName);
+        // console.log("🆕 Criando novo treino:", workoutName);
         workoutMap.set(workoutName, {
           id: uuidv4(),
           name: workoutName,
@@ -156,7 +156,7 @@ const WorkoutImport = () => {
       }
 
       const workout = workoutMap.get(workoutName)!;
-      console.log("➕ Adicionando exercício ao treino:", exerciseName);
+      // console.log("➕ Adicionando exercício ao treino:", exerciseName);
       workout.exercises.push({
         id: uuidv4(),
         name: exerciseName,
@@ -166,10 +166,10 @@ const WorkoutImport = () => {
     });
 
     const result = Array.from(workoutMap.values());
-    console.log("\n✅ Processamento concluído:");
-    console.log("📊 Treinos encontrados:", result.length);
+    // console.log("\n✅ Processamento concluído:");
+    // console.log("📊 Treinos encontrados:", result.length);
     result.forEach((workout, index) => {
-      console.log(`  ${index + 1}. ${workout.name} - ${workout.exercises.length} exercícios`);
+      // console.log(`  ${index + 1}. ${workout.name} - ${workout.exercises.length} exercícios`);
     });
 
     return result;
@@ -185,9 +185,9 @@ const WorkoutImport = () => {
       return;
     }
 
-    console.log("🚀 Iniciando importação...");
-    console.log("📁 Arquivo:", file.name);
-    console.log("👤 Usuário:", user.id);
+    // console.log("🚀 Iniciando importação...");
+    // console.log("📁 Arquivo:", file.name);
+    // console.log("👤 Usuário:", user.id);
     
     setIsProcessing(true);
 
@@ -196,20 +196,20 @@ const WorkoutImport = () => {
       skipEmptyLines: true,
       complete: async (results) => {
         try {
-          console.log("📊 Resultados do parsing:", results);
-          console.log("📋 Número de linhas:", results.data.length);
-          console.log("🏷️ Headers encontrados:", results.meta.fields);
+          // console.log("📊 Resultados do parsing:", results);
+          // console.log("📋 Número de linhas:", results.data.length);
+          // console.log("🏷️ Headers encontrados:", results.meta.fields);
           
           const data = results.data as CSVRow[];
-          console.log("🔍 Primeiras 3 linhas de dados:", data.slice(0, 3));
+          // console.log("🔍 Primeiras 3 linhas de dados:", data.slice(0, 3));
           
           const workouts = processWorkouts(data);
 
-          console.log("✅ Treinos processados:", workouts);
-          console.log("📊 Número de treinos:", workouts.length);
+          // console.log("✅ Treinos processados:", workouts);
+          // console.log("📊 Número de treinos:", workouts.length);
 
           if (workouts.length === 0) {
-            console.log("❌ Nenhum treino encontrado - mostrando erro");
+            // console.log("❌ Nenhum treino encontrado - mostrando erro");
             toast({
               title: "Nenhum treino encontrado",
               description: "Verifique se a planilha está no formato correto.",
@@ -219,11 +219,11 @@ const WorkoutImport = () => {
             return;
           }
 
-          console.log("💾 Iniciando salvamento no Supabase...");
+          // console.log("💾 Iniciando salvamento no Supabase...");
           
           // Salvar treinos no Supabase
           for (const workout of workouts) {
-            console.log(`💾 Salvando treino: ${workout.name}`);
+            // console.log(`💾 Salvando treino: ${workout.name}`);
             const { data: workoutData, error: workoutError } = await supabase
               .from('workouts')
               .insert({
@@ -241,11 +241,11 @@ const WorkoutImport = () => {
               continue;
             }
 
-            console.log(`✅ Treino salvo: ${workout.name}`);
+            // console.log(`✅ Treino salvo: ${workout.name}`);
 
             // Salvar exercícios
             if (workout.exercises.length > 0) {
-              console.log(`💾 Salvando ${workout.exercises.length} exercícios para ${workout.name}`);
+              // console.log(`💾 Salvando ${workout.exercises.length} exercícios para ${workout.name}`);
               const exercisesToInsert = workout.exercises.map(ex => ({
                 id: uuidv4(),
                 workout_id: workout.id,
@@ -254,7 +254,7 @@ const WorkoutImport = () => {
                 reps: String(ex.reps) // Garantir que seja string
               }));
 
-              console.log("📝 Exercícios para inserir:", exercisesToInsert);
+              // console.log("📝 Exercícios para inserir:", exercisesToInsert);
 
               const { error: exercisesError } = await supabase
                 .from('exercises')
@@ -263,19 +263,19 @@ const WorkoutImport = () => {
               if (exercisesError) {
                 console.error("❌ Erro ao criar exercícios:", exercisesError);
               } else {
-                console.log(`✅ Exercícios salvos para ${workout.name}`);
+                // console.log(`✅ Exercícios salvos para ${workout.name}`);
               }
             }
           }
 
-          console.log("💾 Atualizando localStorage...");
+          // console.log("💾 Atualizando localStorage...");
           
           // Atualizar localStorage
           const existingWorkouts = JSON.parse(localStorage.getItem(`workouts_${user.id}`) || '[]');
           const updatedWorkouts = [...workouts, ...existingWorkouts];
           localStorage.setItem(`workouts_${user.id}`, JSON.stringify(updatedWorkouts));
 
-          console.log("✅ Importação concluída com sucesso!");
+          // console.log("✅ Importação concluída com sucesso!");
 
           toast({
             title: "Treinos importados",

@@ -55,7 +55,7 @@ const Register = () => {
     }
 
     try {
-      console.log("Submitting registration with email:", email);
+      // console.log("Submitting registration with email:", email);
       const { error: registerError } = await register(email, password, name || null);
       
       if (registerError) {

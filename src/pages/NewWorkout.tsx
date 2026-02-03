@@ -251,7 +251,7 @@ const NewWorkout = () => {
         
         if (exercisesError) {
           console.error("Error creating exercises in Supabase:", exercisesError);
-          console.log("Continuing despite exercise insert error");
+          // console.log("Continuing despite exercise insert error");
         }
       }
       

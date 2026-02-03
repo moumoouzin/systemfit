@@ -24,11 +24,11 @@ export const usePWA = () => {
         setOfflineReady(true);
       },
       onRegistered(swRegistration) {
-        console.log('SW registered: ', swRegistration);
-      },
-      onRegisterError(error) {
-        console.log('SW registration error', error);
-      },
+              // console.log('SW registered: ', swRegistration);
+            },
+            onRegisterError(error) {
+              // console.log('SW registration error', error);
+            },
     });
 
     // Listener para mudanças de display mode

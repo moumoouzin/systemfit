@@ -25,7 +25,7 @@ export const login = async (
       return result;
     }
 
-    console.log("Attempting login with:", email.trim());
+    // console.log("Attempting login with:", email.trim());
     const { data, error } = await supabase.auth.signInWithPassword({
       email: email.trim().toLowerCase(), // Normalize email
       password,
@@ -60,9 +60,9 @@ export const login = async (
         });
       }
     } else if (data.session?.user) {
-      console.log("Login successful, fetching profile for:", data.session.user.id);
-      await fetchProfile(data.session.user.id);
-      toast({
+              // console.log("Login successful, fetching profile for:", data.session.user.id);
+              await fetchProfile(data.session.user.id);
+              toast({
         title: "Login realizado",
         description: `Bem-vindo de volta!`,
       });

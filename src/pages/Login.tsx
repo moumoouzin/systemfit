@@ -42,7 +42,7 @@ const Login = () => {
     }
     
     try {
-      console.log("Submitting login form with email:", email);
+      // console.log("Submitting login form with email:", email);
       const { error: loginError } = await login(email, password);
       
       if (loginError) {

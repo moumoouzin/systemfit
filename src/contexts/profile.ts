@@ -16,13 +16,13 @@ export const fetchProfile = async (
     // Verificar a sessão atual primeiro
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
-      console.log("No active session found during fetchProfile");
+      // console.log("No active session found during fetchProfile");
       setUser(null);
       return;
     }
 
     // Check if we have a user profile - aguardar um pouco para o trigger criar o perfil
-    console.log("Fetching user profile for ID:", id);
+    // console.log("Fetching user profile for ID:", id);
     
     let userProfileData = null;
     let attempts = 0;
@@ -56,7 +56,7 @@ export const fetchProfile = async (
 
     // Se ainda não existe após as tentativas, significa que algo deu errado
     if (!userProfileData) {
-      console.log("User profile not found after multiple attempts");
+      // console.log("User profile not found after multiple attempts");
       setUser(null);
       return;
     }
@@ -74,7 +74,7 @@ export const fetchProfile = async (
 
     if (!profileData) {
       // Profile data not found, create it
-      console.log("Creating new profile data for user");
+      // console.log("Creating new profile data for user");
       try {
         const { error: insertProfileError } = await supabase
           .from("profiles")
@@ -139,7 +139,7 @@ export const updateProfile = async (
       return { success: false, error: "Erro de autenticação. Faça login novamente." };
     }
     
-    console.log("Updating profile with data:", data);
+    // console.log("Updating profile with data:", data);
     
     const updateData: any = {};
     
@@ -186,13 +186,13 @@ export const updateProfile = async (
       }
     }
     
-    console.log("Profile updated successfully, updating state");
+    // console.log("Profile updated successfully, updating state");
     
     setUser((prev) => {
       if (!prev) return null;
       
       const updated = { ...prev, ...data };
-      console.log("New user state:", updated);
+      // console.log("New user state:", updated);
       return updated;
     });
     

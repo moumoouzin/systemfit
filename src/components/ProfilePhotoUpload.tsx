@@ -28,7 +28,7 @@ const ProfilePhotoUpload = () => {
       const fileName = `${user.id}.${fileExt}`;
       const filePath = `${fileName}`;
       
-      console.log('Uploading avatar:', { fileName, filePath, fileSize: file.size });
+      // console.log('Uploading avatar:', { fileName, filePath, fileSize: file.size });
 
       // Directly upload to existing 'avatars' bucket (do not try to create it)
       const { error: uploadError } = await supabase.storage
@@ -50,7 +50,7 @@ const ProfilePhotoUpload = () => {
       }
       
       const avatarUrl = data.publicUrl;
-      console.log('Avatar URL:', avatarUrl);
+      // console.log('Avatar URL:', avatarUrl);
       
       // Update profile with new avatar URL
       // Since updateProfile now returns void and throws an error on failure,

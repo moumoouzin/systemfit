@@ -29,7 +29,7 @@ export const useAppStateManager = () => {
     
     stateRef.current = state;
     localStorage.setItem('systemfit-app-state', JSON.stringify(state));
-    console.log('App state saved:', state);
+    // console.log('App state saved:', state);
   }, []);
 
   // Carregar estado da aplicação
@@ -39,7 +39,7 @@ export const useAppStateManager = () => {
       if (saved) {
         const state = JSON.parse(saved) as AppState;
         stateRef.current = state;
-        console.log('App state loaded:', state);
+        // console.log('App state loaded:', state);
         return state;
       }
     } catch (error) {
@@ -56,12 +56,12 @@ export const useAppStateManager = () => {
     const isSignificantTime = timeSinceLastSave > 2000; // 2 segundos (reduzido para ser mais responsivo)
     const isDifferentUrl = currentState.url !== window.location.href;
     
-    console.log('Recovery check:', {
-      timeSinceLastSave,
-      isSignificantTime,
-      isDifferentUrl,
-      shouldRecover: isSignificantTime || isDifferentUrl
-    });
+    // console.log('Recovery check:', {
+    //   timeSinceLastSave,
+    //   isSignificantTime,
+    //   isDifferentUrl,
+    //   shouldRecover: isSignificantTime || isDifferentUrl
+    // });
     
     return isSignificantTime || isDifferentUrl;
   }, []);
@@ -73,7 +73,7 @@ export const useAppStateManager = () => {
     isRecoveringRef.current = true;
     retryCountRef.current = 0;
     
-    console.log('Starting app state recovery...');
+    // console.log('Starting app state recovery...');
     
     try {
       // Verificar autenticação
@@ -85,12 +85,12 @@ export const useAppStateManager = () => {
       }
       
       if (!session) {
-        console.log('No active session during recovery');
+        // console.log('No active session during recovery');
         isRecoveringRef.current = false;
         return;
       }
       
-      console.log('Session verified during recovery');
+      // console.log('Session verified during recovery');
       
       // Disparar eventos de recuperação
       window.dispatchEvent(new CustomEvent('app-state-recovery', {
@@ -109,7 +109,7 @@ export const useAppStateManager = () => {
         retryCountRef.current++;
         const delay = Math.pow(2, retryCountRef.current) * 1000; // Exponential backoff
         
-        console.log(`Retrying recovery in ${delay}ms (attempt ${retryCountRef.current}/${maxRetries})`);
+        // console.log(`Retrying recovery in ${delay}ms (attempt ${retryCountRef.current}/${maxRetries})`);
         
         setTimeout(() => {
           isRecoveringRef.current = false;
@@ -141,38 +141,38 @@ export const useAppStateManager = () => {
   useEffect(() => {
     const handleVisibilityChange = async () => {
       if (document.hidden) {
-        console.log('Page hidden - saving state');
+        // console.log('Page hidden - saving state');
         saveAppState();
       } else {
-        console.log('Page visible - checking for recovery');
+        // console.log('Page visible - checking for recovery');
         const savedState = loadAppState();
         
         if (shouldRecoverState(savedState)) {
-          console.log('🔄 State recovery needed - triggering recovery');
+          // console.log('🔄 State recovery needed - triggering recovery');
           await recoverAppState();
         } else {
-          console.log('✅ No recovery needed - state is fresh');
+          // console.log('✅ No recovery needed - state is fresh');
         }
       }
     };
 
     const handleBeforeUnload = () => {
-      console.log('Page unloading - saving state');
+      // console.log('Page unloading - saving state');
       saveAppState();
     };
 
     const handleFocus = async () => {
-      console.log('Window focused - checking connection');
+      // console.log('Window focused - checking connection');
       const isConnected = await checkConnection();
       
       if (!isConnected) {
-        console.log('Connection lost - triggering recovery');
+        // console.log('Connection lost - triggering recovery');
         await recoverAppState();
       }
     };
 
     const handleBlur = () => {
-      console.log('Window blurred - saving state');
+      // console.log('Window blurred - saving state');
       saveAppState();
     };
 

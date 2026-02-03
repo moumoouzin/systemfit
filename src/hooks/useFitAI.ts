@@ -120,7 +120,7 @@ export const useFitAI = () => {
   };
 
   const executeAction = async (action: any, currentWorkoutState: any) => {
-    console.log("Executing AI Action:", action);
+    // console.log("Executing AI Action:", action);
     
     // Normaliza o tipo da ação (aceita tanto "type" quanto "action" vindo do JSON)
     const actionType = action.type || action.action;

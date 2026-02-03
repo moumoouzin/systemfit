@@ -113,7 +113,7 @@ export function PWADebug() {
     if (installPromptEvent) {
       installPromptEvent.prompt();
       const { outcome } = await installPromptEvent.userChoice;
-      console.log('Resultado da instalação:', outcome);
+      // console.log('Resultado da instalação:', outcome);
       setInstallPromptEvent(null);
       setStatus(prev => ({ ...prev, canInstall: false, installPrompt: null }));
     }

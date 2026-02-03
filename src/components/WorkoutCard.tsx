@@ -27,37 +27,37 @@ const WorkoutCard = ({ workout, onDelete, onStartWorkout }: WorkoutCardProps) =>
   const navigate = useNavigate();
   
   const handleStartWorkout = async () => {
-    console.log('🎯 WorkoutCard - handleStartWorkout CLICKED');
-    console.log('📊 WorkoutCard - checking onStartWorkout:', {
-      hasOnStartWorkout: !!onStartWorkout,
-      workoutId: workout.id,
-      workoutName: workout.name
-    });
+    // console.log('🎯 WorkoutCard - handleStartWorkout CLICKED');
+    // console.log('📊 WorkoutCard - checking onStartWorkout:', {
+    //   hasOnStartWorkout: !!onStartWorkout,
+    //   workoutId: workout.id,
+    //   workoutName: workout.name
+    // });
 
     if (onStartWorkout) {
-      console.log('✅ WorkoutCard - calling onStartWorkout...');
+      // console.log('✅ WorkoutCard - calling onStartWorkout...');
       try {
         const success = await onStartWorkout(workout);
-        console.log('📊 WorkoutCard - onStartWorkout result:', { success });
+        // console.log('📊 WorkoutCard - onStartWorkout result:', { success });
         
         if (success) {
-          console.log('✅ WorkoutCard - workout started successfully, staying on page');
+          // console.log('✅ WorkoutCard - workout started successfully, staying on page');
           // Se o treino foi iniciado com sucesso, não navegar para a página de detalhes
           // O treino ficará na seção "Sendo feito"
           return;
         } else {
-          console.log('❌ WorkoutCard - onStartWorkout failed, falling back to navigation');
+          // console.log('❌ WorkoutCard - onStartWorkout failed, falling back to navigation');
         }
       } catch (error) {
         console.error('❌ WorkoutCard - onStartWorkout error:', error);
-        console.log('🔄 WorkoutCard - falling back to navigation due to error');
+        // console.log('🔄 WorkoutCard - falling back to navigation due to error');
       }
     } else {
-      console.log('❌ WorkoutCard - no onStartWorkout function, using fallback');
+      // console.log('❌ WorkoutCard - no onStartWorkout function, using fallback');
     }
     
     // Fallback: navegar para a página de detalhes se não houver onStartWorkout
-    console.log("🔄 WorkoutCard - FALLBACK: Starting workout via navigation:", workout.id);
+    // console.log("🔄 WorkoutCard - FALLBACK: Starting workout via navigation:", workout.id);
     try {
       // Armazenar o treino atual no localStorage para acesso na página de detalhes
       localStorage.setItem('currentWorkout', JSON.stringify(workout));

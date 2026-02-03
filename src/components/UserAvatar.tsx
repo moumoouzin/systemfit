@@ -24,7 +24,7 @@ const UserAvatar = ({ user }: UserAvatarProps) => {
     
     // If there's a mismatch between stored level and calculated level
     if (correctLevel !== user.level) {
-      console.log(`Level mismatch detected: stored ${user.level}, calculated ${correctLevel}`);
+      // console.log(`Level mismatch detected: stored ${user.level}, calculated ${correctLevel}`);
       
       // Update the user's level in the database to match XP
       updateProfile({ 

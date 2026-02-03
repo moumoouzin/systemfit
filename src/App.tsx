@@ -13,7 +13,7 @@ import { useDebugLogger } from "@/hooks/useDebugLogger";
 
 // Componente interno para usar debug logger dentro do Router
 const AppContent = () => {
-  useDebugLogger();
+  // useDebugLogger();
   
   return (
     <AuthProvider>

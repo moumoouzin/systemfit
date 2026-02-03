@@ -258,11 +258,11 @@ export const useWorkoutSession = ({ workoutId }: UseWorkoutSessionProps = {}) =>
         xp_earned: xpEarned,
         notes: notes,
         exercises: exerciseDetails // Make sure this matches the database column
-      };
-      
-      console.log("Creating workout session with data:", sessionData);
-      
-      // Insert the session with all data at once
+            };
+
+            // console.log("Creating workout session with data:", sessionData);
+
+            // Insert the session with all data at once
       const { data: sessionInsertData, error: sessionError } = await supabase
         .from('workout_sessions')
         .insert(sessionData)

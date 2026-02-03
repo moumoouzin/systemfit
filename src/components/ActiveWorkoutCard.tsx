@@ -55,32 +55,32 @@ export const ActiveWorkoutCard = ({
   };
 
   const handleCancel = async () => {
-    console.log('🎯 ActiveWorkoutCard - handleCancel CLICKED');
-    console.log('📊 ActiveWorkoutCard - current state:', {
-      isCanceling,
-      activeWorkoutId: activeWorkout?.id,
-      activeWorkoutName: activeWorkout?.workoutName
-    });
+    // console.log('🎯 ActiveWorkoutCard - handleCancel CLICKED');
+    // console.log('📊 ActiveWorkoutCard - current state:', {
+    //   isCanceling,
+    //   activeWorkoutId: activeWorkout?.id,
+    //   activeWorkoutName: activeWorkout?.workoutName
+    // });
     
     setIsCanceling(true);
-    console.log('🔄 ActiveWorkoutCard - isCanceling set to true');
+    // console.log('🔄 ActiveWorkoutCard - isCanceling set to true');
     
     try {
-      console.log('🚀 ActiveWorkoutCard - calling onCancel...');
+      // console.log('🚀 ActiveWorkoutCard - calling onCancel...');
       await onCancel();
-      console.log('✅ ActiveWorkoutCard - onCancel completed successfully');
+      // console.log('✅ ActiveWorkoutCard - onCancel completed successfully');
       
-      console.log('🔄 ActiveWorkoutCard - forcing UI update...');
+      // console.log('🔄 ActiveWorkoutCard - forcing UI update...');
       // Forçar atualização da interface
       forceUpdate();
-      console.log('✅ ActiveWorkoutCard - forceUpdate called');
+      // console.log('✅ ActiveWorkoutCard - forceUpdate called');
       
-      console.log('🔄 ActiveWorkoutCard - showing success toast...');
+      // console.log('🔄 ActiveWorkoutCard - showing success toast...');
       toast({
         title: "Treino cancelado!",
         description: "O treino foi removido sem salvar no histórico.",
       });
-      console.log('✅ ActiveWorkoutCard - success toast shown');
+      // console.log('✅ ActiveWorkoutCard - success toast shown');
     } catch (error) {
       console.error("❌ ActiveWorkoutCard - error canceling workout:", error);
       console.error("❌ ActiveWorkoutCard - error details:", {
@@ -95,9 +95,9 @@ export const ActiveWorkoutCard = ({
         variant: "destructive",
       });
     } finally {
-      console.log('🔄 ActiveWorkoutCard - setting isCanceling to false');
+      // console.log('🔄 ActiveWorkoutCard - setting isCanceling to false');
       setIsCanceling(false);
-      console.log('✅ ActiveWorkoutCard - handleCancel COMPLETED');
+      // console.log('✅ ActiveWorkoutCard - handleCancel COMPLETED');
     }
   };
 

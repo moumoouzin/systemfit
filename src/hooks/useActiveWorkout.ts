@@ -23,29 +23,22 @@ export const useActiveWorkout = () => {
 
   // Log de mudanças de estado
   useEffect(() => {
-    console.log('🔄 useActiveWorkout - state changed:', {
-      hasActiveWorkout: !!activeWorkout,
-      activeWorkoutId: activeWorkout?.id,
-      activeWorkoutName: activeWorkout?.workoutName,
-      isLoading,
-      forceUpdate,
-      timestamp: new Date().toISOString()
-    });
+    // console.log('🔄 useActiveWorkout - state changed:', { ... });
   }, [activeWorkout, isLoading, forceUpdate]);
 
   // Carregar treino ativo do banco de dados
   const loadActiveWorkout = async () => {
     if (!user?.id) {
-      console.log('loadActiveWorkout - no user ID');
+      // console.log('loadActiveWorkout - no user ID');
       return null;
     }
     
     try {
-      console.log('loadActiveWorkout - fetching from database for user:', user.id);
+      // console.log('loadActiveWorkout - fetching from database for user:', user.id);
       
       // Verificar se o usuário está autenticado
       const { data: { session } } = await supabase.auth.getSession();
-      console.log('loadActiveWorkout - current session:', session ? 'authenticated' : 'not authenticated');
+      // console.log('loadActiveWorkout - current session:', session ? 'authenticated' : 'not authenticated');
       
       const { data, error } = await supabase
         .from('active_workouts')
@@ -64,7 +57,7 @@ export const useActiveWorkout = () => {
         
         if (error.code === 'PGRST116') {
           // Nenhum treino ativo encontrado
-          console.log('loadActiveWorkout - no active workout found');
+          // console.log('loadActiveWorkout - no active workout found');
           return null;
         }
         return null;
@@ -83,7 +76,7 @@ export const useActiveWorkout = () => {
           isCompleted: data.is_completed
         };
         
-        console.log('loadActiveWorkout - loaded workout:', workout.workoutName);
+        // console.log('loadActiveWorkout - loaded workout:', workout.workoutName);
         return workout;
       }
     } catch (error) {
@@ -96,13 +89,13 @@ export const useActiveWorkout = () => {
   // Salvar treino ativo no banco de dados
   const saveActiveWorkout = async (workout: ActiveWorkout | null) => {
     if (!user?.id) {
-      console.log('saveActiveWorkout - no user ID');
+      // console.log('saveActiveWorkout - no user ID');
       return;
     }
     
     try {
       if (workout) {
-        console.log('saveActiveWorkout - saving workout:', workout.workoutName);
+        // console.log('saveActiveWorkout - saving workout:', workout.workoutName);
         
         // Se já temos um ID, tentamos atualizar o registro existente para evitar deletar/criar
         if (workout.id) {
@@ -123,7 +116,7 @@ export const useActiveWorkout = () => {
             .single();
 
           if (!error && data) {
-            console.log('saveActiveWorkout - workout updated successfully (UPDATE)');
+            // console.log('saveActiveWorkout - workout updated successfully (UPDATE)');
             return data;
           }
           
@@ -159,11 +152,11 @@ export const useActiveWorkout = () => {
           throw error;
         }
         
-        console.log('saveActiveWorkout - workout saved successfully (INSERT)');
+        // console.log('saveActiveWorkout - workout saved successfully (INSERT)');
         return data;
       } else {
         // Remover treino ativo
-        console.log('saveActiveWorkout - removing active workout');
+        // console.log('saveActiveWorkout - removing active workout');
         
         const { error } = await supabase
           .from('active_workouts')
@@ -176,7 +169,7 @@ export const useActiveWorkout = () => {
           throw error;
         }
         
-        console.log('saveActiveWorkout - workout removed successfully');
+        // console.log('saveActiveWorkout - workout removed successfully');
       }
     } catch (error) {
       console.error('saveActiveWorkout - error:', error);
@@ -212,25 +205,25 @@ export const useActiveWorkout = () => {
 
   // Iniciar um novo treino
   const startWorkout = async (workout: Workout) => {
-    console.log('🚀 startWorkout - FUNCTION CALLED');
-    console.log('📊 startWorkout - input:', {
-      workoutId: workout.id,
-      workoutName: workout.name,
-      hasUser: !!user?.id,
-      userId: user?.id,
-      hasActiveWorkout: !!activeWorkout
-    });
+    // console.log('🚀 startWorkout - FUNCTION CALLED');
+    // console.log('📊 startWorkout - input:', {
+    //   workoutId: workout.id,
+    //   workoutName: workout.name,
+    //   hasUser: !!user?.id,
+    //   userId: user?.id,
+    //   hasActiveWorkout: !!activeWorkout
+    // });
 
     if (!user?.id) {
-      console.log('❌ startWorkout - no user ID, returning false');
+      // console.log('❌ startWorkout - no user ID, returning false');
       return false;
     }
 
     try {
-      console.log('🔄 startWorkout - checking for existing active workout in state...');
+      // console.log('🔄 startWorkout - checking for existing active workout in state...');
       // Verificar se já existe um treino ativo (tanto no estado quanto no banco)
       if (activeWorkout) {
-        console.log('❌ startWorkout - active workout exists in state, showing toast');
+        // console.log('❌ startWorkout - active workout exists in state, showing toast');
         toast({
           title: "Treino em andamento",
           description: "Você já tem um treino ativo. Finalize-o primeiro ou continue de onde parou.",
@@ -239,12 +232,12 @@ export const useActiveWorkout = () => {
         return false;
       }
 
-      console.log('🔄 startWorkout - checking database for existing active workouts...');
+      // console.log('🔄 startWorkout - checking database for existing active workouts...');
       // Verificar no banco de dados também para garantir que não há treinos ativos
       let existingActiveWorkout = null;
       
       try {
-        console.log('🔄 startWorkout - executing database query...');
+        // console.log('🔄 startWorkout - executing database query...');
         const { data, error } = await Promise.race([
           supabase
             .from('active_workouts')
@@ -263,16 +256,16 @@ export const useActiveWorkout = () => {
         }
         
         existingActiveWorkout = data;
-        console.log('📡 startWorkout - database check result:', { existingActiveWorkout });
+        // console.log('📡 startWorkout - database check result:', { existingActiveWorkout });
       } catch (error) {
         console.error('❌ startWorkout - database check failed:', error);
-        console.log('🔄 startWorkout - continuing without database check...');
+        // console.log('🔄 startWorkout - continuing without database check...');
         // Continuar sem verificação do banco se houver erro
         existingActiveWorkout = null;
       }
 
       if (existingActiveWorkout) {
-        console.log('❌ startWorkout - existing active workout found in database, showing toast');
+        // console.log('❌ startWorkout - existing active workout found in database, showing toast');
         toast({
           title: "Treino em andamento",
           description: "Você já tem um treino ativo. Finalize-o primeiro ou continue de onde parou.",
@@ -281,12 +274,12 @@ export const useActiveWorkout = () => {
         return false;
       }
 
-      console.log('✅ startWorkout - no existing active workouts, creating new one');
-      console.log('🔄 startWorkout - creating exercise status...');
+      // console.log('✅ startWorkout - no existing active workouts, creating new one');
+      // console.log('🔄 startWorkout - creating exercise status...');
       // Criar status inicial dos exercícios e buscar pesos anteriores
       const exerciseStatus: ExerciseStatus[] = await Promise.all(
         workout.exercises.map(async (exercise) => {
-          console.log(`🔄 startWorkout - processing exercise: ${exercise.name}`);
+          // console.log(`🔄 startWorkout - processing exercise: ${exercise.name}`);
           const previousWeight = await getPreviousWeight(exercise.id);
           return {
             id: exercise.id,
@@ -303,9 +296,9 @@ export const useActiveWorkout = () => {
         })
       );
 
-      console.log('✅ startWorkout - exercise status created:', exerciseStatus.length, 'exercises');
+      // console.log('✅ startWorkout - exercise status created:', exerciseStatus.length, 'exercises');
 
-      console.log('🔄 startWorkout - creating active workout object...');
+      // console.log('🔄 startWorkout - creating active workout object...');
       const newActiveWorkout: ActiveWorkout = {
         id: '', // Será gerado pelo banco
         workoutId: workout.id,
@@ -317,27 +310,27 @@ export const useActiveWorkout = () => {
         isCompleted: false,
       };
 
-      console.log('🔄 startWorkout - saving to database...');
+      // console.log('🔄 startWorkout - saving to database...');
       await saveActiveWorkout(newActiveWorkout);
-      console.log('✅ startWorkout - saved to database successfully');
+      // console.log('✅ startWorkout - saved to database successfully');
       
-      console.log('🔄 startWorkout - reloading from database...');
+      // console.log('🔄 startWorkout - reloading from database...');
       // Recarregar o treino do banco para obter o ID gerado
       const savedWorkout = await loadActiveWorkout();
       if (savedWorkout) {
-        console.log('✅ startWorkout - loaded from database:', savedWorkout.workoutName);
+        // console.log('✅ startWorkout - loaded from database:', savedWorkout.workoutName);
         setActiveWorkout(savedWorkout);
       } else {
-        console.log('❌ startWorkout - failed to load from database');
+        // console.log('❌ startWorkout - failed to load from database');
       }
 
-      console.log('🔄 startWorkout - showing success toast...');
+      // console.log('🔄 startWorkout - showing success toast...');
       toast({
         title: "Treino iniciado!",
         description: `${workout.name} foi adicionado à área "Sendo feito".`,
       });
 
-      console.log('🎉 startWorkout - COMPLETED SUCCESSFULLY');
+      // console.log('🎉 startWorkout - COMPLETED SUCCESSFULLY');
       return true;
     } catch (error) {
       console.error('❌ startWorkout - error details:', {
@@ -434,7 +427,7 @@ export const useActiveWorkout = () => {
           completed: set.completed
         }));
         
-        console.log('Saving exercise:', exercise.name, 'with sets:', setsPerformed);
+        // console.log('Saving exercise:', exercise.name, 'with sets:', setsPerformed);
         
         return {
           id: exercise.id,
@@ -544,30 +537,30 @@ export const useActiveWorkout = () => {
 
   // Cancelar treino (remover sem salvar no histórico)
   const cancelWorkout = async () => {
-    console.log('🚀 cancelWorkout - FUNCTION CALLED');
-    console.log('📊 cancelWorkout - current state:', {
-      hasActiveWorkout: !!activeWorkout,
-      activeWorkoutId: activeWorkout?.id,
-      activeWorkoutName: activeWorkout?.workoutName,
-      hasUser: !!user?.id,
-      userId: user?.id
-    });
+    // console.log('🚀 cancelWorkout - FUNCTION CALLED');
+    // console.log('📊 cancelWorkout - current state:', {
+    //   hasActiveWorkout: !!activeWorkout,
+    //   activeWorkoutId: activeWorkout?.id,
+    //   activeWorkoutName: activeWorkout?.workoutName,
+    //   hasUser: !!user?.id,
+    //   userId: user?.id
+    // });
 
     if (!activeWorkout || !user?.id) {
-      console.log('❌ cancelWorkout - no active workout or user, exiting');
+      // console.log('❌ cancelWorkout - no active workout or user, exiting');
       return;
     }
 
-    console.log('✅ cancelWorkout - starting cancellation for workout:', activeWorkout.workoutName);
+    // console.log('✅ cancelWorkout - starting cancellation for workout:', activeWorkout.workoutName);
 
     try {
-      console.log('🔄 cancelWorkout - calling supabase delete...');
+      // console.log('🔄 cancelWorkout - calling supabase delete...');
       
       // Remover treino ativo do banco com timeout
       let deleteError = null;
       
       try {
-        console.log('🔄 cancelWorkout - executing delete query...');
+        // console.log('🔄 cancelWorkout - executing delete query...');
         const { error } = await Promise.race([
           supabase
             .from('active_workouts')
@@ -580,10 +573,10 @@ export const useActiveWorkout = () => {
         ]) as any;
         
         deleteError = error;
-        console.log('📡 cancelWorkout - supabase response:', { error });
+        // console.log('📡 cancelWorkout - supabase response:', { error });
       } catch (error) {
         console.error('❌ cancelWorkout - delete query failed:', error);
-        console.log('🔄 cancelWorkout - continuing with local state cleanup...');
+        // console.log('🔄 cancelWorkout - continuing with local state cleanup...');
         // Continuar com limpeza local mesmo se o delete falhar
         deleteError = null;
       }
@@ -593,21 +586,21 @@ export const useActiveWorkout = () => {
         throw deleteError;
       }
 
-      console.log('✅ cancelWorkout - database deletion successful');
+      // console.log('✅ cancelWorkout - database deletion successful');
 
-      console.log('🔄 cancelWorkout - clearing state...');
+      // console.log('🔄 cancelWorkout - clearing state...');
       // Limpar treino ativo do estado
       setActiveWorkout(null);
       
-      console.log('🔄 cancelWorkout - forcing UI update...');
+      // console.log('🔄 cancelWorkout - forcing UI update...');
       // Forçar atualização da interface
       setForceUpdate(prev => {
-        console.log('🔄 cancelWorkout - forceUpdate changed from', prev, 'to', prev + 1);
+        // console.log('🔄 cancelWorkout - forceUpdate changed from', prev, 'to', prev + 1);
         return prev + 1;
       });
 
-      console.log('✅ cancelWorkout - state cleared successfully');
-      console.log('🎉 cancelWorkout - COMPLETED SUCCESSFULLY');
+      // console.log('✅ cancelWorkout - state cleared successfully');
+      // console.log('🎉 cancelWorkout - COMPLETED SUCCESSFULLY');
     } catch (error) {
       console.error('❌ cancelWorkout - error details:', {
         error,
@@ -649,7 +642,7 @@ export const useActiveWorkout = () => {
             .eq('id', workout.id);
         }
         
-        console.log(`Cleaned up ${toDelete.length} orphaned active workouts`);
+        // console.log(`Cleaned up ${toDelete.length} orphaned active workouts`);
       }
     } catch (error) {
       console.error('Error cleaning up orphaned workouts:', error);
@@ -678,7 +671,7 @@ export const useActiveWorkout = () => {
   // Escutar eventos de refresh quando app volta do background
   useEffect(() => {
     const handleAppRefresh = async () => {
-      console.log('App foreground refresh triggered - reloading active workout');
+      // console.log('App foreground refresh triggered - reloading active workout');
       if (user?.id) {
         try {
           // Limpar treinos órfãos primeiro
@@ -688,7 +681,7 @@ export const useActiveWorkout = () => {
           const saved = await loadActiveWorkout();
           setActiveWorkout(saved);
           
-          console.log('Active workout reloaded successfully');
+          // console.log('Active workout reloaded successfully');
         } catch (error) {
           console.error('Error reloading active workout:', error);
         }
@@ -719,7 +712,7 @@ export const useActiveWorkout = () => {
           const saved = await loadActiveWorkout();
           setActiveWorkout(saved);
           
-          console.log('Active workout recovered successfully');
+          // console.log('Active workout recovered successfully');
         } catch (error) {
           console.error('Error recovering active workout:', error);
         }

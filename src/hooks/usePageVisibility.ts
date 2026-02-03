@@ -33,10 +33,10 @@ export const usePageVisibility = () => {
             const timeDiff = Date.now() - state.timestamp;
             
             // Se passou mais de 5 minutos, pode ser necessário recarregar
-            if (timeDiff > 5 * 60 * 1000) {
-              console.log('Page was hidden for too long - may need refresh');
-              // Não recarregar automaticamente, mas avisar o usuário
-            }
+                  if (timeDiff > 5 * 60 * 1000) {
+                    // console.log('Page was hidden for too long - may need refresh');
+                    // Não recarregar automaticamente, mas avisar o usuário
+                  }
           } catch (error) {
             console.error('Error parsing saved state:', error);
           }
