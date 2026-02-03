@@ -164,7 +164,8 @@ const WorkoutImport = () => {
         id: uuidv4(),
         name: exerciseName,
         sets,
-        reps
+        reps,
+        notes: row['Observação']?.trim() || ''
       });
     });
 
