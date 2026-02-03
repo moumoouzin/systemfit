@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, FileText, Upload } from "lucide-react";
+import { Plus, FileText, Upload, Archive } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import WorkoutCard from "@/components/WorkoutCard";
 import { ActiveWorkoutCard } from "@/components/ActiveWorkoutCard";
@@ -14,10 +14,12 @@ import { useActiveWorkout } from "@/hooks/useActiveWorkout";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { v4 as uuidv4 } from "uuid";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Workouts = () => {
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("active");
   const navigate = useNavigate();
   const { user } = useAuth();
   const { draft, deleteDraft, hasDraft } = useDraftWorkout();
@@ -119,7 +121,8 @@ const Workouts = () => {
             name: workout.name,
             exercises: workout.exercises || [],
             createdAt: workout.created_at,
-            updatedAt: workout.updated_at
+            updatedAt: workout.updated_at,
+            isArchived: workout.is_archived
           }));
           
           setWorkouts(formattedWorkouts);
@@ -215,6 +218,70 @@ const Workouts = () => {
     }
   };
 
+  const handleArchive = async (workoutId: string) => {
+    try {
+      if (!user?.id) return;
+
+      const { error } = await supabase
+        .from('workouts')
+        .update({ is_archived: true })
+        .eq('id', workoutId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      const updatedWorkouts = workouts.map(w => 
+        w.id === workoutId ? { ...w, isArchived: true } : w
+      );
+      setWorkouts(updatedWorkouts);
+      localStorage.setItem(`workouts_${user.id}`, JSON.stringify(updatedWorkouts));
+
+      toast({
+        title: "Treino arquivado",
+        description: "O treino foi movido para os arquivados.",
+      });
+    } catch (error) {
+      console.error("Error archiving workout:", error);
+      toast({
+        title: "Erro ao arquivar",
+        description: "Não foi possível arquivar o treino.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUnarchive = async (workoutId: string) => {
+    try {
+      if (!user?.id) return;
+
+      const { error } = await supabase
+        .from('workouts')
+        .update({ is_archived: false })
+        .eq('id', workoutId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      const updatedWorkouts = workouts.map(w => 
+        w.id === workoutId ? { ...w, isArchived: false } : w
+      );
+      setWorkouts(updatedWorkouts);
+      localStorage.setItem(`workouts_${user.id}`, JSON.stringify(updatedWorkouts));
+
+      toast({
+        title: "Treino desarquivado",
+        description: "O treino voltou para a lista principal.",
+      });
+    } catch (error) {
+      console.error("Error unarchiving workout:", error);
+      toast({
+        title: "Erro ao desarquivar",
+        description: "Não foi possível desarquivar o treino.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleContinueDraft = () => {
     navigate('/workouts/new', { state: { loadDraft: true } });
   };
@@ -226,6 +293,9 @@ const Workouts = () => {
       description: "O rascunho de treino foi removido.",
     });
   };
+
+  const activeWorkoutsList = workouts.filter(w => !w.isArchived);
+  const archivedWorkoutsList = workouts.filter(w => w.isArchived);
 
   return (
     <div className="space-y-6">
@@ -315,18 +385,7 @@ const Workouts = () => {
         <div className="flex items-center justify-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
-      ) : workouts.length > 0 ? (
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 w-full max-w-full">
-          {workouts.map((workout) => (
-            <WorkoutCard
-              key={workout.id}
-              workout={workout}
-              onDelete={handleDelete}
-              onStartWorkout={startWorkout}
-            />
-          ))}
-        </div>
-      ) : (
+      ) : workouts.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-muted-foreground mb-4">Você ainda não tem treinos cadastrados</p>
           <div className="flex flex-col sm:flex-row gap-2 justify-center">
@@ -342,6 +401,62 @@ const Workouts = () => {
             </Button>
           </div>
         </div>
+      ) : (
+        <Tabs defaultValue="active" value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <div className="flex items-center justify-between mb-4">
+             <TabsList>
+                <TabsTrigger value="active">Ativos ({activeWorkoutsList.length})</TabsTrigger>
+                <TabsTrigger value="archived" className="flex items-center gap-2">
+                   <Archive className="h-4 w-4" />
+                   Arquivados ({archivedWorkoutsList.length})
+                </TabsTrigger>
+             </TabsList>
+          </div>
+
+          <TabsContent value="active" className="mt-0 space-y-4">
+             {activeWorkoutsList.length > 0 ? (
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 w-full max-w-full">
+                  {activeWorkoutsList.map((workout) => (
+                    <WorkoutCard
+                      key={workout.id}
+                      workout={workout}
+                      onDelete={handleDelete}
+                      onStartWorkout={startWorkout}
+                      onArchive={handleArchive}
+                    />
+                  ))}
+                </div>
+             ) : (
+                <div className="text-center py-12 border rounded-lg bg-muted/10">
+                   <p className="text-muted-foreground mb-4">Você não tem treinos ativos no momento.</p>
+                   <Button onClick={() => navigate('/workouts/new')} variant="outline">
+                     Criar novo treino
+                   </Button>
+                </div>
+             )}
+          </TabsContent>
+
+          <TabsContent value="archived" className="mt-0 space-y-4">
+             {archivedWorkoutsList.length > 0 ? (
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 w-full max-w-full">
+                  {archivedWorkoutsList.map((workout) => (
+                    <WorkoutCard
+                      key={workout.id}
+                      workout={workout}
+                      onDelete={handleDelete}
+                      onStartWorkout={startWorkout}
+                      onUnarchive={handleUnarchive}
+                    />
+                  ))}
+                </div>
+             ) : (
+                <div className="text-center py-12 border rounded-lg bg-muted/10">
+                   <Archive className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-20" />
+                   <p className="text-muted-foreground">Você não tem treinos arquivados.</p>
+                </div>
+             )}
+          </TabsContent>
+        </Tabs>
       )}
     </div>
   );

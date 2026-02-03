@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dumbbell, Clock, Trash, Pencil, Play } from "lucide-react";
+import { Dumbbell, Clock, Trash, Pencil, Play, Archive, ArchiveRestore } from "lucide-react";
 import { Workout } from "@/types";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/components/ui/use-toast";
@@ -21,9 +21,11 @@ interface WorkoutCardProps {
   workout: Workout;
   onDelete?: (workoutId: string) => void;
   onStartWorkout?: (workout: Workout) => Promise<boolean>;
+  onArchive?: (workoutId: string) => void;
+  onUnarchive?: (workoutId: string) => void;
 }
 
-const WorkoutCard = ({ workout, onDelete, onStartWorkout }: WorkoutCardProps) => {
+const WorkoutCard = ({ workout, onDelete, onStartWorkout, onArchive, onUnarchive }: WorkoutCardProps) => {
   const navigate = useNavigate();
   
   const handleStartWorkout = async () => {
@@ -118,6 +120,39 @@ const WorkoutCard = ({ workout, onDelete, onStartWorkout }: WorkoutCardProps) =>
             >
               <Pencil className="h-3 w-3 sm:h-4 sm:w-4" />
             </Button>
+            
+            {workout.isArchived ? (
+              onUnarchive && (
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onUnarchive(workout.id);
+                  }}
+                  className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                  title="Desarquivar treino"
+                >
+                  <ArchiveRestore className="h-3 w-3 sm:h-4 sm:w-4" />
+                </Button>
+              )
+            ) : (
+              onArchive && (
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onArchive(workout.id);
+                  }}
+                  className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0 text-amber-500 hover:text-amber-600 hover:bg-amber-50"
+                  title="Arquivar treino"
+                >
+                  <Archive className="h-3 w-3 sm:h-4 sm:w-4" />
+                </Button>
+              )
+            )}
+
             {onDelete && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>

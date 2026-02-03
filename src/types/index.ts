@@ -21,6 +21,7 @@ export interface Workout {
   exercises: Exercise[];
   createdAt?: string;
   updatedAt?: string;
+  isArchived?: boolean;
 }
 
 export interface Exercise {

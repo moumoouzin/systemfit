@@ -225,6 +225,7 @@ export type Database = {
           name: string
           updated_at: string
           user_id: string
+          is_archived?: boolean
         }
         Insert: {
           created_at?: string
@@ -232,6 +233,7 @@ export type Database = {
           name: string
           updated_at?: string
           user_id: string
+          is_archived?: boolean
         }
         Update: {
           created_at?: string
@@ -239,6 +241,7 @@ export type Database = {
           name?: string
           updated_at?: string
           user_id?: string
+          is_archived?: boolean
         }
         Relationships: []
       }
