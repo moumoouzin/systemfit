@@ -95,9 +95,7 @@ export const ActiveWorkoutCard = ({
         variant: "destructive",
       });
     } finally {
-      // console.log('🔄 ActiveWorkoutCard - setting isCanceling to false');
       setIsCanceling(false);
-      // console.log('✅ ActiveWorkoutCard - handleCancel COMPLETED');
     }
   };
 

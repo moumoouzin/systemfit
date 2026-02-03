@@ -21,24 +21,15 @@ export const useActiveWorkout = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [forceUpdate, setForceUpdate] = useState(0);
 
-  // Log de mudanças de estado
-  useEffect(() => {
-    // console.log('🔄 useActiveWorkout - state changed:', { ... });
-  }, [activeWorkout, isLoading, forceUpdate]);
-
   // Carregar treino ativo do banco de dados
   const loadActiveWorkout = useCallback(async () => {
     if (!user?.id) {
-      // console.log('loadActiveWorkout - no user ID');
       return null;
     }
     
     try {
-      // console.log('loadActiveWorkout - fetching from database for user:', user.id);
-      
       // Verificar se o usuário está autenticado
       const { data: { session } } = await supabase.auth.getSession();
-      // console.log('loadActiveWorkout - current session:', session ? 'authenticated' : 'not authenticated');
       
       const { data, error } = await supabase
         .from('active_workouts')

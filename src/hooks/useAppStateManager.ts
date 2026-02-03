@@ -141,17 +141,13 @@ export const useAppStateManager = () => {
   useEffect(() => {
     const handleVisibilityChange = async () => {
       if (document.hidden) {
-        // console.log('Page hidden - saving state');
         saveAppState();
       } else {
-        // console.log('Page visible - checking for recovery');
+        window.dispatchEvent(new CustomEvent('app-foreground-refresh'));
         const savedState = loadAppState();
         
         if (shouldRecoverState(savedState)) {
-          // console.log('🔄 State recovery needed - triggering recovery');
           await recoverAppState();
-        } else {
-          // console.log('✅ No recovery needed - state is fresh');
         }
       }
     };

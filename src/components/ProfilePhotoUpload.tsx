@@ -46,11 +46,10 @@ const ProfilePhotoUpload = () => {
         .getPublicUrl(filePath);
         
       if (!data) {
-        throw new Error('Could not get public URL for avatar.');
+        throw new Error('Não foi possível obter a URL pública do avatar.');
       }
       
       const avatarUrl = data.publicUrl;
-      // console.log('Avatar URL:', avatarUrl);
       
       // Update profile with new avatar URL
       // Since updateProfile now returns void and throws an error on failure,

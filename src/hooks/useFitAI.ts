@@ -36,6 +36,31 @@ export const useFitAI = () => {
 
   const { startWorkout, activeWorkout, updateExerciseStatus } = useActiveWorkout();
 
+  // Carregar mensagens salvas
+  useEffect(() => {
+    const savedMessages = localStorage.getItem('fitchat_messages');
+    if (savedMessages) {
+      try {
+        const parsed = JSON.parse(savedMessages);
+        // Recriar objetos Date
+        const hydrated = parsed.map((m: any) => ({
+          ...m,
+          timestamp: new Date(m.timestamp)
+        }));
+        setMessages(hydrated);
+      } catch (e) {
+        console.error('Failed to load messages', e);
+      }
+    }
+  }, []);
+
+  // Salvar mensagens quando mudarem
+  useEffect(() => {
+    if (messages.length > 1) { // Só salva se tiver mais que a mensagem inicial
+      localStorage.setItem('fitchat_messages', JSON.stringify(messages));
+    }
+  }, [messages]);
+
   useEffect(() => {
     const loadConfig = async () => {
       const { data: { user } } = await supabase.auth.getUser();

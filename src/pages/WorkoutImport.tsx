@@ -156,7 +156,6 @@ const WorkoutImport = () => {
       }
 
       const workout = workoutMap.get(workoutName)!;
-      // console.log("➕ Adicionando exercício ao treino:", exerciseName);
       workout.exercises.push({
         id: uuidv4(),
         name: exerciseName,
@@ -166,11 +165,6 @@ const WorkoutImport = () => {
     });
 
     const result = Array.from(workoutMap.values());
-    // console.log("\n✅ Processamento concluído:");
-    // console.log("📊 Treinos encontrados:", result.length);
-    result.forEach((workout, index) => {
-      // console.log(`  ${index + 1}. ${workout.name} - ${workout.exercises.length} exercícios`);
-    });
 
     return result;
   };
@@ -185,10 +179,6 @@ const WorkoutImport = () => {
       return;
     }
 
-    // console.log("🚀 Iniciando importação...");
-    // console.log("📁 Arquivo:", file.name);
-    // console.log("👤 Usuário:", user.id);
-    
     setIsProcessing(true);
 
     Papa.parse(file, {
@@ -219,11 +209,8 @@ const WorkoutImport = () => {
             return;
           }
 
-          // console.log("💾 Iniciando salvamento no Supabase...");
-          
           // Salvar treinos no Supabase
           for (const workout of workouts) {
-            // console.log(`💾 Salvando treino: ${workout.name}`);
             const { data: workoutData, error: workoutError } = await supabase
               .from('workouts')
               .insert({
@@ -254,28 +241,20 @@ const WorkoutImport = () => {
                 reps: String(ex.reps) // Garantir que seja string
               }));
 
-              // console.log("📝 Exercícios para inserir:", exercisesToInsert);
-
               const { error: exercisesError } = await supabase
                 .from('exercises')
                 .insert(exercisesToInsert);
 
               if (exercisesError) {
                 console.error("❌ Erro ao criar exercícios:", exercisesError);
-              } else {
-                // console.log(`✅ Exercícios salvos para ${workout.name}`);
               }
             }
           }
 
-          // console.log("💾 Atualizando localStorage...");
-          
           // Atualizar localStorage
           const existingWorkouts = JSON.parse(localStorage.getItem(`workouts_${user.id}`) || '[]');
           const updatedWorkouts = [...workouts, ...existingWorkouts];
           localStorage.setItem(`workouts_${user.id}`, JSON.stringify(updatedWorkouts));
-
-          // console.log("✅ Importação concluída com sucesso!");
 
           toast({
             title: "Treinos importados",
