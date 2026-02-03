@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Workout, Exercise, ExerciseStatus, SetStatus, ExerciseNotes } from '@/types';
@@ -27,7 +27,7 @@ export const useActiveWorkout = () => {
   }, [activeWorkout, isLoading, forceUpdate]);
 
   // Carregar treino ativo do banco de dados
-  const loadActiveWorkout = async () => {
+  const loadActiveWorkout = useCallback(async () => {
     if (!user?.id) {
       // console.log('loadActiveWorkout - no user ID');
       return null;
@@ -84,7 +84,7 @@ export const useActiveWorkout = () => {
     }
     
     return null;
-  };
+  }, [user?.id]);
 
   // Salvar treino ativo no banco de dados
   const saveActiveWorkout = async (workout: ActiveWorkout | null) => {
@@ -649,8 +649,10 @@ export const useActiveWorkout = () => {
     }
   };
 
-  // Carregar treino ativo na inicialização
+  // Carregar treino ativo na inicialização e subscrever para mudanças
   useEffect(() => {
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
     const loadWorkout = async () => {
       if (user?.id) {
         // Primeiro limpar treinos órfãos
@@ -659,6 +661,25 @@ export const useActiveWorkout = () => {
         // Depois carregar o treino ativo
         const saved = await loadActiveWorkout();
         setActiveWorkout(saved);
+
+        // Subscrever para mudanças no Supabase
+        channel = supabase
+          .channel(`active_workout_sync_${user.id}`)
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'active_workouts',
+              filter: `user_id=eq.${user.id}`,
+            },
+            async () => {
+              // console.log('Realtime update received');
+              const saved = await loadActiveWorkout();
+              setActiveWorkout(saved);
+            }
+          )
+          .subscribe();
       } else {
         setActiveWorkout(null);
       }
@@ -666,7 +687,11 @@ export const useActiveWorkout = () => {
     };
 
     loadWorkout();
-  }, [user?.id]);
+
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, [user?.id, loadActiveWorkout]);
 
   // Escutar eventos de refresh quando app volta do background
   useEffect(() => {
