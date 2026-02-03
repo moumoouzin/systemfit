@@ -688,8 +688,46 @@ export const useActiveWorkout = () => {
 
     loadWorkout();
 
+    // Escutar mudanças de visibilidade para reconectar o realtime se necessário
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && user?.id) {
+        // console.log('App visible - refreshing active workout and subscription');
+        
+        // Recarregar dados
+        const saved = await loadActiveWorkout();
+        setActiveWorkout(saved);
+        
+        // Reiniciar subscrição (opcional, o Supabase costuma reconectar sozinho, 
+        // mas isso força uma nova conexão limpa se estivermos voltando de um estado suspenso)
+        if (channel) {
+            supabase.removeChannel(channel);
+        }
+        
+        channel = supabase
+          .channel(`active_workout_sync_${user.id}_${Date.now()}`) // Timestamp para garantir canal único
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'active_workouts',
+              filter: `user_id=eq.${user.id}`,
+            },
+            async () => {
+              // console.log('Realtime update received (reconnected)');
+              const saved = await loadActiveWorkout();
+              setActiveWorkout(saved);
+            }
+          )
+          .subscribe();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
       if (channel) supabase.removeChannel(channel);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [user?.id, loadActiveWorkout]);
 

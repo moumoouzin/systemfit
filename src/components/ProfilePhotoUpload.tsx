@@ -65,7 +65,7 @@ const ProfilePhotoUpload = () => {
       });
       
     } catch (error: any) {
-      console.error('Error uploading avatar:', error);
+        console.error('Error uploading avatar:', error);
       toast({
         title: "Erro",
         description: error.message || "Falha ao atualizar foto de perfil.",

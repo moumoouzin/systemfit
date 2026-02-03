@@ -157,7 +157,7 @@ export const useFitAI = () => {
     }
 
     if (actionType === "log_set") {
-      const { exerciseId, reps, weight } = action;
+      const { exerciseId, reps, weight, setNumber } = action;
       
       // Usa o estado passado ou o atual do hook
       const workoutState = currentWorkoutState || activeWorkout;
@@ -167,28 +167,42 @@ export const useFitAI = () => {
       const currentStatus = workoutState.exerciseStatus.find((s: any) => s.id === exerciseId);
       const exerciseName = workoutState.exercises.find((e: any) => e.id === exerciseId)?.name || "Exercício";
       
-      let nextSetNumber = 1;
-      if (currentStatus && currentStatus.sets && currentStatus.sets.length > 0) {
-        const lastSet = currentStatus.sets[currentStatus.sets.length - 1];
-        // Se a última série já foi completada (no banco ou nesta sessão de updates), criamos uma nova
-        // Se foi criada mas não completada, atualizamos ela? A IA geralmente manda log de série feita.
-        // Vamos assumir que log_set SEMPRE adiciona uma nova série concluída ou completa a atual pendente.
-        if (lastSet.completed) {
-            nextSetNumber = lastSet.setNumber + 1;
+      let targetSetNumber = 1;
+      const existingSets = currentStatus?.sets || [];
+      
+      // Se o usuário especificou o número da série (edição explícita)
+      if (setNumber) {
+        targetSetNumber = parseInt(setNumber);
+      } else {
+        // Lógica de preenchimento inteligente:
+        // 1. Procura a primeira série incompleta (não marcada como completed e com valores zerados/padrão)
+        // 2. Se todas completas, cria uma nova
+        
+        // Encontrar a primeira série que não está completada e parece vazia (reps 0 ou weight 0)
+        // ou apenas não completada.
+        const firstIncompleteSet = existingSets.find((s: any) => !s.completed);
+        
+        if (firstIncompleteSet) {
+          targetSetNumber = firstIncompleteSet.setNumber;
         } else {
-            nextSetNumber = lastSet.setNumber;
+          // Se todas completas, pega o último número + 1
+          if (existingSets.length > 0) {
+            const lastSet = existingSets[existingSets.length - 1];
+            targetSetNumber = lastSet.setNumber + 1;
+          } else {
+            targetSetNumber = 1;
+          }
         }
       }
 
-      const existingSets = currentStatus?.sets || [];
       const newSet = {
-          setNumber: nextSetNumber,
+          setNumber: targetSetNumber,
           reps: parseInt(reps),
           weight: parseInt(weight),
           completed: true
       };
       
-      const otherSets = existingSets.filter((s: any) => s.setNumber !== nextSetNumber);
+      const otherSets = existingSets.filter((s: any) => s.setNumber !== targetSetNumber);
       const updatedSets = [...otherSets, newSet].sort((a: any,b: any) => a.setNumber - b.setNumber);
       
       // Atualiza no banco
@@ -205,7 +219,7 @@ export const useFitAI = () => {
       };
 
       return { 
-          message: `Série registrada: ${exerciseName} - ${reps}x${weight}kg (Série ${nextSetNumber}).`, 
+          message: `Série ${targetSetNumber} registrada: ${exerciseName} - ${reps}x${weight}kg.`, 
           updatedWorkout: newWorkoutState 
       };
     }
@@ -264,9 +278,11 @@ Use isso quando o usuário disser "Iniciar treino de X". Procure o ID correspond
   "action": "log_set",
   "exerciseId": "ID_DO_EXERCICIO_ENCONTRADO_NO_CONTEXTO",
   "reps": 10,
-  "weight": 20
+  "weight": 20,
+  "setNumber": 1 
 }
 Use isso quando o usuário disser "Fiz 10 reps com 20kg no supino". Encontre o ID do exercício pelo nome.
+O campo "setNumber" é opcional. Se o usuário disser "Corrija a série 1 para 20kg", inclua "setNumber": 1. Caso contrário, não envie esse campo e a lógica preencherá a próxima série vazia.
 
 REGRAS:
 - Se não encontrar o treino ou exercício exato, peça clarificação ao usuário.
