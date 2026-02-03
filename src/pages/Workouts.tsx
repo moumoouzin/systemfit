@@ -257,7 +257,7 @@ const Workouts = () => {
                 className="cursor-pointer hover:bg-muted"
               >
                 <Upload className="mr-2 h-4 w-4" />
-                Importar Planilha
+                Importar Treinos
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -338,7 +338,7 @@ const Workouts = () => {
             </Button>
             <Button onClick={() => navigate('/workouts/import')} variant="outline" className="w-full sm:w-auto">
               <Upload className="mr-2 h-4 w-4" />
-              Importar de planilha
+              Importar Treinos
             </Button>
           </div>
         </div>

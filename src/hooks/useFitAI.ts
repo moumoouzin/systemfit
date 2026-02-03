@@ -4,6 +4,7 @@ import { useActiveWorkout } from './useActiveWorkout';
 import { supabase } from '@/integrations/supabase/client';
 import { Workout } from '@/types';
 import { toast } from '@/components/ui/use-toast';
+import { v4 as uuidv4 } from 'uuid';
 
 export type ChatMessage = {
   id: string;
@@ -150,6 +151,69 @@ export const useFitAI = () => {
     // Normaliza o tipo da ação (aceita tanto "type" quanto "action" vindo do JSON)
     const actionType = action.type || action.action;
     
+    if (actionType === "create_workout") {
+      const { name, description, exercises } = action;
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        return { message: "Erro: Usuário não autenticado.", updatedWorkout: currentWorkoutState };
+      }
+
+      const workoutId = uuidv4();
+      const currentDate = new Date().toISOString();
+
+      // 1. Criar o treino
+      const { error: workoutError } = await supabase
+        .from('workouts')
+        .insert({
+          id: workoutId,
+          user_id: user.id,
+          name: name || "Novo Treino IA",
+          // description field might not exist in table based on NewWorkout.tsx insert, let's check. 
+          // NewWorkout.tsx didn't insert description in the snippets I saw, but the form schema had it.
+          // Let's assume schema matches form. Wait, NewWorkout.tsx insert block (line 223) did NOT include description.
+          // It only had id, user_id, name, created_at, updated_at.
+          // I should verify if 'description' column exists. 
+          // If unsure, I'll omit it to avoid errors, or check NewWorkout.tsx again.
+          // Looking at NewWorkout.tsx line 223, it inserts: id, user_id, name, created_at, updated_at.
+          // So I will OMIT description from the insert to be safe.
+          created_at: currentDate,
+          updated_at: currentDate
+        });
+
+      if (workoutError) {
+        console.error("Erro ao criar treino:", workoutError);
+        return { message: "Erro ao criar o treino no banco de dados.", updatedWorkout: currentWorkoutState };
+      }
+
+      // 2. Criar exercícios
+      if (exercises && exercises.length > 0) {
+        const exercisesToInsert = exercises.map((ex: any) => ({
+          id: uuidv4(),
+          workout_id: workoutId,
+          name: ex.name,
+          sets: parseInt(ex.sets) || 3,
+          reps: String(ex.reps || "12"),
+          notes: ex.notes || null
+        }));
+
+        const { error: exercisesError } = await supabase
+          .from('exercises')
+          .insert(exercisesToInsert);
+
+        if (exercisesError) {
+           console.error("Erro ao criar exercícios:", exercisesError);
+           return { message: `Treino "${name}" criado, mas houve erro ao adicionar os exercícios.`, updatedWorkout: currentWorkoutState };
+        }
+      }
+
+      return { 
+        message: `✅ Treino "${name}" criado com sucesso com ${exercises?.length || 0} exercícios! Você pode visualizá-lo na aba Treinos.`, 
+        updatedWorkout: currentWorkoutState 
+      };
+    }
+
     if (actionType === "start_workout") {
       const workoutId = action.workoutId;
       if (workoutId) {
@@ -291,14 +355,25 @@ Se houver múltiplas ações (ex: várias séries), responda com múltiplos obje
 
 AÇÕES DISPONÍVEIS (Responda APENAS o JSON se for executar):
 
-1. INICIAR TREINO:
+1. CRIAR TREINO:
+{
+  "action": "create_workout",
+  "name": "Nome do Treino",
+  "description": "Descrição opcional",
+  "exercises": [
+    { "name": "Nome do Exercício", "sets": 3, "reps": "12", "notes": "Obs opcional" }
+  ]
+}
+Use isso quando o usuário pedir para criar um novo treino (ex: "Crie um treino de costas").
+
+2. INICIAR TREINO:
 {
   "action": "start_workout",
   "workoutId": "ID_DO_TREINO_ENCONTRADO_NO_CONTEXTO"
 }
 Use isso quando o usuário disser "Iniciar treino de X". Procure o ID correspondente no contexto.
 
-2. REGISTRAR SÉRIE (Apenas se houver treino ativo):
+3. REGISTRAR SÉRIE (Apenas se houver treino ativo):
 {
   "action": "log_set",
   "exerciseId": "ID_DO_EXERCICIO_ENCONTRADO_NO_CONTEXTO",
