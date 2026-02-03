@@ -223,6 +223,7 @@ const WorkoutImport = () => {
 
           const sets = parseInt(parts[1]) || 3;
           const reps = parts[2] || '12';
+          const notes = parts[3] || '';
           
           if (name) {
             currentWorkout.exercises.push({
@@ -230,6 +231,7 @@ const WorkoutImport = () => {
               name,
               sets,
               reps,
+              notes
             });
           }
         }
@@ -275,7 +277,8 @@ const WorkoutImport = () => {
           workout_id: workout.id,
           name: ex.name,
           sets: ex.sets,
-          reps: String(ex.reps)
+          reps: String(ex.reps),
+          notes: ex.notes || null
         }));
 
         const { error: exercisesError } = await supabase
@@ -468,13 +471,13 @@ const WorkoutImport = () => {
               <br />
               Use <strong># Nome do Treino</strong> para iniciar um novo treino.
               <br />
-              Liste os exercícios no formato: <strong>Nome | Séries | Repetições</strong>
+              Liste os exercícios no formato: <strong>Nome | Séries | Repetições | Observações (Opcional)</strong>
               <br />
               Exemplo:
               <br />
               # Treino de Peito
               <br />
-              Supino Reto | 4 | 10
+              Supino Reto | 4 | 10 | Carga progressiva
               <br />
               Crucifixo | 3 | 12
             </AlertDescription>
@@ -492,7 +495,7 @@ const WorkoutImport = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <Textarea 
-                placeholder="# Treino A&#10;Supino | 4 | 10&#10;Agachamento | 4 | 12"
+                placeholder="# Treino A&#10;Supino | 4 | 10 | Cuidado com ombro&#10;Agachamento | 4 | 12"
                 className="min-h-[300px] font-mono"
                 value={textInput}
                 onChange={(e) => setTextInput(e.target.value)}
